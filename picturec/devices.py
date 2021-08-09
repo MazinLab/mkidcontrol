@@ -880,7 +880,6 @@ class Currentduino(SerialDevice):
             raise ValueError(f"Could not parse '{response}' into a float")
         log.info(f"Current value is {current} A")
         return current
-        return voltage
 
     def _postconnect(self):
         """
