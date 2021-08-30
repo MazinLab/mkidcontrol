@@ -358,10 +358,10 @@ def handle_validation(req, submission=False):
             if submission:
                 if prefix_cmd:
                     app.logger.debug(f"Sending command:{key} -> {value}")
-                    # redis.publish(f"command:{key}", value, store=False)
+                    redis.publish(f"command:{key}", value, store=False)
                 else:
                     app.logger.debug(f"Sending {key} -> {value}")
-                    # redis.publish(key, value)
+                    redis.publish(key, value)
         except ValueError:
             is_legal = [False, '\u2717']
         return jsonify({'cycle': False, 'key': key, 'value': value, 'legal': is_legal})
@@ -376,7 +376,7 @@ def handle_validation(req, submission=False):
                 time_to_cool = ((soak_current - 0) / ramp_rate) + soak_time + ((0 - soak_current) / deramp_rate)
                 if submission:
                     app.logger.debug(f"{key} -> {value}, {x[0]}")
-                    # redis.publish(key, x[0], store=False)
+                    redis.publish(key, x[0], store=False)
                 if x[2] >= time_to_cool:
                     return jsonify({'cycle': True, 'key': 'command:be-cold-at', 'value': datetime.datetime.strftime(x[1], "%m/%d/%y %H:%M:%S"), 'legal': [True, '\u2713']})
                 else:
@@ -386,7 +386,7 @@ def handle_validation(req, submission=False):
         else:
             if submission:
                 app.logger.debug(f"{key} at {time.time()}")
-                # redis.publish(key, f"{time.time()}", store=False)
+                redis.publish(key, f"{time.time()}", store=False)
             return jsonify({'mag': True, 'key': key, 'value': time.strftime("%m/%d/%y %H:%M:%S"), 'legal': [True, '\u2713']})
     else:
         app.logger.critical(f"Field type '{field_type}' not implemented!")
