@@ -1,13 +1,14 @@
 """
-TODO: Make buttons on index page do stuff (actually publish redis commands)
 TODO: Determine EXACTLY which fields need warning signs
-TODO: Fix errors if redis range is empty
 
-# TODO: Clean up plotting/streaming
-# TODO: Condense/make more sensible validation handling
-# TODO: Try to remove hardcoding as best as possible
+TODO: Condense/make more sensible validation handling
+TODO: Try to remove hardcoding as best as possible
 
-# TODO: Lightcurve from pixel!
+TODO: Integrate Jeb's flask changes
+TODO: Incorporate power on/off into the monitoring/control panel
+ - Related: Fix errors if redis range is empty (i.e. no values reported since the device was off)
+
+TODO (FOR ALL DEVICES): Enable graceful power on/off handling (i.e. don't error out if device is purposely switched off)
 """
 
 import flask
