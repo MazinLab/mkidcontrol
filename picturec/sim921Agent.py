@@ -108,7 +108,6 @@ if __name__ == "__main__":
 
     # ---------------------------------- MAIN OPERATION (The eternal loop) BELOW HERE ----------------------------------
     def callback(t, r, v):
-        # Use the if since we don't want to store bad/null data
         d = {k: x for k, x in zip((TEMP_KEY, RES_KEY, OUTPUT_VOLTAGE_KEY), (t, r, v)) if x}
         redis.store(d, timeseries=True)
     sim.monitor(QUERY_INTERVAL, (sim.temp, sim.resistance, sim.output_voltage), value_callback=callback)
