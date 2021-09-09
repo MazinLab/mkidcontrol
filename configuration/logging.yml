@@ -30,6 +30,9 @@ loggers:
   hemttempAgent:
     hemttempAgent: debug
     picturec.pcredis: info
+  relayAgent:
+    relayAgent: debug
+    picturec.pcredis: info
   quenchAgent:
       quenchAgent: debug
       picturec.pcredis: info
