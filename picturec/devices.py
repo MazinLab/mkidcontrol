@@ -58,7 +58,7 @@ COMMANDS960 = {'device-settings:sim960:vout-min-limit': {'command': 'LLIM', 'val
 
 def load_tvals(curve):
     if curve == 1:
-        file = '/home/mazinlab/picturec/docs/hardware_reference_documentation/thermometry/RX-102A/'
+        file = '/home/mazinlab/picturec/docs/hardware_reference_documentation/thermometry/RX-102A/RX-102A_Mean_Curve.tbl'
         # import pkg_resources as pkg
         # file = pkg.resource_filename('hardware.thermometry.RX-102A', 'RX-102A_Mean_Curve.tbl')
     else:
