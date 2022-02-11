@@ -52,6 +52,7 @@ def to_scaled_output():
 
 def to_manual_output():
     redis.publish(OUTPUT_MODE_COMMAND_KEY, SIM921OutputMode.MANUAL, store=False)
+    redis.publish('device-settings:sim921:manual-vout', 0, store=False)
 
 
 def in_scaled_output():

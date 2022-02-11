@@ -38,7 +38,7 @@ RAMP_CONFIG_KEYS = (RAMP_SLOPE_KEY, DERAMP_SLOPE_KEY, SOAK_TIME_KEY, SOAK_CURREN
 
 SETTING_KEYS = tuple(COMMANDS960.keys())
 
-QUERY_INTERVAL = 1
+QUERY_INTERVAL = 0.001
 
 OUTPUT_VOLTAGE_KEY = 'status:device:sim960:hcfet-control-voltage'  # Set by 'MOUT' in manual mode, monitored by 'OMON?' always
 INPUT_VOLTAGE_KEY = 'status:device:sim960:vin'  # This is the measured input to sim960 from sim921 for PID control
