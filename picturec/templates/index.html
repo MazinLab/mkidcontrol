@@ -164,7 +164,7 @@
                     document.getElementById("cancelcooldown").disabled = false;
                     document.getElementById("schedulecooldown").disabled = true;
                     document.getElementById("schedulesubmit").disabled = true;
-                } else if (newdata['status:magnet:state'] == "on") {
+                } else if (newdata['status:magnet:state'] != "on") {
                     document.getElementById("abortcooldown").disabled = false;
                     document.getElementById("startcooldown").disabled = true;
                     document.getElementById("cancelcooldown").disabled = true;
