@@ -1,4 +1,4 @@
-name: picc
+name: mkidcontrol
 channels:
   - defaults
   - conda-forge

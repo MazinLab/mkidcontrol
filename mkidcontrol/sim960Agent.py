@@ -14,12 +14,12 @@ from transitions import MachineError, State, Transition
 from transitions.extensions import LockedMachine
 import pkg_resources
 
-import picturec.util as util
-from picturec.devices import SIM960, SimCommand, MagnetState, COMMANDS960, enable_simulator
-import picturec.pcredis as redis
-from picturec.pcredis import RedisError
-import picturec.currentduinoAgent as heatswitch
-import picturec.sim921Agent as sim921
+import mkidcontrol.util as util
+from mkidcontrol.devices import SIM960, SimCommand, MagnetState, COMMANDS960, enable_simulator
+import mkidcontrol.pcredis as redis
+from mkidcontrol.pcredis import RedisError
+import mkidcontrol.currentduinoAgent as heatswitch
+import mkidcontrol.sim921Agent as sim921
 
 
 DEVICE = '/dev/sim960'

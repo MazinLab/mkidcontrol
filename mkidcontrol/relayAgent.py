@@ -15,9 +15,9 @@ import time
 import threading
 import logging
 from logging import getLogger
-import picturec.util as util
-import picturec.pcredis as redis
-from picturec.pcredis import RedisError
+import mkidcontrol.util as util
+import mkidcontrol.pcredis as redis
+from mkidcontrol.pcredis import RedisError
 
 
 HOST = '192.168.10.101'

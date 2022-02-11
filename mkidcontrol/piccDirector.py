@@ -25,18 +25,18 @@ import subprocess
 import select
 
 
-import picturec.util as util
-from picturec.frontend.config import Config
-import picturec.pcredis as redis
-from picturec.devices import COMMAND_DICT, SimCommand
-import picturec.currentduinoAgent as heatswitch
+import mkidcontrol.util as util
+from mkidcontrol.frontend.config import Config
+import mkidcontrol.pcredis as redis
+from mkidcontrol.devices import COMMAND_DICT, SimCommand
+import mkidcontrol.currentduinoAgent as heatswitch
 
-from picturec.sim960Agent import SIM960_KEYS
-from picturec.sim921Agent import SIM921_KEYS
-from picturec.lakeshore240Agent import LAKESHORE240_KEYS
-from picturec.hemttempAgent import HEMTTEMP_KEYS
-from picturec.currentduinoAgent import CURRENTDUINO_KEYS
-from picturec.frontend.customForms import CycleControlForm, MagnetControlForm, SIM921SettingForm, SIM960SettingForm, HeatswitchToggle, TestForm, \
+from mkidcontrol.sim960Agent import SIM960_KEYS
+from mkidcontrol.sim921Agent import SIM921_KEYS
+from mkidcontrol.lakeshore240Agent import LAKESHORE240_KEYS
+from mkidcontrol.hemttempAgent import HEMTTEMP_KEYS
+from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
+from mkidcontrol.frontend.customForms import CycleControlForm, MagnetControlForm, SIM921SettingForm, SIM960SettingForm, HeatswitchToggle, TestForm, \
     SIM921_SETTING_KEYS, SIM960_SETTING_KEYS, HEATSWITCH_SETTING_KEYS, MAGNET_COMMAND_FORM_KEYS, CYCLE_KEYS, FIELD_KEYS
 # util.setup_logging('piccDirector')
 

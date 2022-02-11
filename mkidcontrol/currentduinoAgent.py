@@ -15,10 +15,10 @@ import time
 import logging
 import threading
 
-from picturec.devices import Currentduino, HeatswitchPosition
-import picturec.pcredis as redis
-from picturec.pcredis import RedisError
-import picturec.util as util
+from mkidcontrol.devices import Currentduino, HeatswitchPosition
+import mkidcontrol.pcredis as redis
+from mkidcontrol.pcredis import RedisError
+import mkidcontrol.util as util
 
 
 QUERY_INTERVAL = .1

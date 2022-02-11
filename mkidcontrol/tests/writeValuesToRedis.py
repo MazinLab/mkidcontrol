@@ -2,7 +2,7 @@
 A testing script to write generic values to a redis key. Meant for testing plotly.js plotting tools.
 """
 
-from picturec.pcredis import PCRedis
+from mkidcontrol.pcredis import PCRedis
 import numpy as np
 import time
 

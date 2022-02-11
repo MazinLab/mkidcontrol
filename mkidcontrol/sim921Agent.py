@@ -9,10 +9,10 @@ the device temperature.
 import logging
 import sys
 import time
-from picturec.pcredis import RedisError
-import picturec.util as util
-from picturec.devices import SIM921, SimCommand, SIM921OutputMode, COMMANDS921
-import picturec.pcredis as redis
+from mkidcontrol.pcredis import RedisError
+import mkidcontrol.util as util
+from mkidcontrol.devices import SIM921, SimCommand, SIM921OutputMode, COMMANDS921
+import mkidcontrol.pcredis as redis
 
 
 DEVICE = '/dev/sim921'

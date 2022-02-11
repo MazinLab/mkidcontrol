@@ -5,10 +5,10 @@ The goal of this program is to monitor for the potential signs of a quench in th
 to report the quench as fast as possible to shut of the magnet and prevent any damage to it.
 """
 
-import picturec.pcredis as redis
-from picturec.pcredis import RedisError
-import picturec.util as util
-from picturec.devices import SIM960
+import mkidcontrol.pcredis as redis
+from mkidcontrol.pcredis import RedisError
+import mkidcontrol.util as util
+from mkidcontrol.devices import SIM960
 from logging import getLogger
 import time
 import numpy as np

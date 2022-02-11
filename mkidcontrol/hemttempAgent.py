@@ -11,9 +11,9 @@ import sys
 import numpy as np
 import time
 
-from picturec.devices import Hemtduino
-from picturec.pcredis import PCRedis, RedisError
-import picturec.util as util
+from mkidcontrol.devices import Hemtduino
+from mkidcontrol.pcredis import PCRedis, RedisError
+import mkidcontrol.util as util
 
 
 DEVICE = "/dev/hemtduino"

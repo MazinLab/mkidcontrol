@@ -20,9 +20,9 @@ import time
 import logging
 import threading
 
-import picturec.devices
-from picturec.pcredis import PCRedis, RedisError
-import picturec.util as util
+import mkidcontrol.devices
+from mkidcontrol.pcredis import PCRedis, RedisError
+import mkidcontrol.util as util
 
 
 LAKESHORE240_KEYS = ['status:temps:lhetank',
@@ -45,7 +45,7 @@ QUERY_INTERVAL = 1
 log = logging.getLogger()
 
 
-class LakeShore240(picturec.devices.SerialDevice):
+class LakeShore240(mkidcontrol.devices.SerialDevice):
     def __init__(self, name, port, baudrate=115200, timeout=0.1, connect=True):
         super().__init__(port, baudrate, timeout, name=name)
 
