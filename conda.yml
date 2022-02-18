@@ -1,4 +1,4 @@
-name: mkidcontrol
+name: control
 channels:
   - defaults
   - conda-forge
