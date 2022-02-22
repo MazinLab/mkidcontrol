@@ -143,7 +143,7 @@ if __name__ == "__main__":
         info = lakeshore.device_info
         # Note that placing the store before exit makes this program behave differently in an abort
         #  than both of the sims, which would not alter the database. I like this better.
-        redis.store({FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['firmware']})
+        redis.store({FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['sn']})
     except IOError as e:
         log.error(f"When checking device info: {e}")
         redis.store({FIRMWARE_KEY: '',  MODEL_KEY: '', SN_KEY: ''})
