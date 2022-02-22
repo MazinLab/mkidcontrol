@@ -559,6 +559,106 @@ class SimDevice(SerialDevice):
         self._monitor_thread.start()
 
 
+class LakeShoreDevice(SerialDevice):
+    def __init__(self, name, port, baudrate=9600, timeout=0.1, connect=True, valid_models=None):
+        super().__init__(port, baudrate, timeout, name=name)
+
+        if isinstance(valid_models, tuple):
+            self.valid_models = valid_models
+        else:
+            self.valid_models = tuple(valid_models)
+
+        self.sn = None
+        self.firmware = None
+        self.terminator = '\n'
+
+        if connect:
+            self.connect(raise_errors=False)
+
+    def format_msg(self, msg:str):
+        """
+        Overrides agent.SerialDevice format_message() function. Commands to the LakeShore 240 are all upper-case.
+        *NOTE: By choice, using .upper(), if we manually store a name of a curve/module, it will be in all caps.
+        """
+        return super().format_msg(msg.strip().upper())
+
+    @property
+    def device_info(self):
+        self.connect()
+        return dict(model=self.name, firmware=self.firmware, sn=self.sn)
+
+    def _postconnect(self):
+
+        id_msg = self.query("*IDN?")
+        try:
+            manufacturer, model, self.sn, self.firmware = id_msg.split(",")
+        except ValueError:
+            log.debug(f"Unable to parse IDN response: '{id_msg}'")
+            manufacturer, model, self.sn, self.firmware = [None]*4
+
+        if not (manufacturer == "LSCI") and (model in self.valid_models):
+            msg = f"Unsupported device: {manufacturer}/{model} (idn response = '{id_msg}')"
+            log.critical(msg)
+            raise IOError(msg)
+
+        if self.name[:-3] == '240':
+            self.name += f"-{model[-2:]}"
+
+
+class LakeShore240(LakeShoreDevice):
+    def __init__(self, name, port, baudrate=115200, timeout=0.1, connect=True, valid_models=None):
+        super().__init__(name, port, baudrate, timeout, connect=connect, valid_models=valid_models)
+
+        self._monitor_thread = None  # Maybe not even necessary since this only queries
+        self.last_he_temp = None
+        self.last_ln2_temp = None
+        self.enabled = self.enabled_channels
+
+    @property
+    def enabled_channels(self):
+        enabled = []
+        for channel in range(1, int(self.name[-2]) + 1):
+            try:
+                _, _, enabled_status = self.query(f"INTYPE? {channel}").rpartition(',')
+                if enabled_status == "1":
+                    enabled.append(channel)
+            except IOError as e:
+                log.error(f"Serial error: {e}")
+                raise IOError(f"Serial error: {e}")
+            except ValueError:
+                log.critical(f"Channel {channel} returned and unknown value from channel information query")
+                raise IOError(f"Channel {channel} returned and unknown value from channel information query")
+        return tuple(enabled)
+
+    def read_temperatures(self):
+        """Queries the temperature of all enabled channels on the LakeShore 240. LakeShore reports values of temperature
+        in Kelvin. May raise IOError in the case of serial communication not working."""
+        readings = []
+        tanks = ['ln2', 'lhe']
+        for channel in self.enabled:
+            try:
+                readings.append(float(self.query(f"KRDG? {channel}")))
+            except IOError as e:
+                log.error(f"Serial Error: {e}")
+                raise IOError(f"Serial Error: {e}")
+            except ValueError as e:
+                log.error(f"Parsing error: {e}")
+                raise ValueError(f"Parsing error: {e}")
+        temps = {tanks[i]: readings[i] for i in range(len(self.enabled))}
+        return temps
+
+    def _set_curve_name(self, channel: int, name: str):
+        """Engineering function to set the name of a curve on the LakeShore240. Convenient since both thermometers are
+        DT-670A-CU style, and so this can clear any ambiguity. Does not need to be used in normal operation. Logs
+        IOError but does not raise it.
+        """
+        try:
+            self.send(f'INNAME{str(channel)},"{name}"')
+        except IOError as e:
+            log.error(f"Unable to set channel {channel}'s name to '{name}'. "
+                      f"Check to make sure the LakeShore USB is connected!")
+
+
 class MagnetState(enum.Enum):
      PID = enum.auto()
      MANUAL = enum.auto()
