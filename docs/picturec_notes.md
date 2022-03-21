@@ -19,20 +19,27 @@
 - First, from this link (https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers)
     you can download driver source code so you can manually add it in.
 - Next, from the zipped directory you download, unzip into a directory (currently this is
-    'picturec/hardware/drivers/lakeshoredriver') where you will find a file called cp210x.c
+    'mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/linuxlakeshoredriver') where you will find a file called cp210x.c
 - In 'cp210x.c' add the VID/PID of the LS240 (1FB9, 0205) to the list like below
-    ```c
+    ```
     { USB_DEVICE(0x1FB9, 0x0201) }, /* Lake Shore Model 219 Temperature Monitor */
     { USB_DEVICE(0x1FB9, 0x0202) }, /* Lake Shore Model 233 Temperature Transmitter */
     { USB_DEVICE(0x1FB9, 0x0203) }, /* Lake Shore Model 235 Temperature Transmitter */
     { USB_DEVICE(0x1FB9, 0x0205) }, /* Lake Shore Model 240 Temperature Monitor <---Edit This line */ 
     { USB_DEVICE(0x1FB9, 0x0300) }, /* Lake Shore Model 335 Temperature Controller */
     ```
-- Once this is done, you need to copy this file to where the kernel modules exist on your machine.
+- After adding in the appropriate USB_DEVICE VID and PID, you need to recompile the kernel object file.
+  - If there is already a cp210x.ko file, move it somewhere it will not be overwritten or modified 
+  - In the directory with the cp210x.c file (and the other requisite files) run `make all cp210x`
+  - This should create the new cp210x.ko file you will need
+- Once this is done, you need to copy the cp210x.ko file to where the kernel modules exist on your machine.
     Note, this may require sudo/write permissions to the directory
     - For Ubuntu 20.04, Linux kernel 5.3.0-59-generic, this is in '/lib/modules/5.3.0-59-generic/kernel/drivers/usb/serial'
            (to find your active kernel, just type 'uname -r' into the command line)
     - Alternatively, you can copy the file to '/lib/modules/$(uname -r)/kernel/drivers/usb/serial
+- After this, you should be able to run `sudo modprobe cp210x` and it will restart the module, however, no changes will take effect until re-plugging the USB devices
+  - This will only get you the cp210x module started during this boot. If you reboot and do nothing else, then cp210x will not restart on a reboot
+  - To configure automatic start at boot, see the following note
 - Now, if you are NOT using secure boot, edit '/etc/modules' to contain 1 line that says 'cp210x'.
 - If you ARE using secure boot, still edit '/etc/modules' to contain the line 'cp210x', but we also need to manually
     sign the files (essentially signing off that they're trusted)
