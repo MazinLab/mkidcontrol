@@ -36,7 +36,7 @@ SN_KEY = 'status:device:ls240:sn'
 LAKESHORE240_KEYS = list(TS_KEYS + [FIRMWARE_KEY] + [MODEL_KEY] + [SN_KEY])
 
 QUERY_INTERVAL = 1
-VALID_MODELS = ('Lakeshore240-2P', 'Lakeshore240-8P')
+VALID_MODELS = ('MODEL240-2P', 'MODEL240-8P')
 
 log = logging.getLogger()
 
@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     util.setup_logging('lakeshore240Agent')
     redis = PCRedis(create_ts_keys=TS_KEYS)
-    lakeshore = LakeShore240(name='LAKESHORE240', port='/dev/lakeshore', baudrate=115200, timeout=0.1, valid_models=VALID_MODELS)
+    lakeshore = LakeShore240(name='LAKESHORE240', port='/dev/ls240', baudrate=115200, timeout=0.1, valid_models=VALID_MODELS)
 
     try:
         info = lakeshore.device_info

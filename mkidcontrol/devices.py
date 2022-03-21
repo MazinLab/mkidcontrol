@@ -242,8 +242,11 @@ class SimCommand:
 
 
 class SerialDevice:
-    def __init__(self, port, baudrate=115200, timeout=0.1, name=None, terminator='\n', response_terminator=''):
+    def __init__(self, port, baudrate=115200, timeout=0.1, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS,
+                 name=None, terminator='\n', response_terminator=''):
         self.ser = None
+        self.parity = parity
+        self.bytesize=bytesize
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
@@ -293,7 +296,8 @@ class SerialDevice:
         getLogger(__name__).debug(f"Connecting to {self.port} at {self.baudrate}")
         try:
             self._preconnect()
-            self.ser = Serial(port=self.port, baudrate=self.baudrate, timeout=self.timeout)
+            self.ser = Serial(port=self.port, baudrate=self.baudrate, timeout=self.timeout,
+                              parity=self.parity, bytesize=self.bytesize)
             self._postconnect()
             getLogger(__name__).info(f"port {self.port} connection established")
             return True
@@ -560,8 +564,9 @@ class SimDevice(SerialDevice):
 
 
 class LakeShoreDevice(SerialDevice):
-    def __init__(self, name, port, baudrate=9600, timeout=0.1, connect=True, valid_models=None):
-        super().__init__(port, baudrate, timeout, name=name)
+    def __init__(self, name, port, baudrate=9600, timeout=0.1, connect=True, valid_models=None,
+                 parity=serial.PARITY_ODD, bytesize=serial.SEVENBITS, initializer=None):
+        super().__init__(port, baudrate, timeout, name=name, parity=parity, bytesize=bytesize)
 
         if isinstance(valid_models, tuple):
             self.valid_models = valid_models
@@ -571,6 +576,8 @@ class LakeShoreDevice(SerialDevice):
         self.sn = None
         self.firmware = None
         self.terminator = '\n'
+        self.initializer = initializer
+        self._initialized = False
 
         if connect:
             self.connect(raise_errors=False)
@@ -604,18 +611,21 @@ class LakeShoreDevice(SerialDevice):
         if self.name[:-3] == '240':
             self.name += f"-{model[-2:]}"
 
+        if self.initializer and not self._initialized:
+            self.initializer(self)
+            self._initialized = True
+
 
 class LakeShore240(LakeShoreDevice):
-    def __init__(self, name, port, baudrate=115200, timeout=0.1, connect=True, valid_models=None):
-        super().__init__(name, port, baudrate, timeout, connect=connect, valid_models=valid_models)
+    def __init__(self, name, port, baudrate=115200, timeout=0.1, connect=True, valid_models=None, parity=serial.PARITY_NONE, bytesize=serial.SEVENBITS):
+        super().__init__(name, port, baudrate, timeout, connect=connect, valid_models=valid_models, parity=parity, bytesize=bytesize)
 
         self._monitor_thread = None  # Maybe not even necessary since this only queries
         self.last_he_temp = None
         self.last_ln2_temp = None
-        self.enabled = self.enabled_channels
 
-    @property
-    def enabled_channels(self):
+    def _postconnect(self):
+        super()._postconnect()
         enabled = []
         for channel in range(1, int(self.name[-2]) + 1):
             try:
@@ -628,7 +638,7 @@ class LakeShore240(LakeShoreDevice):
             except ValueError:
                 log.critical(f"Channel {channel} returned and unknown value from channel information query")
                 raise IOError(f"Channel {channel} returned and unknown value from channel information query")
-        return tuple(enabled)
+        self.enabled = tuple(enabled)
 
     def read_temperatures(self):
         """Queries the temperature of all enabled channels on the LakeShore 240. LakeShore reports values of temperature
