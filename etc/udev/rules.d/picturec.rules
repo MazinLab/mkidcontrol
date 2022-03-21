@@ -6,6 +6,11 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0043", ATTRS{seria
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AM00IHUS", SYMLINK+="sim921"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AM00NUCK", SYMLINK+="sim960"
 
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1fb9", ATTRS{idProduct}=="0205", ATTRS{serial}=="LSA2359", SYMLINK+="lakeshore"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1fb9", ATTRS{idProduct}=="0205", ATTRS{serial}=="LSA2359", SYMLINK+="ls240"
 
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ATTRS{manufacturer}=="STMicroelectronics", SYMLINK+="dfrobotswitch"
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AB0NE8RQ", SYMLINK+="ls625"
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1fb9", ATTRS{idProduct}=="0301", ATTRS{serial}=="336ABAB", SYMLINK+="ls336"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1fb9", ATTRS{idProduct}=="0305", ATTRS{serial}=="372A00B", SYMLINK+="ls372"
