@@ -6,7 +6,22 @@ status:
     ls240:
       firmware: 'x.x'
       status: 'OK'
-      model: '240-2P'
+      model: 'LakeShore240-2P'
+      sn: 'xxxxxxx'
+    ls625:
+      firmware: 'x.x'
+      status: 'OK'
+      model: 'LakeShore625'
+      sn: 'xxxxxxx'
+    ls372:
+      firmware: 'x.x'
+      status: 'OK'
+      model: 'LakeShore372'
+      sn: 'xxxxxxx'
+    ls336:
+      firmware: 'x.x'
+      status: 'OK'
+      model: 'LakeShore336'
       sn: 'xxxxxxx'
     currentduino:
       firmware: '0.2'
