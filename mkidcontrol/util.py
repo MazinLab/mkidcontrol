@@ -5,7 +5,7 @@ import pkg_resources
 
 
 def setup_logging(name):
-    path = pkg_resources.resource_filename('picturec', '../configuration/logging.yml')
+    path = pkg_resources.resource_filename('mkidcontrol', '../configuration/logging.yml')
     if os.path.exists(path):
         with open(path, 'rt') as f:
             config = yaml.safe_load(f.read())

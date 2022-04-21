@@ -16,8 +16,8 @@ import pkg_resources
 
 import mkidcontrol.util as util
 from mkidcontrol.devices import SIM960, SimCommand, MagnetState, COMMANDS960, enable_simulator
-import mkidcontrol.pcredis as redis
-from mkidcontrol.pcredis import RedisError
+import mkidcontrol.mkidredis as redis
+from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.currentduinoAgent as heatswitch
 import mkidcontrol.sim921Agent as sim921
 
@@ -582,7 +582,7 @@ if __name__ == "__main__":
     try:
         statefile = redis.read(STATEFILE_PATH_KEY)
     except KeyError:
-        statefile = pkg_resources.resource_filename('picturec', '../configuration/magnet.statefile')
+        statefile = pkg_resources.resource_filename('mkidcontrol', '../configuration/magnet.statefile')
         redis.store({STATEFILE_PATH_KEY: statefile})
 
     controller = MagnetController(statefile=statefile)
