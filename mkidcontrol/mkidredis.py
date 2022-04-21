@@ -16,14 +16,14 @@ import datetime
 
 REDIS_DB = 0
 
-class PCRedis(object):
+class MKIDRedis(object):
     """
-    The PCRedis class is the wrapper created for use in the PICTURE-C control software. A host, port, and database (db)
-    must be specified to the PCRedis.redis client.
-    Optionally, with the timeseries keyword, a PCRedis.redistimeseries
+    The MKIDRedis class is the wrapper created for use in the PICTURE-C control software. A host, port, and database (db)
+    must be specified to the MKIDRedis.redis client.
+    Optionally, with the timeseries keyword, a MKIDRedis.redistimeseries
     client can also be created. This will use the same host, port, and db. Redistimeseries extends redis' capabilities
     with a module to allow easy time series data storage, instead of creating homemade ways to do that same thing.
-    Redistimeseries keys should be created with the PCRedis object. Unlike normal redis keys, they must be created
+    Redistimeseries keys should be created with the MKIDRedis object. Unlike normal redis keys, they must be created
     explicitly and should be done at the each program's start for clarity and ease.
     """
     def __init__(self, host='localhost', port=6379, db=REDIS_DB, create_ts_keys=tuple()):
@@ -206,7 +206,7 @@ class PCRedis(object):
         print(f"Default message handler: {message}")
 
 
-pcredis = None
+mkidredis = None
 store = None
 read = None
 listen = None
@@ -215,11 +215,11 @@ pcr_range = None  # This breaks the naming mold since range is already a python 
 redis_ts = None
 
 def setup_redis(host='localhost', port=6379, db=REDIS_DB, create_ts_keys=tuple()):
-    global pcredis, store, read, listen, publish, pcr_range, redis_ts, ps
-    pcredis = PCRedis(host=host, port=port, db=db, create_ts_keys=create_ts_keys)
-    store = pcredis.store
-    read = pcredis.read
-    listen = pcredis.listen
-    publish = pcredis.publish
-    pcr_range = pcredis.range
-    redis_ts = pcredis.redis_ts
+    global mkidredis, store, read, listen, publish, pcr_range, redis_ts, ps
+    mkidredis = MKIDRedis(host=host, port=port, db=db, create_ts_keys=create_ts_keys)
+    store = mkidredis.store
+    read = mkidredis.read
+    listen = mkidredis.listen
+    publish = mkidredis.publish
+    pcr_range = mkidredis.range
+    redis_ts = mkidredis.redis_ts
