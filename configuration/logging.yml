@@ -1,7 +1,7 @@
 loggers:
-  piccDirector:
+  controlDirector:
     werkzeug: warning
-    piccDirector:
+    controlDirector:
       handlers: [ default ]
       level: DEBUG
       propagate: False
@@ -16,8 +16,8 @@ loggers:
   lakeshore240Agent: info
   currentduinoAgent:
     currentduinoAgent: debug
-    picturec.pcredis: info
-    picturec.devices: debug
+    mkidcontrol.mkidredis: info
+    mkidcontrol.devices: debug
     serial: debug
     "":
       handlers: [ default ]
@@ -29,17 +29,31 @@ loggers:
       propagate': False
   hemttempAgent:
     hemttempAgent: debug
-    picturec.pcredis: info
+    mkidcontrol.mkidredis: info
+  heatswitchAgent:
+    heatswitchAgent: debug
+    mkidcontrol.mkidredis: debug
+    __main__:
+      handlers: [ default ]
+      level: DEBUG
+      propagate': False
+  lakeshore336Agent:
+    lakeshore336Agent: debug
+    mkidcontrol.mkidredis: debug
+    __main__:
+      handlers: [ default ]
+      level: DEBUG
+      propagate': False
   relayAgent:
     relayAgent: debug
-    picturec.pcredis: info
+    mkidcontrol.mkidredis: info
   quenchAgent:
       quenchAgent: debug
-      picturec.pcredis: info
+      mkidcontrol.mkidredis: info
   sim921Agent:
     sim921Agent: debug
-    picturec.pcredis: info
-    picturec.devices: debug
+    mkidcontrol.mkidredis: info
+    mkidcontrol.devices: debug
     serial: debug
     "":
       handlers: [ default ]
@@ -51,7 +65,7 @@ loggers:
       propagate': False
   sim960Agent:
     sim960Agent: debug
-    picturec.devices: debug
+    mkidcontrol.devices: debug
     "":
       handlers: [ default ]
       level: WARNING
