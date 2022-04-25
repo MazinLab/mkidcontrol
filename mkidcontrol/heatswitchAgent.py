@@ -430,10 +430,11 @@ if __name__ == "__main__":
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
+                log.debug(f"Redis listened to something! Key: {key} -- Val: {val}")
                 hspos = val.lower()
                 if hspos == 'open':
                     controller.open()
                 elif hspos == 'close':
                     controller.close()
     except RedisError as e:
-        print(f"Redis server error! {e}")
+        log.error(f"Redis server error! {e}")
