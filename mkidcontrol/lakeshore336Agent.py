@@ -11,8 +11,6 @@ N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/mod
 
 TODO: Command syntax
 
-TODO: Firmware/model/sn storing
-
 TODO: Error handling
 """
 
@@ -21,6 +19,7 @@ import time
 import logging
 import threading
 import numpy as np
+from serial.serialutil import SerialException
 
 from mkidcontrol.mkidredis import MKIDRedis, RedisError
 import mkidcontrol.util as util
@@ -48,13 +47,32 @@ ALLOWED_CHANNELS = ['A', 'B', 'C', 'D']
 
 COMMAND_KEYS = ['command:device-settings:ls336:channel-b:curve']
 
+
 class LakeShore336(Model336):
     def __init__(self, name, port=None, timeout=0.1):
+        self.device_serial = None
         if port is None:
             super().__init__(timeout=timeout)
         else:
             super().__init__(com_port=port, timeout=timeout)
         self.name = name
+
+    def disconnect(self):
+        if self.device_serial:
+            self.device_serial.close()
+
+    def connect(self):
+        try:
+            self.device_serial.open()
+        except (IOError, AttributeError) as e:
+            log.warning(f"Unable to open serial port: {e}")
+            raise Exception(f"Unable to open serial port: {e}")
+        except SerialException as e:
+            log.debug(f"Serial port is already open: {e}")
+
+    @property
+    def device_info(self):
+        return dict(model=self.model_number, firmware=self.firmware_version, sn=self.serial_number)
 
     def read_temperatures_and_sensor_values(self):
         temp_vals = []
@@ -261,7 +279,18 @@ if __name__ == "__main__":
     except:
         lakeshore = LakeShore336('LakeShore336')
 
-    # TODO: Log device info into redis
+    try:
+        info = lakeshore.device_info
+        # Note that placing the store before exit makes this program behave differently in an abort
+        #  than both of the sims, which would not alter the database. I like this better.
+        redis.store({FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['sn']})
+    except IOError as e:
+        log.error(f"When checking device info: {e}")
+        redis.store({FIRMWARE_KEY: '', MODEL_KEY: '', SN_KEY: ''})
+        sys.exit(1)
+    except RedisError as e:
+        log.critical(f"Redis server error! {e}")
+        sys.exit(1)
 
     def callback(vals):
         keys = TEMP_KEYS + SENSOR_VALUE_KEYS
@@ -274,7 +303,7 @@ if __name__ == "__main__":
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
                 log.info(f"heard {key} -> {val}!")
-                # TODO: Commands
+                # TODO: Command handling
     except RedisError as e:
         log.error(f"Redis server error! {e}")
 
