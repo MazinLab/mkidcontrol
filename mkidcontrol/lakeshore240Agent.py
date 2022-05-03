@@ -21,7 +21,7 @@ import logging
 import threading
 
 from mkidcontrol.devices import LakeShore240
-from mkidcontrol.pcredis import PCRedis, RedisError
+from mkidcontrol.mkidredis import MKIDRedis, RedisError
 import mkidcontrol.util as util
 
 
