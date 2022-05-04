@@ -44,7 +44,7 @@ log = logging.getLogger()
 if __name__ == "__main__":
 
     util.setup_logging('lakeshore240Agent')
-    redis = PCRedis(create_ts_keys=TS_KEYS)
+    redis = MKIDRedis(create_ts_keys=TS_KEYS)
     lakeshore = LakeShore240(name='LAKESHORE240', port='/dev/ls240', baudrate=115200, timeout=0.1, valid_models=VALID_MODELS)
 
     try:
