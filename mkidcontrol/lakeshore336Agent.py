@@ -75,7 +75,7 @@ COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:input-r
                                                                                 'ONE_HUNDRED_THOUSAND_OHM': 8,
                                                                                 'FIFTY_MILLIVOLT': 0}} for ch in ALLOWED_CHANNELS})
 COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:curve': {'command': 'INCRV',
-                                                                       'vals': np.arange(0, 60)} for ch in ALLOWED_CHANNELS})
+                                                                       'vals': np.arange(0, 60).astype(str)} for ch in ALLOWED_CHANNELS})
 
 SETTING_KEYS = tuple(COMMANDSLS336.keys())
 
@@ -94,7 +94,7 @@ def parse_ls336_command(cmd:str, val):
     try:
         cmd_val = command['vals'][val]
     except (KeyError, IndexError):
-        if int(val) in command['vals']:
+        if val in command['vals']:
             cmd_val = val
         else:
             raise ValueError(f"Invalid value ({val}) given for command {command}!")
