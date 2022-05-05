@@ -11,12 +11,8 @@ N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/mod
 """
 
 import sys
-import time
 import logging
-import threading
 import numpy as np
-from collections import defaultdict
-from serial.serialutil import SerialException
 
 from mkidcontrol.mkidredis import MKIDRedis, RedisError
 from mkidcontrol.devices import LakeShoreMixin
@@ -25,6 +21,44 @@ import mkidcontrol.util as util
 from lakeshore import Model336, Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients, \
                       Model336InputSensorUnits, Model336InputSensorSettings, Model336InputSensorType, \
                       Model336RTDRange, Model336DiodeRange, Model336ThermocoupleRange
+
+log = logging.getLogger(__name__)
+
+ENABLED_336_CHANNELS = ('B', 'C', 'D')
+ALLOWED_336_CHANNELS = ("A", "B", "C", "D")
+COMMANDSLS336 = {}
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE',
+                                                                       'vals': {'DISABLED': 0, 'DIODE': 1,
+                                                                                'PLATINUM_RTD': 2, 'NTC_RTD': 3}} for ch in ALLOWED_336_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:autorange-enabled': {'command': 'INTYPE',
+                                                                             'vals': {'OFF': False, 'ON': True}} for ch in ALLOWED_336_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:compensation': {'command': 'INTYPE',
+                                                                        'vals': {'OFF': False, 'ON': True}} for ch in ALLOWED_336_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:units': {'command': 'INTYPE',
+                                                                 'vals': {'KELVIN': 1, 'CELSIUS': 2, 'SENSOR': 3}} for ch in ALLOWED_336_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:input-range': {'command': 'INTYPE',
+                                                                       'vals': {'TWO_POINT_FIVE_VOLTS': 0,
+                                                                                'TEN_VOLTS': 1,
+                                                                                'TEN_OHM': 0,
+                                                                                'THIRTY_OHM': 1,
+                                                                                'HUNDRED_OHM': 2,
+                                                                                'THREE_HUNDRED_OHM': 3,
+                                                                                'ONE_THOUSAND_OHM': 4,
+                                                                                'THREE_THOUSAND_OHM': 5,
+                                                                                'TEN_THOUSAND_OHM': 6,
+                                                                                'THIRTY_THOUSAND_OHM': 7,
+                                                                                'ONE_HUNDRED_THOUSAND_OHM': 8}} for ch in ALLOWED_336_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:curve': {'command': 'INCRV',
+                                                                       'vals': {str(cn): cn for cn in np.arange(0, 60)}} for ch in ALLOWED_336_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:curve-name': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:serial-number': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:curve-data-format': {'command': 'CRVHDR', 'vals': {'MILLIVOLT_PER_KELVIN': 1,
+                                                                                                            'VOLTS_PER_KELVIN': 2,
+                                                                                                            'OHMS_PER_KELVIN': 3,
+                                                                                                            'LOG_OHMS_PER_KELVIN': 4}} for cu in np.arange(21, 60)})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(21, 60)})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': {'NEGATIVE': 1,
+                                                                                                      'POSITIVE': 2}} for cu in np.arange(21, 60)})
 
 TEMP_KEYS = ['status:temps:77k-stage:temp', 'status:temps:4k-stage:temp', 'status:temps:1k-stage:temp']
 SENSOR_VALUE_KEYS = ['status:temps:77k-stage:voltage', 'status:temps:4k-stage:voltage', 'status:temps:1k-stage:resistance']
@@ -38,45 +72,8 @@ SN_KEY = 'status:device:ls336:sn'
 
 QUERY_INTERVAL = 1
 
-log = logging.getLogger(__name__)
-log.setLevel("DEBUG")
-
 ENABLED_CHANNELS = ('B', 'C', 'D')  # CHANNEL ASSIGNMENTS ARE -> B:, C:, D:
 ALLOWED_CHANNELS = ('A', 'B', 'C', 'D')
-
-COMMANDSLS336 = {}
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE',
-                                                                       'vals': {'DISABLED': 0, 'DIODE': 1,
-                                                                                'PLATINUM_RTD': 2, 'NTC_RTD': 3}} for ch in ALLOWED_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:autorange-enabled': {'command': 'INTYPE',
-                                                                             'vals': {'OFF': False, 'ON': True}} for ch in ALLOWED_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:compensation': {'command': 'INTYPE',
-                                                                        'vals': {'OFF': False, 'ON': True}} for ch in ALLOWED_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:units': {'command': 'INTYPE',
-                                                                 'vals': {'KELVIN': 1, 'CELSIUS': 2, 'SENSOR': 3}} for ch in ALLOWED_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:input-range': {'command': 'INTYPE',
-                                                                       'vals': {'TWO_POINT_FIVE_VOLTS': 0,
-                                                                                'TEN_VOLTS': 1,
-                                                                                'TEN_OHM': 0,
-                                                                                'THIRTY_OHM': 1,
-                                                                                'HUNDRED_OHM': 2,
-                                                                                'THREE_HUNDRED_OHM': 3,
-                                                                                'ONE_THOUSAND_OHM': 4,
-                                                                                'THREE_THOUSAND_OHM': 5,
-                                                                                'TEN_THOUSAND_OHM': 6,
-                                                                                'THIRTY_THOUSAND_OHM': 7,
-                                                                                'ONE_HUNDRED_THOUSAND_OHM': 8}} for ch in ALLOWED_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:curve': {'command': 'INCRV',
-                                                                       'vals': {str(cn): cn for cn in np.arange(0, 60)}} for ch in ALLOWED_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:curve-name': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:serial-number': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:curve-data-format': {'command': 'CRVHDR', 'vals': {'MILLIVOLT_PER_KELVIN': 1,
-                                                                                                            'VOLTS_PER_KELVIN': 2,
-                                                                                                            'OHMS_PER_KELVIN': 3,
-                                                                                                            'LOG_OHMS_PER_KELVIN': 4}} for cu in np.arange(21, 60)})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(21, 60)})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': {'NEGATIVE': 1,
-                                                                                                      'POSITIVE': 2}} for cu in np.arange(21, 60)})
 
 SETTING_KEYS = tuple(COMMANDSLS336.keys())
 
@@ -167,7 +164,7 @@ class LakeShore336(LakeShoreMixin, Model336):
         """
         self.device_serial = None  # Creates a class attribute called device_serial. This will be overwritten by the
         # instance inherited from the superclass, but for clarity in what attributes are available, we initialize here.
-        self.enabled_input_channels = ENABLED_CHANNELS  # Create a class attribute which is the tuple of enabled
+        self.enabled_input_channels = ENABLED_336_CHANNELS  # Create a class attribute which is the tuple of enabled
         # channels to be used in the LakeShoreMixin class
 
         if port is None:
@@ -244,7 +241,7 @@ if __name__ == "__main__":
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
-                log.info(f"heard {key} -> {val}!")
+                log.debug(f"heard {key} -> {val}!")
                 try:
                     cmd = LakeShore336Command(key.removeprefix('command:'), val)
                 except ValueError as e:
