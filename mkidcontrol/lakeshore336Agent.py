@@ -12,13 +12,9 @@ not) is solely dependent on the assignment of ENABLED_INPUT_CHANNELS.
 
 N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/model_336.html
 
-TODO: Command syntax
-
 TODO: Error handling
 
 TODO: Logging
-
-TODO: How to properly associate thermometer to input channel?
 """
 
 import sys
