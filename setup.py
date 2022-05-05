@@ -15,13 +15,16 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     # TODO may prove to be a major headache and we need to use either entry points or break the files into two parts
     #  with the script in bin/
-    scripts=['picturec/quenchAgent.py',
-             'picturec/lakeshore240Agent.py',
-             'picturec/currentduinoAgent.py',
-             'picturec/hemttempAgent.py',
-             'picturec/piccDirector.py',
-             'picturec/sim960Agent.py',
-             'picturec/sim921Agent.py'],
+    scripts=['mkidcontrol/quenchAgent.py',
+             'mkidcontrol/lakeshore240Agent.py',
+             'mkidcontrol/lakeshore336Agent.py',
+             'mkidcontrol/lakeshore372Agent.py',
+             'mkidcontrol/lakeshore625Agent.py',
+             'mkidcontrol/currentduinoAgent.py',
+             'mkidcontrol/hemttempAgent.py',
+             'mkidcontrol/piccDirector.py',
+             'mkidcontrol/sim960Agent.py',
+             'mkidcontrol/sim921Agent.py'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
