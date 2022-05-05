@@ -13,6 +13,7 @@ N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/mod
 import sys
 import logging
 import numpy as np
+from serial import SerialException
 
 from mkidcontrol.mkidredis import MKIDRedis, RedisError
 from mkidcontrol.devices import LakeShoreMixin

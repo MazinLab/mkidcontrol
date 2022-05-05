@@ -1287,7 +1287,8 @@ class LakeShoreMixin:
         except (IOError, SerialException) as e:
             raise IOError(f"Serial error communicating with Lake Shore {self.model_number[:-3:]}: {e}")
         except ValueError as e:
-            raise ValueError(f"{channel} is not an allowed channel for the Lake Shore {self.model_number[-3:]}: {e}")
+            log.critical(f"{channel} is not an allowed channel for the Lake Shore {self.model_number[-3:]}: {e}."
+                         f"Ignoring request")
 
     def change_curve(self, channel, command_code, curve_num=None):
         # TODO: Handle error from query
@@ -1309,7 +1310,8 @@ class LakeShoreMixin:
             elif curve_num is not None:
                 settings = self.query_settings(command_code, curve_num)
             else:
-                raise ValueError(f"Insufficient values given for curve or channel to query! Cannot generate up-to-date settings")
+                log.error(f"Insufficient values given for curve or channel to query! Cannot generate up-to-date settings."
+                          f"Ignoring request to modify settings.")
         except (SerialException, IOError) as e:
             self.disconnect()
             raise e
@@ -1324,7 +1326,6 @@ class LakeShoreMixin:
         return new_settings
 
     def modify_curve_header(self, curve_num, command_code, **desired_settings):
-        # TODO: Error handling
         new_settings = self._generate_new_settings(command_code, curve_num=curve_num, **desired_settings)
 
         if self.model_number == "MODEL372":
@@ -1341,8 +1342,13 @@ class LakeShoreMixin:
                                          coefficient=Model336CurveTemperatureCoefficients(new_settings['coefficient']))
         else:
             raise ValueError(f"Attempting to modify an curve to an unsupported device!")
-        return header
-        self.set_curve_header(curve_number=curve_num, curve_header=header)
+        # return header
+        try:
+            log.info(f"Applying new curve header to curve {curve_num}: {header}")
+            self.set_curve_header(curve_number=curve_num, curve_header=header)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
 
     def load_curve_data(self, curve_num, data=None, data_file=None):
         """
