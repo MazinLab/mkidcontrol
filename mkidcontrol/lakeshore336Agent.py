@@ -38,11 +38,12 @@ SENSOR_VALUE_KEYS = ['status:temps:77k-stage:voltage', 'status:temps:4k-stage:vo
 
 TS_KEYS = TEMP_KEYS + SENSOR_VALUE_KEYS
 
+STATUS_KEY = 'status:device:ls336:status'
 FIRMWARE_KEY = "status:device:ls336:firmware"
 MODEL_KEY = 'status:device:ls336:model'
 SN_KEY = 'status:device:ls336:sn'
 
-QUERY_INTERVAL = 10
+QUERY_INTERVAL = 1
 
 log = logging.getLogger(__name__)
 log.setLevel("DEBUG")
@@ -53,8 +54,7 @@ ALLOWED_CHANNELS = ('A', 'B', 'C', 'D')
 COMMANDSLS336 = {}
 COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE',
                                                                        'vals': {'DISABLED': 0, 'DIODE': 1,
-                                                                                'PLATINUM_RTD': 2, 'NTC_RTD': 3,
-                                                                                'THERMOCOUPLE': 4, 'CAPACITANCE': 5}} for ch in ALLOWED_CHANNELS})
+                                                                                'PLATINUM_RTD': 2, 'NTC_RTD': 3}} for ch in ALLOWED_CHANNELS})
 COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:autorange-enabled': {'command': 'INTYPE',
                                                                              'vals': {'OFF': False, 'ON': True}} for ch in ALLOWED_CHANNELS})
 COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:compensation': {'command': 'INTYPE',
@@ -72,34 +72,96 @@ COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:input-r
                                                                                 'THREE_THOUSAND_OHM': 5,
                                                                                 'TEN_THOUSAND_OHM': 6,
                                                                                 'THIRTY_THOUSAND_OHM': 7,
-                                                                                'ONE_HUNDRED_THOUSAND_OHM': 8,
-                                                                                'FIFTY_MILLIVOLT': 0}} for ch in ALLOWED_CHANNELS})
+                                                                                'ONE_HUNDRED_THOUSAND_OHM': 8}} for ch in ALLOWED_CHANNELS})
 COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:curve': {'command': 'INCRV',
-                                                                       'vals': np.arange(0, 60).astype(str)} for ch in ALLOWED_CHANNELS})
+                                                                       'vals': {str(cn): cn for cn in np.arange(0, 60)}} for ch in ALLOWED_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:curve-name': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:serial-number': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:curve-data-format': {'command': 'CRVHDR', 'vals': {'MILLIVOLT_PER_KELVIN': 1,
+                                                                                                            'VOLTS_PER_KELVIN': 2,
+                                                                                                            'OHMS_PER_KELVIN': 3,
+                                                                                                            'LOG_OHMS_PER_KELVIN': 4}} for cu in np.arange(21, 60)})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(21, 60)})
+COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': {'NEGATIVE': 1,
+                                                                                                      'POSITIVE': 2}} for cu in np.arange(21, 60)})
 
 SETTING_KEYS = tuple(COMMANDSLS336.keys())
 
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
 
 
-def parse_ls336_command(cmd:str, val):
-    setting = cmd.removeprefix("command:")
-    command = COMMANDSLS336[setting]
+class LakeShore336Command:
+    def __init__(self, schema_key, value=None):
+        """
+        Initializes a LakeShore336Command. Takes in a redis device-setting:* key and desired value an evaluates it for
+        its type, the mapping of the command, and appropriately sets the mapping|range for the command. If the setting
+        is not supported, raise a ValueError.
+        """
 
-    _, _, channel, field = setting.split(":")
-    channel = channel[-1].upper()
-    field = field.replace('-', '_')
+        if schema_key not in COMMANDSLS336.keys():
+            raise ValueError(f'Unknown command: {schema_key}')
 
-    cmd_code = command['command']
-    try:
-        cmd_val = command['vals'][val]
-    except (KeyError, IndexError):
-        if val in command['vals']:
-            cmd_val = val
+        self.range = None
+        self.mapping = None
+        self.value = value
+        self.setting = schema_key
+
+        self.command = COMMANDSLS336[self.setting]['command']
+        setting_vals = COMMANDSLS336[self.setting]['vals']
+
+        if isinstance(setting_vals, dict):
+            self.mapping = setting_vals
         else:
-            raise ValueError(f"Invalid value ({val}) given for command {command}!")
+            self.range = setting_vals
+        self._vet()
 
-    return channel, field, cmd_code, cmd_val
+    def _vet(self):
+        value = self.value
+
+        if self.mapping is not None:
+            if value not in self.mapping:
+                raise ValueError(f"Invalid value: {value} Options are: {list(self.mapping.keys())}.")
+        elif self.range is not None:
+            try:
+                self.value = float(value)
+            except ValueError:
+                raise ValueError(f'Invalid value {value}, must be castable to float.')
+            if not self.range[0] <= self.value <= self.range[1]:
+                raise ValueError(f'Invalid value {value}, must in {self.range}.')
+        else:
+            self.value = str(value)
+
+    def __str__(self):
+        return f"{self.setting_field}->{self.command_value}"
+
+    @property
+    def command_code(self):
+        return self.command
+
+    @property
+    def setting_field(self):
+        return self.setting.split(":")[-1].replace('-', '_')
+
+    @property
+    def command_value(self):
+        if self.mapping is not None:
+            return self.mapping[self.value]
+        else:
+            return self.value
+
+    @property
+    def desired_setting(self):
+        return {self.setting_field: self.command_value}
+
+    @property
+    def channel(self):
+        id_str = self.setting.split(":")[2]
+        return id_str[-1] if 'channel' in id_str else None
+
+    @property
+    def curve(self):
+        id_str = self.setting.split(":")[2]
+        return id_str[-1] if 'curve' in id_str else None
 
 
 class LakeShore336(LakeShoreMixin, Model336):
@@ -121,7 +183,7 @@ class LakeShore336(LakeShoreMixin, Model336):
             super().__init__(com_port=port, timeout=timeout)
         self.name = name
 
-    def modify_336_input_sensor(self, channel: (str, int), command_code, **desired_settings):
+    def modify_input_sensor(self, channel: (str, int), command_code, **desired_settings):
         """
         Reads in the current settings of the input sensor at channel <channel>, changes any setting passed as an
         argument that is not 'None', and stores the modified dict of settings in dict(new_settings). Then reads the
@@ -187,6 +249,27 @@ if __name__ == "__main__":
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
                 log.info(f"heard {key} -> {val}!")
-                print(parse_ls336_command(key, val))
+                try:
+                    cmd = LakeShore336Command(key.removeprefix('command:'), val)
+                except ValueError as e:
+                    log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
+                    continue
+                try:
+                    log.info(f"Processing command '{cmd}'")
+                    if cmd.command_code == "INTYPE":
+                        lakeshore.modify_input_sensor(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+                    elif cmd.command_code == "INCRV":
+                        lakeshore.change_curve(channel=cmd.channel, command_code=cmd.command_code, curve_num=cmd.command_value)
+                    elif cmd.command_code == "CRVHDR":
+                        lakeshore.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+                    else:
+                        pass
+                    redis.store({cmd.setting: cmd.value})
+                    redis.store({STATUS_KEY: "OK"})
+                except IOError as e:
+                    redis.store({STATUS_KEY: f"Error {e}"})
+                    log.error(f"Comm error: {e}")
+
     except RedisError as e:
-        log.error(f"Redis server error! {e}")
+        log.critical(f"Redis server error! {e}")
+        sys.exit(1)
