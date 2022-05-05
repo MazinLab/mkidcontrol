@@ -1342,7 +1342,7 @@ class LakeShoreMixin:
         else:
             raise ValueError(f"Attempting to modify an curve to an unsupported device!")
         return header
-        # self.set_curve_header(curve_number=curve_num, curve_header=header)
+        self.set_curve_header(curve_number=curve_num, curve_header=header)
 
     def load_curve_data(self, curve_num, data=None, data_file=None):
         """
