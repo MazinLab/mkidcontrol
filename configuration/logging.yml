@@ -8,11 +8,11 @@ loggers:
     "":
       handlers: [ default ]
       level: WARNING
-      propagate': False
+      propagate: False
     __main__:
       handlers: [ default ]
       level: DEBUG
-      propagate': False
+      propagate: False
   lakeshore240Agent: info
   currentduinoAgent:
     currentduinoAgent: debug
@@ -22,11 +22,11 @@ loggers:
     "":
       handlers: [ default ]
       level: WARNING
-      propagate': False
+      propagate: False
     __main__:
       handlers: [ default ]
       level: DEBUG
-      propagate': False
+      propagate: False
   hemttempAgent:
     hemttempAgent: debug
     mkidcontrol.mkidredis: info
@@ -36,28 +36,34 @@ loggers:
     __main__:
       handlers: [ default ]
       level: DEBUG
-      propagate': False
+      propagate: False
   lakeshore336Agent:
     lakeshore336Agent: debug
-    mkidcontrol.mkidredis: debug
+    mkidcontrol.mkidredis: info
+    mkidcontrol.devices: debug
+    serial: debug
+    "":
+      handlers: [ default ]
+      level: WARNING
+      propagate: False
     __main__:
       handlers: [ default ]
       level: DEBUG
-      propagate': False
+      propagate: False
   lakeshore372Agent:
     lakeshore372Agent: debug
     mkidcontrol.mkidredis: debug
     __main__:
       handlers: [ default ]
       level: DEBUG
-      propagate': False
+      propagate: False
   lakeshore625Agent:
     lakeshore625Agent: debug
     mkidcontrol.mkidredis: debug
     __main__:
       handlers: [ default ]
       level: DEBUG
-      propagate': False
+      propagate: False
   relayAgent:
     relayAgent: debug
     mkidcontrol.mkidredis: info
@@ -72,22 +78,22 @@ loggers:
     "":
       handlers: [ default ]
       level: WARNING
-      propagate': False
+      propagate: False
     __main__:
       handlers: [ default ]
       level: DEBUG
-      propagate': False
+      propagate: False
   sim960Agent:
     sim960Agent: debug
     mkidcontrol.devices: debug
     "":
       handlers: [ default ]
       level: WARNING
-      propagate': False
+      propagate: False
     __main__:
       handlers: [ default ]
       level: DEBUG
-      propagate': False
+      propagate: False
 
 version: 1
 disable_existing_loggers: False
