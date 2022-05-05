@@ -196,5 +196,3 @@ if __name__ == "__main__":
                 print(parse_ls336_command(key, val))
     except RedisError as e:
         log.error(f"Redis server error! {e}")
-
-    print('go')
