@@ -150,9 +150,9 @@ class LakeShore372(LakeShoreMixin, Model372):
         return settings
         # self.configure_heater(output_channel=heater_channel, settings=settings)
 
-    def change_temperature_setpoint(self, channel, command_code, setpoint=0.100):
+    def change_temperature_setpoint(self, channel, command_code, setpoint=None):
         current_setpoint = self.query_settings(command_code, channel)
-        if current_setpoint != setpoint:
+        if current_setpoint != setpoint and setpoint is not None:
             log.info(f"Changing temperature regulation value for output channel {channel} to {setpoint} from "
                      f"{current_setpoint}")
             self.set_setpoint_kelvin(output_channel=channel, setpoint=setpoint)
@@ -174,17 +174,18 @@ class LakeShore372(LakeShoreMixin, Model372):
         # self.set_heater_pid(output_channel, gain=new_settings['gain'], integral=new_settings['integral'],
         #                     derivative=new_settings['ramp_rate'])
 
-    def modify_heater_output_range(self, output_channel, command_code, range):
+    def modify_heater_output_range(self, output_channel, command_code, range=None):
         current_range = self.query_settings(command_code, output_channel)
 
+        # TODO:
         if output_channel == 0:
-            if current_range.value == range:
+            if current_range.value == range or range is None:
                 log.info(f"Attempting to set the output range for the output heater from {current_range.name} to the "
                          f"same value. No change requested to the instrument.")
             else:
                 self.set_heater_output_range(output_channel, Model372SampleHeaterOutputRange(range))
         else:
-            if current_range == range:
+            if current_range == range or range is None:
                 log.info(f"Attempting to set the output range for the output heater from {current_range} to the "
                          f"same value. No change requested to the instrument.")
             else:

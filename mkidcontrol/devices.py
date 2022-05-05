@@ -1180,7 +1180,8 @@ class Hemtduino(SerialDevice):
 
 
 class LakeShoreMixin:
-    # TODO: Preconnect/predisconnect handling of serial port/exceptions
+    # TODO: Preconnect/predisconnect
+    # TODO: Handling of serial port/exceptions
 
     def disconnect(self):
         if self.device_serial:
@@ -1302,16 +1303,16 @@ class LakeShoreMixin:
         except ValueError as e:
             raise ValueError(f"{curve_num} is not an allowed curve number for the Lake Shore 336: {e}")
 
-    def modify_curve_header(self, curve_num, curve_name=None, serial_number=None, curve_data_format=None,
-                            temperature_limit=None, coefficient=None):
+    def modify_curve_header(self, curve_num, **desired_settings):
 
         settings = self._curve_settings(curve_num)
 
-        desired_settings = {'curve_name': curve_name, 'serial_number': serial_number,
-                            'curve_data_format': curve_data_format, 'temperature_limit': temperature_limit,
-                            'coefficient': coefficient}
-
-        new_settings = self._modify_settings_dict(settings, desired_settings)
+        new_settings = {}
+        for k in settings.keys():
+            try:
+                new_settings[k] = desired_settings[k]
+            except KeyError:
+                new_settings[k] = settings[k]
 
         if self.model_number == "MODEL372":
             header = Model372CurveHeader(curve_name=new_settings['curve_name'],
@@ -1329,7 +1330,6 @@ class LakeShoreMixin:
             raise ValueError(f"Attempting to modify an curve to an unsupported device!")
         return header
         # self.set_curve_header(curve_number=curve_num, curve_header=header)
-
 
     def load_curve_data(self, curve_num, data=None, data_file=None):
         """
@@ -1352,21 +1352,6 @@ class LakeShoreMixin:
             raise ValueError(f"No data supplied to load to the curve")
 
         self.set_curve(curve_num, curve_data)
-
-    def _modify_settings_dict(self, current_settings, desired_settings):
-        keys = current_settings.keys()
-        for k in keys:
-            n = desired_settings[k]
-            try:
-                cval = current_settings[k].value
-            except AttributeError:
-                cval = current_settings[k]
-            if (n != cval) and n is not None:
-                log.info(f"Changing {k} from {cval} -> {n}")
-                desired_settings[k] = n
-            else:
-                desired_settings[k] = cval
-        return desired_settings
 
     def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
         """
