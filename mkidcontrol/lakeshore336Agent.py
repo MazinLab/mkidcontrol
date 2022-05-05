@@ -7,14 +7,7 @@ Program for communicating with and controlling the LakeShore336 Cryogenic Temper
 This module is responsible for reading out the non-device thermometry. This includes the intermediate stages (77K and
 4K) and the 1K stage
 
-Note that the LakeShore 336 unit does not allow for enabling/disabling channels and so whether a channel is read out (or
-not) is solely dependent on the assignment of ENABLED_INPUT_CHANNELS.
-
 N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/model_336.html
-
-TODO: Error handling
-
-TODO: Logging
 """
 
 import sys
@@ -190,7 +183,6 @@ class LakeShore336(LakeShoreMixin, Model336):
         new_settings dict into a Model336InputSettings object and sends the appropriate command to update the input
         settings for that channel
         """
-
         new_settings = self._generate_new_settings(command_code, channel_num=channel, **desired_settings)
 
         if new_settings['sensor_type'] == 0:
@@ -209,8 +201,13 @@ class LakeShore336(LakeShoreMixin, Model336):
                                                compensation=new_settings['compensation'],
                                                units=Model336InputSensorUnits(new_settings['units']),
                                                input_range=new_settings['input_range'])
-        return settings
-        # self.set_input_sensor(channel=channel_num, sensor_parameters=settings) # TODO: Error handling
+
+        try:
+            log.info(f"Applying new settings to channel {channel}: {settings}")
+            self.set_input_sensor(channel=channel, sensor_parameters=settings)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
 
 
 if __name__ == "__main__":
@@ -239,8 +236,7 @@ if __name__ == "__main__":
     def callback(tvals, svals):
         vals = tvals + svals
         keys = TEMP_KEYS + SENSOR_VALUE_KEYS
-        # d = {k: x for k, x in zip(keys, vals) if x}
-        d = {k: x for k, x in zip(keys, vals)}
+        d = {k: x for k, x in zip(keys, vals) if x}
         redis.store(d, timeseries=True)
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals), value_callback=callback)
@@ -269,7 +265,6 @@ if __name__ == "__main__":
                 except IOError as e:
                     redis.store({STATUS_KEY: f"Error {e}"})
                     log.error(f"Comm error: {e}")
-
     except RedisError as e:
         log.critical(f"Redis server error! {e}")
         sys.exit(1)

@@ -1184,17 +1184,23 @@ class LakeShoreMixin:
     # TODO: Handling of serial port/exceptions
 
     def disconnect(self):
-        if self.device_serial:
+        try:
             self.device_serial.close()
+        except Exception as e:
+            log.info(f"Exception during disconnect: {e}")
 
     def connect(self):
+        try:
+            if self.device_serial.isOpen():
+                return
+        except Exception:
+            pass
+
         try:
             self.device_serial.open()
         except (IOError, AttributeError) as e:
             log.warning(f"Unable to open serial port: {e}")
             raise Exception(f"Unable to open serial port: {e}")
-        except SerialException as e:
-            log.debug(f"Serial port is already open: {e}")
 
     @property
     def device_info(self):
@@ -1297,13 +1303,19 @@ class LakeShoreMixin:
             log.info(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
                      f"sent to Lake Shore {self.model_number}.")
 
-    def _generate_new_settings(self, command_code, channel_num=None, curve_num=None, **desired_settings):
-        if channel_num is not None:
-            settings = self.query_settings(command_code, channel_num)
-        elif curve_num is not None:
-            settings = self.query_settings(command_code, curve_num)
-        else:
-            raise ValueError(f"Insufficient values given for ")
+    def _generate_new_settings(self, command_code, channel_num=None, curve_num=None, connect=False, **desired_settings):
+        if connect:
+            self.connect()
+        try:
+            if channel_num is not None:
+                settings = self.query_settings(command_code, channel_num)
+            elif curve_num is not None:
+                settings = self.query_settings(command_code, curve_num)
+            else:
+                raise ValueError(f"Insufficient values given for curve or channel to query! Cannot generate up-to-date settings")
+        except (SerialException, IOError) as e:
+            self.disconnect()
+            raise e
 
         new_settings = {}
         for k in settings.keys():
