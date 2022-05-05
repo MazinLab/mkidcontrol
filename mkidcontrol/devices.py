@@ -14,8 +14,8 @@ from collections import defaultdict
 import serial
 from serial import SerialException
 
-from lakeshore import Model372CurveHeader, Model372CurveFormat, Model372CurveTemperatureCoefficient, \
-Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients
+from lakeshore import Model372CurveHeader, Model372CurveFormat, Model372CurveTemperatureCoefficient,\
+                      Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients
 
 
 log = logging.getLogger(__name__)
