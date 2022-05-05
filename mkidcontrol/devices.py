@@ -1251,8 +1251,10 @@ class LakeShoreMixin:
 
         return readings
 
-    def query_settings(self, command_code, channel=None):
+    def query_settings(self, command_code, channel=None, curve_num=None):
         model = self.model_number
+        # TODO: Handle exception of making a query for the 'wrong device' (e.g. the Model 336 will not control any
+        #  temperatures, so asking for the 'setpoint_kelvin' from the 336 is nonsense.)
         try:
             if command_code == "INTYPE":
                 if model == "MODEL336":
@@ -1273,39 +1275,30 @@ class LakeShoreMixin:
                 data = self.get_setpoint_kelvin(channel)
                 log.debug(f"Read setpoint for heater channel {channel}: {data} Kelvin")
             elif command_code == "PID":
-                data = self.get_heater_pid(channel)
+                data = vars(self.get_heater_pid(channel))
                 log.debug(f"Read PID settings for channel {channel}: {data}")
             elif command_code == "RANGE":
-                self.get_heater_output_range(channel)
+                data = self.get_heater_output_range(channel)
                 log.debug(f"Read the current heater output range for channel {channel}: {data}")
+            elif command_code == "CRVHDR":
+                data = vars(self.get_curve_header(curve_num))
             return data
         except (IOError, SerialException) as e:
             raise IOError(f"Serial error communicating with Lake Shore {self.model_number[:-3:]}: {e}")
         except ValueError as e:
             raise ValueError(f"{channel} is not an allowed channel for the Lake Shore {self.model_number[-3:]}: {e}")
 
-    def change_curve(self, channel, curve_num):
-        current_curve = self.get_input_curve(channel)
-        if current_curve != curve_num:
+    def change_curve(self, channel, command_code, curve_num=None):
+        current_curve = self.query_settings(command_code, channel)
+        if current_curve != curve_num and curve_num is not None:
             log.info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
             self.set_input_curve(channel, curve_num)
         else:
             log.info(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
                      f"sent to Lake Shore {self.model_number}.")
 
-    def _curve_settings(self, curve_num):
-        try:
-            curve_header = vars(self.get_curve_header(curve_num))
-            log.debug(f"Read curve header data for curve {curve_num}: {curve_header}")
-            return curve_header
-        except IOError as e:
-            raise IOError(f"Serial error communicating with Lake Shore 336: {e}")
-        except ValueError as e:
-            raise ValueError(f"{curve_num} is not an allowed curve number for the Lake Shore 336: {e}")
-
-    def modify_curve_header(self, curve_num, **desired_settings):
-
-        settings = self._curve_settings(curve_num)
+    def modify_curve_header(self, curve_num, command_code, **desired_settings):
+        settings = self.query_settings(command_code, curve_num)
 
         new_settings = {}
         for k in settings.keys():
