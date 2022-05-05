@@ -1180,9 +1180,6 @@ class Hemtduino(SerialDevice):
 
 
 class LakeShoreMixin:
-    # TODO: Preconnect/predisconnect
-    # TODO: Handling of serial port/exceptions
-
     def disconnect(self):
         try:
             self.device_serial.close()
@@ -1259,8 +1256,6 @@ class LakeShoreMixin:
 
     def query_settings(self, command_code, channel=None, curve_num=None):
         model = self.model_number
-        # TODO: Handle exception of making a query for the 'wrong device' (e.g. the Model 336 will not control any
-        #  temperatures, so asking for the 'setpoint_kelvin' from the 336 is nonsense.)
         try:
             if command_code == "INTYPE":
                 if model == "MODEL336":
@@ -1295,8 +1290,10 @@ class LakeShoreMixin:
             raise ValueError(f"{channel} is not an allowed channel for the Lake Shore {self.model_number[-3:]}: {e}")
 
     def change_curve(self, channel, command_code, curve_num=None):
+        # TODO: Handle error from query
         current_curve = self.query_settings(command_code, channel)
         if current_curve != curve_num and curve_num is not None:
+            # TODO: Handle error from send
             log.info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
             self.set_input_curve(channel, curve_num)
         else:
@@ -1327,7 +1324,7 @@ class LakeShoreMixin:
         return new_settings
 
     def modify_curve_header(self, curve_num, command_code, **desired_settings):
-
+        # TODO: Error handling
         new_settings = self._generate_new_settings(command_code, curve_num=curve_num, **desired_settings)
 
         if self.model_number == "MODEL372":
