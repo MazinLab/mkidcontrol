@@ -1,13 +1,13 @@
 [Unit]
-Description=Pic-C LakeShore240 Agent
+Description=MKIDControl LakeShore240 Agent
 
 [Install]
-WantedBy=picc.service
+WantedBy=mkidcontrol.service
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/picc/bin/lakeshore240Agent.py
-WorkingDirectory=/home/mazinlab/picturec
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/lakeshore240Agent.py
+WorkingDirectory=/home/mazinlab/mkidcontrol
 User=mazinlab
 RestartSec=100ms
 Restart=always

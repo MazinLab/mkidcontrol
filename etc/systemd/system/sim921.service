@@ -1,14 +1,14 @@
 [Unit]
-Description=Pic-C SIM921 Agent
+Description=MKIDControl SIM921 Agent
 
 [Install]
-WantedBy=picc.service
+WantedBy=mkidcontrol.service
 WantedBy=sim960.service
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/picc/bin/sim921Agent.py
-WorkingDirectory=/home/mazinlab/picturec
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/sim921Agent.py
+WorkingDirectory=/home/mazinlab/mkidcontrol
 User=mazinlab
 RestartSec=100ms
 Restart=always

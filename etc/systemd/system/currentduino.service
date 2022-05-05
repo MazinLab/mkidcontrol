@@ -1,15 +1,15 @@
 [Unit]
-Description=Pic-C Currentduino Agent
+Description=MKIDControl Currentduino Agent
 
 [Install]
-WantedBy=picc.service
+WantedBy=mkidcontrol.service
 WantedBy=quenchmon.service
 WantedBy=sim960.service
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/picc/bin/currentduinoAgent.py
-WorkingDirectory=/home/mazinlab/picturec
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/currentduinoAgent.py
+WorkingDirectory=/home/mazinlab/mkidcontrol
 User=mazinlab
 RestartSec=100ms
 Restart=always

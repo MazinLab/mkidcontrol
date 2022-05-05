@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='picturec',
+    name='mkidcontrol',
     version='0.5.5',
     author='Noah Swimmer',
     author_email='nswimmer@ucsb.edu',
-    description='PICTURE-C Control Software',
+    description='MKID Instrument Control Software',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/MazinLab/picturec.git',
+    url='https://github.com/MazinLab/mkidcontrol.git',
     packages=setuptools.find_packages(),
     # TODO may prove to be a major headache and we need to use either entry points or break the files into two parts
     #  with the script in bin/

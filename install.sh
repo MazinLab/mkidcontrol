@@ -23,7 +23,7 @@ touch ~/.Xauthority
 # chmod +x Anaconda-latest-Linux-x86_64.sh
 # bash Anaconda-latest-Linux-x86_64.sh
 conda config --add channels conda-forge
-cd ~/picturec
+cd ~/mkidcontrol
 conda env create -f conda.yml
 
 # Install dependencies and get computer ready for use
@@ -49,8 +49,8 @@ sudo udevadm trigger
 sudo systemctl daemon-reload
 
 # Install the picturec repository
-conda activate picc
-pip install -e /home/mazinlab/picturec
+conda activate control
+pip install -e /home/mazinlab/mkidcontrol
 
 # Start redis server
 sudo systemctl enable redis.service
@@ -58,7 +58,7 @@ sudo systemctl start redis.service
 
 # Start instrument software
 # Start hemtduino
-sudo systemctl enable picc.service
-sudo systemctl start picc.service
+sudo systemctl enable mkidcontrol
+sudo systemctl start mkidcontrol
 
 sudo reboot

@@ -1,5 +1,5 @@
 [Unit]
-Description=Pic-C Control
+Description=MKID Control
 Wants=hemtduino.service
 Wants=currentduino.service
 Wants=lakeshore240.service
@@ -13,8 +13,8 @@ WantedBy=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/picc/bin/piccDirector.py
-WorkingDirectory=/home/mazinlab/picturec
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/piccDirector.py
+WorkingDirectory=/home/mazinlab/mkidcontrol
 User=mazinlab
 RestartSec=100ms
 Restart=always

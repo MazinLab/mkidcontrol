@@ -1,16 +1,16 @@
 [Unit]
-Description=Pic-C Quench Agent
+Description=MKIDControl Quench Agent
 After=currentduino.service
 Wants=currentduino.service
 
 [Install]
-WantedBy=picc.service
+WantedBy=mkidcontrol.service
 WantedBy=sim960.service
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/picc/bin/quenchAgent.py
-WorkingDirectory=/home/mazinlab/picturec
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/quenchAgent.py
+WorkingDirectory=/home/mazinlab/mkidcontrol
 User=mazinlab
 RestartSec=100ms
 Restart=always

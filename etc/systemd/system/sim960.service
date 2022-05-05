@@ -1,5 +1,5 @@
 [Unit]
-Description=Pic-C SIM960 Agent
+Description=MKIDControl SIM960 Agent
 Wants=sim921.service
 After=sim921.service
 Wants=quenchmon.service
@@ -8,12 +8,12 @@ Wants=currentduino.service
 After=currentduino.service
 
 [Install]
-WantedBy=picc.service
+WantedBy=mkidcontrol.service
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/picc/bin/sim960Agent.py
-WorkingDirectory=/home/mazinlab/picturec
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/sim960Agent.py
+WorkingDirectory=/home/mazinlab/mkidcontrol
 User=mazinlab
 RestartSec=100ms
 Restart=always

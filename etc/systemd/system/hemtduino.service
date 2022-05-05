@@ -1,13 +1,13 @@
 [Unit]
-Description=Pic-C HEMT Agent
+Description=MKIDControl HEMT Agent
 
 [Install]
-WantedBy=picc.service
+WantedBy=mkidcontrol.service
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/picc/bin/hemttempAgent.py
-WorkingDirectory=/home/mazinlab/picturec
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/hemttempAgent.py
+WorkingDirectory=/home/mazinlab/mkidcontrol
 User=mazinlab
 RestartSec=100ms
 Restart=always
