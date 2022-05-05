@@ -27,6 +27,8 @@ TODO: Docstrings
 TODO: Monitor Output
 
 TODO: Command syntax
+
+TODO: Generalize the 'modification' commands
 """
 
 import sys
