@@ -121,21 +121,15 @@ class LakeShore336(LakeShoreMixin, Model336):
             super().__init__(com_port=port, timeout=timeout)
         self.name = name
 
-    def modify_input_sensor(self, channel: (str, int), command_code, **desired_settings):
+    def modify_336_input_sensor(self, channel: (str, int), command_code, **desired_settings):
         """
         Reads in the current settings of the input sensor at channel <channel>, changes any setting passed as an
         argument that is not 'None', and stores the modified dict of settings in dict(new_settings). Then reads the
         new_settings dict into a Model336InputSettings object and sends the appropriate command to update the input
         settings for that channel
         """
-        settings = self.query_settings(command_code, channel)
 
-        new_settings = {}
-        for k in settings.keys():
-            try:
-                new_settings[k] = desired_settings[k]
-            except KeyError:
-                new_settings[k] = settings[k]
+        new_settings = self._generate_new_settings(command_code, channel_num=channel, **desired_settings)
 
         if new_settings['sensor_type'] == 0:
             new_settings['input_range'] = None

@@ -1297,8 +1297,13 @@ class LakeShoreMixin:
             log.info(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
                      f"sent to Lake Shore {self.model_number}.")
 
-    def modify_curve_header(self, curve_num, command_code, **desired_settings):
-        settings = self.query_settings(command_code, curve_num)
+    def _generate_new_settings(self, command_code, channel_num=None, curve_num=None, **desired_settings):
+        if channel_num is not None:
+            settings = self.query_settings(command_code, channel_num)
+        elif curve_num is not None:
+            settings = self.query_settings(command_code, curve_num)
+        else:
+            raise ValueError(f"Insufficient values given for ")
 
         new_settings = {}
         for k in settings.keys():
@@ -1306,6 +1311,12 @@ class LakeShoreMixin:
                 new_settings[k] = desired_settings[k]
             except KeyError:
                 new_settings[k] = settings[k]
+
+        return new_settings
+
+    def modify_curve_header(self, curve_num, command_code, **desired_settings):
+
+        new_settings = self._generate_new_settings(command_code, curve_num=curve_num, **desired_settings)
 
         if self.model_number == "MODEL372":
             header = Model372CurveHeader(curve_name=new_settings['curve_name'],
