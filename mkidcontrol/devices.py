@@ -14,6 +14,10 @@ from collections import defaultdict
 import serial
 from serial import SerialException
 
+from lakeshore import Model372CurveHeader, Model372CurveFormat, Model372CurveTemperatureCoefficient, \
+Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients
+
+
 log = logging.getLogger(__name__)
 
 CALIBRATION_CURVE = 1
@@ -1176,6 +1180,8 @@ class Hemtduino(SerialDevice):
 
 
 class LakeShoreMixin:
+    # TODO: Preconnect/predisconnect handling of serial port/exceptions
+
     def disconnect(self):
         if self.device_serial:
             self.device_serial.close()
@@ -1197,7 +1203,9 @@ class LakeShoreMixin:
         temp_vals = []
         for channel in self.enabled_input_channels:
             try:
-                temp_vals.append(float(self.get_kelvin_reading(channel)))
+                temp_rdg = float(self.get_kelvin_reading(channel))
+                log.info(f"Measured a temperature of {temp_rdg}K from channel {channel}")
+                temp_vals.append(temp_rdg)
             except IOError as e:
                 log.error(f"Serial error: {e}")
                 raise IOError(f"Serial error: {e}")
@@ -1211,10 +1219,14 @@ class LakeShoreMixin:
         readings = []
         for channel in self.enabled_input_channels:
             try:
-                if self.model == "MODEL372":
-                    readings.append(float(self.get_resistance_reading(channel)))
-                elif self.model == "MODEL336":
-                    readings.append(float(self.get_sensor_reading(channel)))
+                if self.model_number == "MODEL372":
+                    res = float(self.get_resistance_reading(channel))
+                    log.info(f"Measured a resistance of {res} Ohms from channel {channel}")
+                    readings.append(res)
+                elif self.model_number == "MODEL336":
+                    sens = float(self.get_sensor_reading(channel))
+                    log.info(f"Measured a value of {sens} from channel {channel}")
+                    readings.append(sens)
             except IOError as e:
                 log.error(f"Serial error: {e}")
                 raise IOError(f"Serial error: {e}")
@@ -1223,6 +1235,53 @@ class LakeShoreMixin:
             readings = readings[0]
 
         return readings
+
+    def excitation_power(self):
+        readings = []
+        for channel in self.enabled_input_channels:
+            try:
+                readings.append(float(self.get_excitation_power(channel)))
+            except IOError as e:
+                log.error(f"Serial error: {e}")
+                raise IOError(f"Serial error: {e}")
+
+        if len(self.enabled_input_channels) == 1:
+            readings = readings[0]
+
+        return readings
+
+    def query_settings(self, command_code, channel=None):
+        model = self.model_number
+        try:
+            if command_code == "INTYPE":
+                if model == "MODEL336":
+                    data = vars(self.get_input_sensor(str(channel)))
+                elif model == "MODEL372":
+                    data = vars(self.get_input_setup_parameters(str(channel)))
+                log.debug(f"Read input sensor data for channel {channel}: {data}")
+            elif command_code == "INCRV":
+                data = self.get_input_curve(channel)
+                log.debug(f"Read input curve number for channel {channel}: {data}")
+            elif command_code == "INSET":
+                data = vars(self.get_input_channel_parameters(channel))
+                log.debug(f"Reading parameters for input channel {channel}: {data}")
+            elif command_code == "OUTMODE":
+                data = vars(self.get_heater_output_settings(channel))
+                log.debug(f"Read heater settings for heater channel {channel}: {data}")
+            elif command_code == "SETP":
+                data = self.get_setpoint_kelvin(channel)
+                log.debug(f"Read setpoint for heater channel {channel}: {data} Kelvin")
+            elif command_code == "PID":
+                data = self.get_heater_pid(channel)
+                log.debug(f"Read PID settings for channel {channel}: {data}")
+            elif command_code == "RANGE":
+                self.get_heater_output_range(channel)
+                log.debug(f"Read the current heater output range for channel {channel}: {data}")
+            return data
+        except (IOError, SerialException) as e:
+            raise IOError(f"Serial error communicating with Lake Shore {self.model_number[:-3:]}: {e}")
+        except ValueError as e:
+            raise ValueError(f"{channel} is not an allowed channel for the Lake Shore {self.model_number[-3:]}: {e}")
 
     def change_curve(self, channel, curve_num):
         current_curve = self.get_input_curve(channel)
@@ -1233,7 +1292,7 @@ class LakeShoreMixin:
             log.info(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
                      f"sent to Lake Shore {self.model_number}.")
 
-    def curve_settings(self, curve_num):
+    def _curve_settings(self, curve_num):
         try:
             curve_header = vars(self.get_curve_header(curve_num))
             log.debug(f"Read curve header data for curve {curve_num}: {curve_header}")
@@ -1242,6 +1301,35 @@ class LakeShoreMixin:
             raise IOError(f"Serial error communicating with Lake Shore 336: {e}")
         except ValueError as e:
             raise ValueError(f"{curve_num} is not an allowed curve number for the Lake Shore 336: {e}")
+
+    def modify_curve_header(self, curve_num, curve_name=None, serial_number=None, curve_data_format=None,
+                            temperature_limit=None, coefficient=None):
+
+        settings = self._curve_settings(curve_num)
+
+        desired_settings = {'curve_name': curve_name, 'serial_number': serial_number,
+                            'curve_data_format': curve_data_format, 'temperature_limit': temperature_limit,
+                            'coefficient': coefficient}
+
+        new_settings = self._modify_settings_dict(settings, desired_settings)
+
+        if self.model_number == "MODEL372":
+            header = Model372CurveHeader(curve_name=new_settings['curve_name'],
+                                         serial_number=new_settings['serial_number'],
+                                         curve_data_format=Model372CurveFormat(new_settings['curve_data_format']),
+                                         temperature_limit=new_settings['temperature_limit'],
+                                         coefficient=Model372CurveTemperatureCoefficient(new_settings['coefficient']))
+        elif self.model_number == "MODEL336":
+            header = Model336CurveHeader(curve_name=new_settings['curve_name'],
+                                         serial_number=new_settings['serial_number'],
+                                         curve_data_format=Model336CurveFormat(new_settings['curve_data_format']),
+                                         temperature_limit=new_settings['temperature_limit'],
+                                         coefficient=Model336CurveTemperatureCoefficients(new_settings['coefficient']))
+        else:
+            raise ValueError(f"Attempting to modify an curve to an unsupported device!")
+        return header
+        # self.set_curve_header(curve_number=curve_num, curve_header=header)
+
 
     def load_curve_data(self, curve_num, data=None, data_file=None):
         """

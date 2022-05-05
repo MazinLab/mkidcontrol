@@ -7,17 +7,18 @@ Program for communicating with and controlling the LakeShore336 Cryogenic Temper
 This module is responsible for reading out the non-device thermometry. This includes the intermediate stages (77K and
 4K) and the 1K stage
 
+Note that the LakeShore 336 unit does not allow for enabling/disabling channels and so whether a channel is read out (or
+not) is solely dependent on the assignment of ENABLED_INPUT_CHANNELS.
+
 N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/model_336.html
 
 TODO: Command syntax
 
 TODO: Error handling
 
-TODO: Enable/disable channels
-
 TODO: Logging
 
-TODO: Docstrings
+TODO: How to properly associate thermometer to input channel?
 """
 
 import sys
@@ -25,18 +26,19 @@ import time
 import logging
 import threading
 import numpy as np
+from collections import defaultdict
 from serial.serialutil import SerialException
 
 from mkidcontrol.mkidredis import MKIDRedis, RedisError
 from mkidcontrol.devices import LakeShoreMixin
 import mkidcontrol.util as util
 
-from lakeshore import Model336,  Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients, \
+from lakeshore import Model336, Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients, \
                       Model336InputSensorUnits, Model336InputSensorSettings, Model336InputSensorType, \
                       Model336RTDRange, Model336DiodeRange, Model336ThermocoupleRange
 
 TEMP_KEYS = ['status:temps:77k-stage:temp', 'status:temps:4k-stage:temp', 'status:temps:1k-stage:temp']
-SENSOR_VALUE_KEYS = ['status:temps:77k-stage:resistance', 'status:temps:4k-stage:voltage', 'status:temps:1k-stage:voltage']
+SENSOR_VALUE_KEYS = ['status:temps:77k-stage:voltage', 'status:temps:4k-stage:voltage', 'status:temps:1k-stage:resistance']
 
 TS_KEYS = TEMP_KEYS + SENSOR_VALUE_KEYS
 
@@ -44,21 +46,78 @@ FIRMWARE_KEY = "status:device:ls336:firmware"
 MODEL_KEY = 'status:device:ls336:model'
 SN_KEY = 'status:device:ls336:sn'
 
-QUERY_INTERVAL = 1
+QUERY_INTERVAL = 10
 
 log = logging.getLogger(__name__)
 log.setLevel("DEBUG")
 
-ENABLED_CHANNELS = ['B', 'C', 'D']
-ALLOWED_CHANNELS = ['A', 'B', 'C', 'D']
+ENABLED_CHANNELS = ('B', 'C', 'D')  # CHANNEL ASSIGNMENTS ARE -> B:, C:, D:
+ALLOWED_CHANNELS = ('A', 'B', 'C', 'D')
 
-COMMAND_KEYS = ['command:device-settings:ls336:channel-b:curve']
+COMMANDSLS336 = {}
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE',
+                                                                       'vals': {'DISABLED': 0, 'DIODE': 1,
+                                                                                'PLATINUM_RTD': 2, 'NTC_RTD': 3,
+                                                                                'THERMOCOUPLE': 4, 'CAPACITANCE': 5}} for ch in ALLOWED_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:autorange-enabled': {'command': 'INTYPE',
+                                                                             'vals': {'OFF': False, 'ON': True}} for ch in ALLOWED_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:compensation': {'command': 'INTYPE',
+                                                                        'vals': {'OFF': False, 'ON': True}} for ch in ALLOWED_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:units': {'command': 'INTYPE',
+                                                                 'vals': {'KELVIN': 1, 'CELSIUS': 2, 'SENSOR': 3}} for ch in ALLOWED_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:input-range': {'command': 'INTYPE',
+                                                                       'vals': {'TWO_POINT_FIVE_VOLTS': 0,
+                                                                                'TEN_VOLTS': 1,
+                                                                                'TEN_OHM': 0,
+                                                                                'THIRTY_OHM': 1,
+                                                                                'HUNDRED_OHM': 2,
+                                                                                'THREE_HUNDRED_OHM': 3,
+                                                                                'ONE_THOUSAND_OHM': 4,
+                                                                                'THREE_THOUSAND_OHM': 5,
+                                                                                'TEN_THOUSAND_OHM': 6,
+                                                                                'THIRTY_THOUSAND_OHM': 7,
+                                                                                'ONE_HUNDRED_THOUSAND_OHM': 8,
+                                                                                'FIFTY_MILLIVOLT': 0}} for ch in ALLOWED_CHANNELS})
+COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:curve': {'command': 'INCRV',
+                                                                       'vals': np.arange(0, 60)} for ch in ALLOWED_CHANNELS})
+
+SETTING_KEYS = tuple(COMMANDSLS336.keys())
+
+COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
+
+
+def parse_ls336_command(cmd:str, val):
+    setting = cmd.removeprefix("command:")
+    command = COMMANDSLS336[setting]
+
+    _, _, channel, field = setting.split(":")
+    channel = channel[-1].upper()
+    field = field.replace('-', '_')
+
+    cmd_code = command['command']
+    try:
+        cmd_val = command['vals'][val]
+    except (KeyError, IndexError):
+        if int(val) in command['vals']:
+            cmd_val = val
+        else:
+            raise ValueError(f"Invalid value ({val}) given for command {command}!")
+
+    return channel, field, cmd_code, cmd_val
 
 
 class LakeShore336(LakeShoreMixin, Model336):
     def __init__(self, name, port=None, timeout=0.1):
-        self.device_serial = None
-        self.enabled_input_channels = ENABLED_CHANNELS
+        """
+        Initialize the LakeShore336 unit. Requires a name, typically something like 'LakeShore336' or '336'.
+        The port and timeout parameters are optional. If port is none, the __init__() function from the Model 336 super
+        class will search the device tree for units which have the correct PID/VID combination. If timeout is none, it
+        will default to 0.1 seconds, which is lower than the default of 2 seconds in the superclass.
+        """
+        self.device_serial = None  # Creates a class attribute called device_serial. This will be overwritten by the
+        # instance inherited from the superclass, but for clarity in what attributes are available, we initialize here.
+        self.enabled_input_channels = ENABLED_CHANNELS  # Create a class attribute which is the tuple of enabled
+        # channels to be used in the LakeShoreMixin class
 
         if port is None:
             super().__init__(timeout=timeout)
@@ -66,28 +125,21 @@ class LakeShore336(LakeShoreMixin, Model336):
             super().__init__(com_port=port, timeout=timeout)
         self.name = name
 
-    def sensor_settings(self, channel):
+    def modify_input_sensor(self, channel: (str, int), command_code, **desired_settings):
         """
-        Returns a parsed dictionary
+        Reads in the current settings of the input sensor at channel <channel>, changes any setting passed as an
+        argument that is not 'None', and stores the modified dict of settings in dict(new_settings). Then reads the
+        new_settings dict into a Model336InputSettings object and sends the appropriate command to update the input
+        settings for that channel
         """
-        try:
-            sensor_data = vars(self.get_input_sensor(str(channel)))
-            log.debug(f"Read input sensor data for channel {channel}: {sensor_data}")
-            return sensor_data
-        except IOError as e:
-            raise IOError(f"Serial error communicating with Lake Shore 336: {e}")
-        except ValueError as e:
-            raise ValueError(f"{channel} is not an allowed channel for the Lake Shore 336: {e}")
+        settings = self.query_settings(command_code, channel)
 
-    def modify_input_sensor(self, channel, sensor_type=None, autorange_enable=None,
-                            compensation=None, units=None, input_range=None):
-
-        settings = self.sensor_settings(channel)
-
-        desired_settings = {'sensor_type': sensor_type, 'autorange_enable': autorange_enable,
-                        'compensation': compensation, 'units': units,'input_range': input_range}
-
-        new_settings = self._modify_settings_dict(settings, desired_settings)
+        new_settings = {}
+        for k in settings.keys():
+            try:
+                new_settings[k] = desired_settings[k]
+            except KeyError:
+                new_settings[k] = settings[k]
 
         if new_settings['sensor_type'] == 0:
             new_settings['input_range'] = None
@@ -106,27 +158,8 @@ class LakeShore336(LakeShoreMixin, Model336):
                                                units=Model336InputSensorUnits(new_settings['units']),
                                                input_range=new_settings['input_range'])
         return settings
-        # self.set_input_sensor(channel=channel_num, sensor_parameters=settings)
+        # self.set_input_sensor(channel=channel_num, sensor_parameters=settings) # TODO: Error handling
 
-    def modify_curve_header(self, curve_num, curve_name=None, serial_number=None, curve_data_format=None,
-                            temperature_limit=None, coefficient=None):
-
-        settings = self.curve_settings(curve_num)
-
-        desired_settings = {'curve_name': curve_name, 'serial_number': serial_number,
-                            'curve_data_format': curve_data_format, 'temperature_limit': temperature_limit,
-                            'coefficient': coefficient}
-
-        new_settings = self._modify_settings_dict(settings, desired_settings)
-
-        header = Model336CurveHeader(curve_name=new_settings['curve_name'],
-                                     serial_number=new_settings['serial_number'],
-                                     curve_data_format=Model336CurveFormat(new_settings['curve_data_format']),
-                                     temperature_limit=new_settings['temperature_limit'],
-                                     coefficient=Model336CurveTemperatureCoefficients(new_settings['coefficient']))
-
-        return header
-        # self.set_curve_header(curve_number=curve_num, curve_header=header)
 
 if __name__ == "__main__":
 
@@ -151,18 +184,20 @@ if __name__ == "__main__":
         log.critical(f"Redis server error! {e}")
         sys.exit(1)
 
-    def callback(vals):
+    def callback(tvals, svals):
+        vals = tvals + svals
         keys = TEMP_KEYS + SENSOR_VALUE_KEYS
-        d = {k: x for k, x in zip(keys, vals) if x}
+        # d = {k: x for k, x in zip(keys, vals) if x}
+        d = {k: x for k, x in zip(keys, vals)}
         redis.store(d, timeseries=True)
 
-    lakeshore.monitor(QUERY_INTERVAL, lakeshore.read_temperatures_and_sensor_values, value_callback=callback)
+    lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals), value_callback=callback)
 
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
                 log.info(f"heard {key} -> {val}!")
-                # TODO: Command handling
+                print(parse_ls336_command(key, val))
     except RedisError as e:
         log.error(f"Redis server error! {e}")
 
