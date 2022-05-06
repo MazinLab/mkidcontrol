@@ -1180,6 +1180,14 @@ class Hemtduino(SerialDevice):
 
 
 class LakeShoreMixin:
+    """
+    Mixin class for functionality that is shared between the MKIDControl wrappers for LakeShore336 and LakeShore372
+    devices. Currently, LakeShore has a python package which can be used for communicating with them. We are writing an
+    agent for each which uses the Model336/372 as the superclass, while it also uses this Mixin for error handling,
+    querying, and parsing of desired setting changes.
+    """
+
+    # TODO: Determine protocol for disconnection/connection/reconnection upon erroring out, querying the device, etc.
     def disconnect(self):
         try:
             self.device_serial.close()
