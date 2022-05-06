@@ -262,19 +262,12 @@ class LakeShore372(LakeShoreMixin, Model372):
     def setpoint(self):
         return self.get_setpoint_kelvin(0)
 
-    def configure_input_sensor(self, channel_num, command_code, **desired_settings):
-        settings = self.query_settings(command_code, channel_num)
+    def configure_input_sensor(self, channel, command_code, **desired_settings):
+        new_settings = self._generate_new_settings(command_code, channel=channel, **desired_settings)
 
-        new_settings = {}
-        for k in settings.keys():
-            try:
-                new_settings[k] = desired_settings[k]
-            except KeyError:
-                new_settings[k] = settings[k]
-
-        if channel_num == "A":
+        if channel == "A":
             new_settings['excitation_range'] = Model372ControlInputCurrentRange(new_settings['excitation_range'])
-            new_settings['resistance_range'] = None
+            new_settings['resistance_range'] = 0
         else:
             if new_settings['mode'] == 0:
                 new_settings['excitation_range'] = Model372MeasurementInputVoltageRange(new_settings['excitation_range'])
@@ -291,17 +284,10 @@ class LakeShore372(LakeShoreMixin, Model372):
                                               resistance_range=Model372MeasurementInputResistance(new_settings['resistance_range']))
 
         return settings
-        # self.configure_input(input_channel=channel_num, settings=settings)
+        # self.configure_input(input_channel=channel, settings=settings)
 
     def modify_channel_settings(self, channel, command_code, **desired_settings):
-        settings = self.query_settings(command_code, channel)
-
-        new_settings = {}
-        for k in settings.keys():
-            try:
-                new_settings[k] = desired_settings[k]
-            except KeyError:
-                new_settings[k] = settings[k]
+        new_settings = self._generate_new_settings(command_code, channel=channel, **desired_settings)
 
         settings = Model372InputChannelSettings(enable=new_settings['enable'],
                                                 dwell_time=new_settings['dwell_time'],
@@ -314,14 +300,7 @@ class LakeShore372(LakeShoreMixin, Model372):
 
     def configure_heater_settings(self, heater_channel, command_code, **desired_settings):
 
-        settings = self.query_settings(command_code, heater_channel)
-
-        new_settings = {}
-        for k in settings.keys():
-            try:
-                new_settings[k] = desired_settings[k]
-            except KeyError:
-                new_settings[k] = settings[k]
+        new_settings = new_settings = self._generate_new_settings(command_code, channel=heater_channel, **desired_settings)
 
         settings = Model372HeaterOutputSettings(output_mode=Model372OutputMode(new_settings['output_mode']),
                                                 input_channel=Model372InputChannel(new_settings['input_channel']),
@@ -343,24 +322,16 @@ class LakeShore372(LakeShoreMixin, Model372):
             log.info(f"Requested to set temperature setpoint from {current_setpoint} to {setpoint}, no change"
                         f"sent to Lake Shore 372.")
 
-    def modify_pid_settings(self, output_channel, command_code, **desired_settings):
-        settings = self.query_settings(command_code, output_channel)
-
-        new_settings = {}
-        for k in settings.keys():
-            try:
-                new_settings[k] = desired_settings[k]
-            except KeyError:
-                new_settings[k] = settings[k]
+    def modify_pid_settings(self, heater_channel, command_code, **desired_settings):
+        new_settings = self._generate_new_settings(command_code, channel=heater_channel, **desired_settings)
 
         return new_settings
-        # self.set_heater_pid(output_channel, gain=new_settings['gain'], integral=new_settings['integral'],
+        # self.set_heater_pid(heater_channel, gain=new_settings['gain'], integral=new_settings['integral'],
         #                     derivative=new_settings['ramp_rate'])
 
     def modify_heater_output_range(self, output_channel, command_code, range=None):
         current_range = self.query_settings(command_code, output_channel)
 
-        # TODO:
         if output_channel == 0:
             if current_range.value == range or range is None:
                 log.info(f"Attempting to set the output range for the output heater from {current_range.name} to the "
