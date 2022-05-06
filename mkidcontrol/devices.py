@@ -1298,22 +1298,7 @@ class LakeShoreMixin:
             log.critical(f"{channel} is not an allowed channel for the Lake Shore {self.model_number[-3:]}: {e}."
                          f"Ignoring request")
 
-    def change_curve(self, channel, command_code, curve_num=None):
-        current_curve = self.query_settings(command_code, channel)
-
-        if current_curve != curve_num and curve_num is not None:
-            try:
-                log.info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
-                self.set_input_curve(channel, curve_num)
-            except (SerialException, IOError) as e:
-                log.error(f"...failed: {e}")
-                raise e
-
-        else:
-            log.info(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
-                     f"sent to Lake Shore {self.model_number}.")
-
-    def _generate_new_settings(self, command_code, channel_num=None, curve_num=None, connect=False, **desired_settings):
+    def _generate_new_settings(self, command_code, channel_num=None, curve_num=None, **desired_settings):
         try:
             if channel_num is not None:
                 settings = self.query_settings(command_code, channel_num)
@@ -1333,6 +1318,21 @@ class LakeShoreMixin:
                 new_settings[k] = settings[k]
 
         return new_settings
+
+    def change_curve(self, channel, command_code, curve_num=None):
+        current_curve = self.query_settings(command_code, channel)
+
+        if current_curve != curve_num and curve_num is not None:
+            try:
+                log.info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
+                self.set_input_curve(channel, curve_num)
+            except (SerialException, IOError) as e:
+                log.error(f"...failed: {e}")
+                raise e
+
+        else:
+            log.info(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
+                     f"sent to Lake Shore {self.model_number}.")
 
     def modify_curve_header(self, curve_num, command_code, **desired_settings):
         new_settings = self._generate_new_settings(command_code, curve_num=curve_num, **desired_settings)
