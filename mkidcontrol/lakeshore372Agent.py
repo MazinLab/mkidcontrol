@@ -26,9 +26,7 @@ TODO: Docstrings
 
 TODO: Monitor Output
 
-TODO: Command syntax
-
-TODO: Generalize the 'modification' commands
+TODO: 'Block' settings (e.g. excitation cannot be in V if mode is Current)
 """
 
 import sys
