@@ -27,17 +27,17 @@ log = logging.getLogger(__name__)
 
 ENABLED_336_CHANNELS = ('B', 'C', 'D')
 ALLOWED_336_CHANNELS = ("A", "B", "C", "D")
-COMMANDSLS336 = {}
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE',
+COMMANDS336 = {}
+COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE',
                                                                        'vals': {'DISABLED': 0, 'DIODE': 1,
                                                                                 'PLATINUM_RTD': 2, 'NTC_RTD': 3}} for ch in ALLOWED_336_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:autorange-enabled': {'command': 'INTYPE',
+COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:autorange-enabled': {'command': 'INTYPE',
                                                                              'vals': {'OFF': False, 'ON': True}} for ch in ALLOWED_336_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:compensation': {'command': 'INTYPE',
+COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:compensation': {'command': 'INTYPE',
                                                                         'vals': {'OFF': False, 'ON': True}} for ch in ALLOWED_336_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:units': {'command': 'INTYPE',
+COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:units': {'command': 'INTYPE',
                                                                  'vals': {'KELVIN': 1, 'CELSIUS': 2, 'SENSOR': 3}} for ch in ALLOWED_336_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:input-range': {'command': 'INTYPE',
+COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:input-range': {'command': 'INTYPE',
                                                                        'vals': {'TWO_POINT_FIVE_VOLTS': 0,
                                                                                 'TEN_VOLTS': 1,
                                                                                 'TEN_OHM': 0,
@@ -49,16 +49,16 @@ COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:input-r
                                                                                 'TEN_THOUSAND_OHM': 6,
                                                                                 'THIRTY_THOUSAND_OHM': 7,
                                                                                 'ONE_HUNDRED_THOUSAND_OHM': 8}} for ch in ALLOWED_336_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:curve': {'command': 'INCRV',
-                                                                       'vals': {str(cn): cn for cn in np.arange(0, 60)}} for ch in ALLOWED_336_CHANNELS})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:curve-name': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:serial-number': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:curve-data-format': {'command': 'CRVHDR', 'vals': {'MILLIVOLT_PER_KELVIN': 1,
+COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:curve': {'command': 'INCRV',
+                                                                       'vals': {str(cn): cn for cn in np.arange(1, 60)}} for ch in ALLOWED_336_CHANNELS})
+COMMANDS336.update({f'device-settings:ls336:curve-{cu}:curve-name': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
+COMMANDS336.update({f'device-settings:ls336:curve-{cu}:serial-number': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
+COMMANDS336.update({f'device-settings:ls336:curve-{cu}:curve-data-format': {'command': 'CRVHDR', 'vals': {'MILLIVOLT_PER_KELVIN': 1,
                                                                                                             'VOLTS_PER_KELVIN': 2,
                                                                                                             'OHMS_PER_KELVIN': 3,
                                                                                                             'LOG_OHMS_PER_KELVIN': 4}} for cu in np.arange(21, 60)})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(21, 60)})
-COMMANDSLS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': {'NEGATIVE': 1,
+COMMANDS336.update({f'device-settings:ls336:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(21, 60)})
+COMMANDS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': {'NEGATIVE': 1,
                                                                                                       'POSITIVE': 2}} for cu in np.arange(21, 60)})
 
 TEMP_KEYS = ['status:temps:77k-stage:temp', 'status:temps:4k-stage:temp', 'status:temps:1k-stage:temp']
@@ -76,7 +76,7 @@ QUERY_INTERVAL = 1
 ENABLED_CHANNELS = ('B', 'C', 'D')  # CHANNEL ASSIGNMENTS ARE -> B:, C:, D:
 ALLOWED_CHANNELS = ('A', 'B', 'C', 'D')
 
-SETTING_KEYS = tuple(COMMANDSLS336.keys())
+SETTING_KEYS = tuple(COMMANDS336.keys())
 
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
 
@@ -89,7 +89,7 @@ class LakeShore336Command:
         is not supported, raise a ValueError.
         """
 
-        if schema_key not in COMMANDSLS336.keys():
+        if schema_key not in COMMANDS336.keys():
             raise ValueError(f'Unknown command: {schema_key}')
 
         self.range = None
@@ -97,8 +97,8 @@ class LakeShore336Command:
         self.value = value
         self.setting = schema_key
 
-        self.command = COMMANDSLS336[self.setting]['command']
-        setting_vals = COMMANDSLS336[self.setting]['vals']
+        self.command = COMMANDS336[self.setting]['command']
+        setting_vals = COMMANDS336[self.setting]['vals']
 
         if isinstance(setting_vals, dict):
             self.mapping = setting_vals
