@@ -1299,19 +1299,21 @@ class LakeShoreMixin:
                          f"Ignoring request")
 
     def change_curve(self, channel, command_code, curve_num=None):
-        # TODO: Handle error from query
         current_curve = self.query_settings(command_code, channel)
+
         if current_curve != curve_num and curve_num is not None:
-            # TODO: Handle error from send
-            log.info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
-            self.set_input_curve(channel, curve_num)
+            try:
+                log.info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
+                self.set_input_curve(channel, curve_num)
+            except (SerialException, IOError) as e:
+                log.error(f"...failed: {e}")
+                raise e
+
         else:
             log.info(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
                      f"sent to Lake Shore {self.model_number}.")
 
     def _generate_new_settings(self, command_code, channel_num=None, curve_num=None, connect=False, **desired_settings):
-        if connect:
-            self.connect()
         try:
             if channel_num is not None:
                 settings = self.query_settings(command_code, channel_num)
@@ -1321,7 +1323,6 @@ class LakeShoreMixin:
                 log.error(f"Insufficient values given for curve or channel to query! Cannot generate up-to-date settings."
                           f"Ignoring request to modify settings.")
         except (SerialException, IOError) as e:
-            self.disconnect()
             raise e
 
         new_settings = {}
@@ -1350,7 +1351,7 @@ class LakeShoreMixin:
                                          coefficient=Model336CurveTemperatureCoefficients(new_settings['coefficient']))
         else:
             raise ValueError(f"Attempting to modify an curve to an unsupported device!")
-        # return header
+
         try:
             log.info(f"Applying new curve header to curve {curve_num}: {header}")
             self.set_curve_header(curve_number=curve_num, curve_header=header)
