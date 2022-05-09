@@ -16,15 +16,9 @@ will give you the reult of OUTMODE? 2, since 2 is the highest channel number ava
 
 N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/model_372.html
 
-TODO: Error handling
-
 TODO: Enable/disable channels
 
-TODO: Logging
-
 TODO: Docstrings
-
-TODO: Monitor Output
 
 TODO: 'Block' settings (e.g. excitation cannot be in V if mode is Current)
 """
@@ -454,6 +448,7 @@ if __name__ == "__main__":
                     elif cmd.command_code == "CRVHDR":
                         lakeshore.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
                     else:
+                        log.info(f"Command code '{cmd.command_code}' not recognized! No change will be made")
                         pass
                     redis.store({cmd.setting: cmd.value})
                     redis.store({STATUS_KEY: "OK"})
