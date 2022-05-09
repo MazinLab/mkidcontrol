@@ -299,8 +299,13 @@ class LakeShore372(LakeShoreMixin, Model372):
                                               units=Model372InputSensorUnits(new_settings['units']),
                                               resistance_range=Model372MeasurementInputResistance(new_settings['resistance_range']))
 
-        return settings
-        self.configure_input(input_channel=channel, settings=settings)
+        # return settings
+        try:
+            log.info(f"Configuring input sensor on channel {channel}: {settings}")
+            # self.configure_input(input_channel=channel, settings=settings)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
 
     def modify_channel_settings(self, channel, command_code, **desired_settings):
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
@@ -311,8 +316,13 @@ class LakeShore372(LakeShoreMixin, Model372):
                                                 curve_number=new_settings['curve_number'],
                                                 temperature_coefficient=Model372CurveTemperatureCoefficient(new_settings['temperature_coefficient']))
 
-        return settings
-        # self.set_input_channel_parameters(channel, settings)
+        # return settings
+        try:
+            log.info(f"Configuring input channel {channel} parameters: {settings}")
+            # self.set_input_channel_parameters(channel, settings)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
 
     def configure_heater_settings(self, channel, command_code, **desired_settings):
 
@@ -325,15 +335,26 @@ class LakeShore372(LakeShoreMixin, Model372):
                                                 delay=new_settings['delay'],
                                                 polarity=Model372Polarity(new_settings['polarity']))
 
-        return settings
-        # self.configure_heater(output_channel=channel, settings=settings)
+        # return settings
+        try:
+            log.info(f"Configuring heater for output channel {channel}: {settings}")
+            self.configure_heater(output_channel=channel, settings=settings)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
 
     def change_temperature_setpoint(self, channel, command_code, setpoint=None):
         current_setpoint = self.query_settings(command_code, channel)
         if current_setpoint != setpoint and setpoint is not None:
             log.info(f"Changing temperature regulation value for output channel {channel} to {setpoint} from "
                      f"{current_setpoint}")
-            self.set_setpoint_kelvin(output_channel=channel, setpoint=setpoint)
+            # return setpoint
+            try:
+                log.info(f"Changing the setpoint for output channel {channel} to {setpoint}")
+                self.set_setpoint_kelvin(output_channel=channel, setpoint=setpoint)
+            except (SerialException, IOError) as e:
+                log.error(f"...failed: {e}")
+                raise e
         else:
             log.info(f"Requested to set temperature setpoint from {current_setpoint} to {setpoint}, no change"
                         f"sent to Lake Shore 372.")
@@ -341,9 +362,14 @@ class LakeShore372(LakeShoreMixin, Model372):
     def modify_pid_settings(self, channel, command_code, **desired_settings):
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
-        return new_settings
-        # self.set_heater_pid(heater_channel, gain=new_settings['gain'], integral=new_settings['integral'],
-        #                     derivative=new_settings['ramp_rate'])
+        # return new_settings
+        try:
+            log.info(f"Configuring PID for output channel {channel}: {new_settings}")
+            self.set_heater_pid(channel, gain=new_settings['gain'], integral=new_settings['integral'],
+                                derivative=new_settings['ramp_rate'])
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
 
     def modify_heater_output_range(self, channel, command_code, range=None):
         current_range = self.query_settings(command_code, channel)
@@ -353,14 +379,24 @@ class LakeShore372(LakeShoreMixin, Model372):
                 log.info(f"Attempting to set the output range for the output heater from {current_range.name} to the "
                          f"same value. No change requested to the instrument.")
             else:
-                self.set_heater_output_range(channel, Model372SampleHeaterOutputRange(range))
+                try:
+                    log.info(f"Setting the output range of channel {channel} from {current_range} to {range}")
+                    self.set_heater_output_range(channel, Model372SampleHeaterOutputRange(range))
+                except (SerialException, IOError) as e:
+                    log.error(f"...failed: {e}")
+                    raise e
         else:
             # For a channel that is not the sample heater, this value must be a percentage
             if current_range == range or range is None:
                 log.info(f"Attempting to set the output range for the output heater from {current_range} to the "
                          f"same value. No change requested to the instrument.")
             else:
-                self.set_heater_output_range(channel, range)
+                try:
+                    log.info(f"Setting the output range of channel {channel} from {current_range} to {range}")
+                    self.set_heater_output_range(channel, range)
+                except (SerialException, IOError) as e:
+                    log.error(f"...failed: {e}")
+                    raise e
 
 
 if __name__ == "__main__":
@@ -389,7 +425,6 @@ if __name__ == "__main__":
     def callback(temperature, resistance, excitation):
         d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY), (temperature, resistance, excitation)) if x}
         redis.store(d, timeseries=True)
-
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals, lakeshore.excitation_power), value_callback=callback)
 

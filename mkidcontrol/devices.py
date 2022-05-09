@@ -1216,7 +1216,7 @@ class LakeShoreMixin:
         for channel in self.enabled_input_channels:
             try:
                 temp_rdg = float(self.get_kelvin_reading(channel))
-                log.info(f"Measured a temperature of {temp_rdg}K from channel {channel}")
+                log.info(f"Measured a temperature of {temp_rdg} K from channel {channel}")
                 temp_vals.append(temp_rdg)
             except IOError as e:
                 log.error(f"Serial error: {e}")
@@ -1233,7 +1233,7 @@ class LakeShoreMixin:
             try:
                 if self.model_number == "MODEL372":
                     res = float(self.get_resistance_reading(channel))
-                    log.info(f"Measured a resistance of {res} Ohms from channel {channel}")
+                    log.info(f"Measured a resistance of {res} kOhms from channel {channel}")
                     readings.append(res)
                 elif self.model_number == "MODEL336":
                     sens = float(self.get_sensor_reading(channel))
@@ -1252,7 +1252,9 @@ class LakeShoreMixin:
         readings = []
         for channel in self.enabled_input_channels:
             try:
-                readings.append(float(self.get_excitation_power(channel)))
+                pwr = float(self.get_excitation_power(channel))
+                log.info(f"Measured an excitation power of {pwr} W from channel {channel}")
+                readings.append(pwr)
             except IOError as e:
                 log.error(f"Serial error: {e}")
                 raise IOError(f"Serial error: {e}")
