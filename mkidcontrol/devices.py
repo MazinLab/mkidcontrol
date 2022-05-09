@@ -1300,15 +1300,15 @@ class LakeShoreMixin:
             log.critical(f"{channel} is not an allowed channel for the Lake Shore {self.model_number[-3:]}: {e}."
                          f"Ignoring request")
 
-    def _generate_new_settings(self, channel_num=None, curve_num=None, command_code=None, **desired_settings):
+    def _generate_new_settings(self, channel=None, curve=None, command_code=None, **desired_settings):
         if command_code is None:
             raise IOError(f"Insufficient information to query {self.model_num[-3:]}, no command code given.")
 
         try:
-            if channel_num is not None:
-                settings = self.query_settings(command_code, channel_num)
-            elif curve_num is not None:
-                settings = self.query_settings(command_code, curve_num)
+            if channel is not None:
+                settings = self.query_settings(command_code, channel)
+            elif curve is not None:
+                settings = self.query_settings(command_code, curve)
             else:
                 log.error(f"Insufficient values given for curve or channel to query! Cannot generate up-to-date settings."
                           f"Ignoring request to modify settings.")
@@ -1341,7 +1341,7 @@ class LakeShoreMixin:
                      f"sent to Lake Shore {self.model_number}.")
 
     def modify_curve_header(self, curve_num, command_code, **desired_settings):
-        new_settings = self._generate_new_settings(curve_num=curve_num, command_code=command_code, **desired_settings)
+        new_settings = self._generate_new_settings(curve=curve_num, command_code=command_code, **desired_settings)
 
         if self.model_number == "MODEL372":
             header = Model372CurveHeader(curve_name=new_settings['curve_name'],

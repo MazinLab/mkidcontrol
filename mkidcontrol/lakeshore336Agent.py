@@ -181,7 +181,7 @@ class LakeShore336(LakeShoreMixin, Model336):
         new_settings dict into a Model336InputSettings object and sends the appropriate command to update the input
         settings for that channel
         """
-        new_settings = self._generate_new_settings(channel_num=channel, command_code=command_code, **desired_settings)
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         if new_settings['sensor_type'] == 0:
             new_settings['input_range'] = None
