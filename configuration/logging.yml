@@ -44,7 +44,7 @@ loggers:
     serial: debug
     "":
       handlers: [ default ]
-      level: WARNING
+      level: INFO
       propagate: False
     __main__:
       handlers: [ default ]
@@ -57,7 +57,7 @@ loggers:
     serial: debug
     "":
       handlers: [ default ]
-      level: WARNING
+      level: INFO
       propagate: False
     __main__:
       handlers: [ default ]
