@@ -1286,7 +1286,7 @@ class LakeShoreMixin:
                 data = self.get_setpoint_kelvin(channel)
                 log.debug(f"Read setpoint for heater channel {channel}: {data} Kelvin")
             elif command_code == "PID":
-                data = vars(self.get_heater_pid(channel))
+                data = self.get_heater_pid(channel)
                 log.debug(f"Read PID settings for channel {channel}: {data}")
             elif command_code == "RANGE":
                 data = self.get_heater_output_range(channel)
