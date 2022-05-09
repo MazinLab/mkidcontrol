@@ -47,17 +47,7 @@ from lakeshore import Model372, Model336, Model372CurveHeader, Model372CurveForm
                       Model372ControlInputCurrentRange, Model372MeasurementInputVoltageRange, \
                       Model372InputChannelSettings, Model372Polarity, Model372SampleHeaterOutputRange
 
-TS_KEYS = ['status:temps:lhetank', 'status:temps:ln2tank']
-
-FIRMWARE_KEY = "status:device:ls372:firmware"
-MODEL_KEY = 'status:device:ls372:model'
-SN_KEY = 'status:device:ls372:sn'
-
-QUERY_INTERVAL = 1
-VALID_MODELS = ('MODEL372', )
-
 log = logging.getLogger()
-log.setLevel("DEBUG")
 
 ENABLED_INPUT_CHANNELS = ("A")
 ALLOWED_INPUT_CHANNELS = ("A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16")
@@ -172,9 +162,35 @@ COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:range': {'comman
  'RANGE_10_MILLI_AMPS': 6,
  'RANGE_31_POINT_6_MILLI_AMPS': 7,
  'RANGE_100_MILLI_AMPS': 8}} for ch in ALLOWED_OUTPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:curve-{cu}:curve-name': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
+COMMANDS372.update({f'device-settings:ls372:curve-{cu}:serial-number': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
+COMMANDS372.update({f'device-settings:ls372:curve-{cu}:curve-data-format': {'command': 'CRVHDR', 'vals': {'MILLIVOLT_PER_KELVIN': 1,
+                                                                                                            'VOLTS_PER_KELVIN': 2,
+                                                                                                            'OHMS_PER_KELVIN': 3,
+                                                                                                            'LOG_OHMS_PER_KELVIN': 4}} for cu in np.arange(21, 60)})
+COMMANDS372.update({f'device-settings:ls372:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(21, 60)})
+COMMANDS372.update({f'device-settings:ls372:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': {'NEGATIVE': 1,
+                                                                                                      'POSITIVE': 2}} for cu in np.arange(21, 60)})
+
+TEMPERATURE_KEY = 'status:temps:device-stage:temp'
+RESISTANCE_KEY = 'status:temps:device-stage:resistance'
+EXCITATION_POWER_KEY = 'status:temps:device-stage:excitation-power'
+
+TS_KEYS = (TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY)
+
+STATUS_KEY = 'status:device:ls372:status'
+FIRMWARE_KEY = "status:device:ls372:firmware"
+MODEL_KEY = 'status:device:ls372:model'
+SN_KEY = 'status:device:ls372:sn'
+
+QUERY_INTERVAL = 1
+
+SETTING_KEYS = tuple(COMMANDS372.keys())
+
+COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
 
 
-class LakeShore336Command:
+class LakeShore372Command:
     def __init__(self, schema_key, value=None):
         """
         Initializes a LakeShore336Command. Takes in a redis device-setting:* key and desired value an evaluates it for
@@ -263,7 +279,7 @@ class LakeShore372(LakeShoreMixin, Model372):
         return self.get_setpoint_kelvin(0)
 
     def configure_input_sensor(self, channel, command_code, **desired_settings):
-        new_settings = self._generate_new_settings(command_code, channel=channel, **desired_settings)
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         if channel == "A":
             new_settings['excitation_range'] = Model372ControlInputCurrentRange(new_settings['excitation_range'])
@@ -284,10 +300,10 @@ class LakeShore372(LakeShoreMixin, Model372):
                                               resistance_range=Model372MeasurementInputResistance(new_settings['resistance_range']))
 
         return settings
-        # self.configure_input(input_channel=channel, settings=settings)
+        self.configure_input(input_channel=channel, settings=settings)
 
     def modify_channel_settings(self, channel, command_code, **desired_settings):
-        new_settings = self._generate_new_settings(command_code, channel=channel, **desired_settings)
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         settings = Model372InputChannelSettings(enable=new_settings['enable'],
                                                 dwell_time=new_settings['dwell_time'],
@@ -298,9 +314,9 @@ class LakeShore372(LakeShoreMixin, Model372):
         return settings
         # self.set_input_channel_parameters(channel, settings)
 
-    def configure_heater_settings(self, heater_channel, command_code, **desired_settings):
+    def configure_heater_settings(self, channel, command_code, **desired_settings):
 
-        new_settings = new_settings = self._generate_new_settings(command_code, channel=heater_channel, **desired_settings)
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         settings = Model372HeaterOutputSettings(output_mode=Model372OutputMode(new_settings['output_mode']),
                                                 input_channel=Model372InputChannel(new_settings['input_channel']),
@@ -310,7 +326,7 @@ class LakeShore372(LakeShoreMixin, Model372):
                                                 polarity=Model372Polarity(new_settings['polarity']))
 
         return settings
-        # self.configure_heater(output_channel=heater_channel, settings=settings)
+        # self.configure_heater(output_channel=channel, settings=settings)
 
     def change_temperature_setpoint(self, channel, command_code, setpoint=None):
         current_setpoint = self.query_settings(command_code, channel)
@@ -322,28 +338,29 @@ class LakeShore372(LakeShoreMixin, Model372):
             log.info(f"Requested to set temperature setpoint from {current_setpoint} to {setpoint}, no change"
                         f"sent to Lake Shore 372.")
 
-    def modify_pid_settings(self, heater_channel, command_code, **desired_settings):
-        new_settings = self._generate_new_settings(command_code, channel=heater_channel, **desired_settings)
+    def modify_pid_settings(self, channel, command_code, **desired_settings):
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         return new_settings
         # self.set_heater_pid(heater_channel, gain=new_settings['gain'], integral=new_settings['integral'],
         #                     derivative=new_settings['ramp_rate'])
 
-    def modify_heater_output_range(self, output_channel, command_code, range=None):
-        current_range = self.query_settings(command_code, output_channel)
+    def modify_heater_output_range(self, channel, command_code, range=None):
+        current_range = self.query_settings(command_code, channel)
 
-        if output_channel == 0:
+        if channel == 0:
             if current_range.value == range or range is None:
                 log.info(f"Attempting to set the output range for the output heater from {current_range.name} to the "
                          f"same value. No change requested to the instrument.")
             else:
-                self.set_heater_output_range(output_channel, Model372SampleHeaterOutputRange(range))
+                self.set_heater_output_range(channel, Model372SampleHeaterOutputRange(range))
         else:
+            # For a channel that is not the sample heater, this value must be a percentage
             if current_range == range or range is None:
                 log.info(f"Attempting to set the output range for the output heater from {current_range} to the "
                          f"same value. No change requested to the instrument.")
             else:
-                self.set_heater_output_range(output_channel, range)
+                self.set_heater_output_range(channel, range)
 
 
 if __name__ == "__main__":
@@ -369,24 +386,47 @@ if __name__ == "__main__":
         log.critical(f"Redis server error! {e}")
         sys.exit(1)
 
-    # TODO: Main loop with callback/monitor architecture (see sim921agent for example)
-    def callback(keys, ENABLED_INPUT_CHANNELS):
-        pass
-    # lakeshore.monitor(QUERY_INTERVAL, lakeshore.read_temperatures(), value_callback=callback)
+    def callback(temperature, resistance, excitation):
+        d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY), (temperature, resistance, excitation)) if x}
+        redis.store(d, timeseries=True)
 
-    # while True:
-    #     try:
-    #         temps = lakeshore.read_temperatures()
-    #         # redis.store({'status:temps:thermometer-b': temps["B"],
-    #         #              'status:temps:thermometer-c': temps["C"],
-    #         #              'status:temps:thermometer-d': temps["D"]}, timeseries=True)
-    #     except (IOError, ValueError) as e:
-    #         log.error(f"Communication with LakeShore 336 failed: {e}")
-    #     except RedisError as e:
-    #         log.critical(f"Redis server error! {e}")
-    #         sys.exit(1)
-    #     time.sleep(QUERY_INTERVAL)
 
-    # TODO: Listen for settings changes / handle changes
+    lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals, lakeshore.excitation_power), value_callback=callback)
+
+    try:
+        while True:
+            for key, val in redis.listen(COMMAND_KEYS):
+                log.debug(f"heard {key} -> {val}!")
+                try:
+                    cmd = LakeShore372Command(key.removeprefix('command:'), val)
+                except ValueError as e:
+                    log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
+                    continue
+                try:
+                    log.info(f"Processing command '{cmd}'")
+                    if cmd.command_code == "INTYPE":
+                        lakeshore.configure_input_sensor(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+                    elif cmd.command_code == "INSET":
+                        lakeshore.modify_channel_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+                    elif cmd.command_code == "OUTMODE":
+                        lakeshore.configure_heater_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+                    elif cmd.command_code == "SETP":
+                        lakeshore.change_temperature_setpoint(channel=cmd.channel, command_code=cmd.command_code, setpoint=cmd.command_value)
+                    elif cmd.command_code == "PID":
+                        lakeshore.modify_pid_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+                    elif cmd.command_code == "RANGE":
+                        lakeshore.modify_heater_output_range(channel=cmd.channel, command_code=cmd.command_code, range=cmd.command_value)
+                    elif cmd.command_code == "CRVHDR":
+                        lakeshore.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+                    else:
+                        pass
+                    redis.store({cmd.setting: cmd.value})
+                    redis.store({STATUS_KEY: "OK"})
+                except IOError as e:
+                    redis.store({STATUS_KEY: f"Error {e}"})
+                    log.error(f"Comm error: {e}")
+    except RedisError as e:
+        log.critical(f"Redis server error! {e}")
+        sys.exit(1)
 
     print('go')

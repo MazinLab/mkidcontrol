@@ -29,6 +29,7 @@ log = logging.getLogger(__name__)
 
 ENABLED_336_CHANNELS = ('B', 'C', 'D')
 ALLOWED_336_CHANNELS = ("A", "B", "C", "D")
+
 COMMANDS336 = {}
 COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE',
                                                                        'vals': {'DISABLED': 0, 'DIODE': 1,
@@ -74,9 +75,6 @@ MODEL_KEY = 'status:device:ls336:model'
 SN_KEY = 'status:device:ls336:sn'
 
 QUERY_INTERVAL = 1
-
-ENABLED_CHANNELS = ('B', 'C', 'D')  # CHANNEL ASSIGNMENTS ARE -> B:, C:, D:
-ALLOWED_CHANNELS = ('A', 'B', 'C', 'D')
 
 SETTING_KEYS = tuple(COMMANDS336.keys())
 
@@ -183,7 +181,7 @@ class LakeShore336(LakeShoreMixin, Model336):
         new_settings dict into a Model336InputSettings object and sends the appropriate command to update the input
         settings for that channel
         """
-        new_settings = self._generate_new_settings(command_code, channel_num=channel, **desired_settings)
+        new_settings = self._generate_new_settings(channel_num=channel, command_code=command_code, **desired_settings)
 
         if new_settings['sensor_type'] == 0:
             new_settings['input_range'] = None
