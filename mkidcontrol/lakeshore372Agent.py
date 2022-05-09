@@ -275,9 +275,8 @@ class LakeShore372(LakeShoreMixin, Model372):
     def configure_input_sensor(self, channel, command_code, **desired_settings):
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
-        if channel == "A":
+        if channel.upper() == "A":
             new_settings['excitation_range'] = Model372ControlInputCurrentRange(new_settings['excitation_range'])
-            new_settings['resistance_range'] = 0
         else:
             if new_settings['mode'] == 0:
                 new_settings['excitation_range'] = Model372MeasurementInputVoltageRange(new_settings['excitation_range'])
@@ -313,7 +312,7 @@ class LakeShore372(LakeShoreMixin, Model372):
         # return settings
         try:
             log.info(f"Configuring input channel {channel} parameters: {settings}")
-            # self.set_input_channel_parameters(channel, settings)
+            self.set_input_channel_parameters(channel, settings)
         except (SerialException, IOError) as e:
             log.error(f"...failed: {e}")
             raise e
