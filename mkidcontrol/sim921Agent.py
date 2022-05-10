@@ -11,7 +11,8 @@ import sys
 import time
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.util as util
-from mkidcontrol.devices import SIM921, SimCommand, SIM921OutputMode, COMMANDS921
+from mkidcontrol.devices import SIM921, SimCommand, SIM921OutputMode
+from mkidcontrol.commands import COMMANDS921
 import mkidcontrol.mkidredis as redis
 
 

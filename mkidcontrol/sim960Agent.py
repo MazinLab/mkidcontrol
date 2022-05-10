@@ -15,7 +15,8 @@ from transitions.extensions import LockedMachine
 import pkg_resources
 
 import mkidcontrol.util as util
-from mkidcontrol.devices import SIM960, SimCommand, MagnetState, COMMANDS960, enable_simulator
+from mkidcontrol.devices import SIM960, MagnetState
+from mkidcontrol.commands import COMMANDS960, SimCommand
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.currentduinoAgent as heatswitch

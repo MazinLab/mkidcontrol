@@ -10,54 +10,16 @@ import enum
 import logging
 import time
 import threading
-from collections import defaultdict
 import serial
 from serial import SerialException
+
+from mkidcontrol.commands import SimCommand
 
 from lakeshore import Model372CurveHeader, Model372CurveFormat, Model372CurveTemperatureCoefficient,\
                       Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients
 
 
 log = logging.getLogger(__name__)
-
-CALIBRATION_CURVE = 1
-
-COMMANDS921 = {'device-settings:sim921:resistance-range': {'command': 'RANG', 'vals': {'20e-3': '0', '200e-3': '1', '2': '2',
-                                                                                       '20': '3', '200': '4', '2e3': '5',
-                                                                                       '20e3': '6', '200e3': '7',
-                                                                                       '2e6': '8', '20e6': '9'}},
-               'device-settings:sim921:excitation-value': {'command': 'EXCI', 'vals': {'0': '-1', '3e-6': '0', '10e-6': '1',
-                                                                                       '30e-6': '2', '100e-6': '3',
-                                                                                       '300e-6': '4', '1e-3': '5',
-                                                                                       '3e-3': '6', '10e-3': '7', '30e-3': '8'}},
-               'device-settings:sim921:excitation-mode': {'command': 'MODE', 'vals': {'passive': '0', 'current': '1',
-                                                                                      'voltage': '2', 'power': '3'}},
-               'device-settings:sim921:time-constant': {'command': 'TCON', 'vals': {'0.3': '0', '1': '1', '3': '2', '10': '3',
-                                                                                    '30': '4', '100': '5', '300': '6'}},
-               'device-settings:sim921:temp-offset': {'command': 'TSET', 'vals': [0, 40]},
-               'device-settings:sim921:resistance-offset': {'command': 'RSET', 'vals': [0, 63765.1]},
-               'device-settings:sim921:temp-slope': {'command': 'VKEL', 'vals': [0, 1e-2]},
-               'device-settings:sim921:resistance-slope': {'command': 'VOHM', 'vals': [0, 1e-3]},
-               'device-settings:sim921:output-mode': {'command': 'AMAN', 'vals': {'scaled': '0', 'manual': '1'}},
-               'device-settings:sim921:manual-vout': {'command': 'AOUT', 'vals': [-10, 10]},
-               'device-settings:sim921:curve-number': {'command': 'CURV', 'vals': {'1': '1', '2': '2', '3': '3'}},
-               }
-
-COMMANDS960 = {'device-settings:sim960:vout-min-limit': {'command': 'LLIM', 'vals': [-10, 10]},
-               'device-settings:sim960:vout-max-limit': {'command': 'ULIM', 'vals': [-10, 10]},
-               'device-settings:sim960:vin-setpoint-mode': {'command': 'INPT', 'vals': {'internal': '0', 'external': '1'}},
-               'device-settings:sim960:vin-setpoint': {'command': 'SETP', 'vals': [-10, 10]},
-               'device-settings:sim960:pid-p:value': {'command': 'GAIN', 'vals': [-1e3, 0]},
-               'device-settings:sim960:pid-i:value': {'command': 'INTG', 'vals': [0, 5e5]},
-               'device-settings:sim960:pid-d:value': {'command': 'DERV', 'vals': [0, 1e1]},
-               'device-settings:sim960:pid-offset:value': {'command': 'OFST', 'vals': [-10,10]},
-               'device-settings:sim960:vin-setpoint-slew-enable': {'command': 'RAMP', 'vals': {'off': '0', 'on': '1'}},  # Note: Internal setpoint ramp, NOT magnet ramp
-               'device-settings:sim960:vin-setpoint-slew-rate': {'command': 'RATE', 'vals': [1e-3, 1e4]},  # Note: Internal setpoint ramp rate, NOT magnet ramp
-               'device-settings:sim960:pid-p:enabled': {'command': 'PCTL', 'vals': {'off': '0', 'on': '1'}},
-               'device-settings:sim960:pid-i:enabled': {'command': 'ICTL', 'vals': {'off': '0', 'on': '1'}},
-               'device-settings:sim960:pid-d:enabled': {'command': 'DCTL', 'vals': {'off': '0', 'on': '1'}},
-               'device-settings:sim960:pid-offset:enabled': {'command': 'OCTL', 'vals': {'off': '0', 'on': '1'}},
-               }
 
 
 def load_tvals(curve):
@@ -78,24 +40,6 @@ def load_tvals(curve):
         raise ValueError(f"{file} couldn't be loaded.")
 
     return {str(i): i for i in temp_data}
-
-
-# COMMANDS HS (Heatswitch) are only included so that we can use the SimCommand class to check the legality of a command.
-COMMANDSHS = {'device-settings:currentduino:heatswitch': {'command': '', 'vals': {'open': 'open', 'close': 'close'}}}
-
-
-# COMMANDS MAGNET are only included so that we can use the SimCommand class to check the legality of a magnet command.
-COMMANDSMAGNET = {'device-settings:sim960:ramp-rate': {'command': '', 'vals': [0, 0.015]},
-                  'device-settings:sim960:deramp-rate': {'command': '', 'vals': [-0.015, 0]},
-                  'device-settings:sim960:soak-time': {'command': '', 'vals': [0, np.inf]},
-                  'device-settings:sim960:soak-current': {'command': '', 'vals': [0, 9.4]},
-                  'device-settings:mkidarray:regulating-temp': {'command': '', 'vals': load_tvals(CALIBRATION_CURVE)}}
-
-COMMAND_DICT = {}
-COMMAND_DICT.update(COMMANDS960)
-COMMAND_DICT.update(COMMANDS921)
-COMMAND_DICT.update(COMMANDSHS)
-COMMAND_DICT.update(COMMANDSMAGNET)
 
 
 def escapeString(string):
@@ -176,73 +120,6 @@ def enable_simulator():
 def disable_simulator():
     global Serial
     Serial = serial.Serial
-
-
-class SimCommand:
-    def __init__(self, schema_key, value=None):
-        """
-        Initializes a SimCommand. Takes in a redis device-setting:* key and desired value an evaluates it for its type,
-        the mapping of the command, and appropriately sets the mapping|range for the command. If the setting is not
-        supported, raise a ValueError.
-
-        If no value is specified it will create the command as a query
-
-        """
-        if schema_key not in COMMAND_DICT.keys():
-            raise ValueError(f'Unknown command: {schema_key}')
-
-        self.range = None
-        self.mapping = None
-        self.value = value
-        self.setting = schema_key
-
-        self.command = COMMAND_DICT[self.setting]['command']
-        setting_vals = COMMAND_DICT[self.setting]['vals']
-
-        if isinstance(setting_vals, dict):
-            self.mapping = setting_vals
-        else:
-            self.range = setting_vals
-        self._vet()
-
-    def _vet(self):
-        """Verifies value agaisnt papping or range and handles necessary casting"""
-        if self.value is None:
-            return True
-
-        value = self.value
-        if self.mapping is not None:
-            if value not in self.mapping:
-                raise ValueError(f'Invalid value {value}. Options are: {list(self.mapping.keys())}.')
-        else:
-            try:
-                self.value = float(value)
-            except ValueError:
-                raise ValueError(f'Invalid value {value}, must be castable to float.')
-            if not self.range[0] <= self.value <= self.range[1]:
-                raise ValueError(f'Invalid value {value}, must in {self.range}.')
-
-    def __str__(self):
-        return f"{self.setting}->{self.value}: {self.sim_string}"
-
-    @property
-    def is_query(self):
-        return self.value is None
-
-    @property
-    def sim_string(self):
-        """
-        Returns the command string for the SIM.
-        """
-        if self.is_query:
-            return self.sim_query_string
-        v = self.mapping[self.value] if self.range is None else self.value
-        return f"{self.command} {v}"
-
-    @property
-    def sim_query_string(self):
-        """ Returns the corresponding command string to query for the setting"""
-        return f"{self.command}?"
 
 
 class SerialDevice:
