@@ -289,10 +289,9 @@ class LakeShore372(LakeShoreMixin, Model372):
                                               units=Model372InputSensorUnits(new_settings['units']),
                                               resistance_range=Model372MeasurementInputResistance(new_settings['resistance_range']))
 
-        # return settings
         try:
             log.info(f"Configuring input sensor on channel {channel}: {settings}")
-            # self.configure_input(input_channel=channel, settings=settings)
+            self.configure_input(input_channel=channel, settings=settings)
         except (SerialException, IOError) as e:
             log.error(f"...failed: {e}")
             raise e
@@ -306,7 +305,6 @@ class LakeShore372(LakeShoreMixin, Model372):
                                                 curve_number=new_settings['curve_number'],
                                                 temperature_coefficient=Model372CurveTemperatureCoefficient(new_settings['temperature_coefficient']))
 
-        # return settings
         try:
             log.info(f"Configuring input channel {channel} parameters: {settings}")
             self.set_input_channel_parameters(channel, settings)
@@ -325,7 +323,6 @@ class LakeShore372(LakeShoreMixin, Model372):
                                                 delay=new_settings['delay'],
                                                 polarity=Model372Polarity(new_settings['polarity']))
 
-        # return settings
         try:
             log.info(f"Configuring heater for output channel {channel}: {settings}")
             self.configure_heater(output_channel=channel, settings=settings)
@@ -338,7 +335,6 @@ class LakeShore372(LakeShoreMixin, Model372):
         if current_setpoint != setpoint and setpoint is not None:
             log.info(f"Changing temperature regulation value for output channel {channel} to {setpoint} from "
                      f"{current_setpoint}")
-            # return setpoint
             try:
                 log.info(f"Changing the setpoint for output channel {channel} to {setpoint}")
                 self.set_setpoint_kelvin(output_channel=channel, setpoint=setpoint)
@@ -352,7 +348,6 @@ class LakeShore372(LakeShoreMixin, Model372):
     def modify_pid_settings(self, channel, command_code, **desired_settings):
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
-        # return new_settings
         try:
             log.info(f"Configuring PID for output channel {channel}: {new_settings}")
             self.set_heater_pid(channel, gain=new_settings['gain'], integral=new_settings['integral'],
