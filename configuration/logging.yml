@@ -53,19 +53,25 @@ loggers:
   lakeshore372Agent:
     lakeshore372Agent: debug
     mkidcontrol.mkidredis: info
+      mkidcontrol.devices: debug
+      serial: debug
+      "":
+        handlers: [ default ]
+        level: INFO
+        propagate: False
+      __main__:
+        handlers: [ default ]
+        level: DEBUG
+        propagate: False
+  lakeshore625Agent:
+    lakeshore625Agent: debug
+    mkidcontrol.mkidredis: info
     mkidcontrol.devices: debug
     serial: debug
     "":
       handlers: [ default ]
       level: INFO
       propagate: False
-    __main__:
-      handlers: [ default ]
-      level: DEBUG
-      propagate: False
-  lakeshore625Agent:
-    lakeshore625Agent: debug
-    mkidcontrol.mkidredis: debug
     __main__:
       handlers: [ default ]
       level: DEBUG
