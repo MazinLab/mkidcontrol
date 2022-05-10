@@ -30,12 +30,11 @@ from mkidcontrol.devices import LakeShoreMixin
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS372
 
-from lakeshore import Model372, Model336, Model372CurveHeader, Model372CurveFormat, Model372CurveTemperatureCoefficient, \
-                      Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, Model372AutoRangeMode, \
-                      Model372InputSensorUnits, Model372MeasurementInputResistance, Model372HeaterOutputSettings, \
-                      Model372OutputMode, Model372InputChannel, Model372InputSetupSettings, \
-                      Model372ControlInputCurrentRange, Model372MeasurementInputVoltageRange, \
-                      Model372InputChannelSettings, Model372Polarity, Model372SampleHeaterOutputRange
+from lakeshore import Model372, Model372CurveTemperatureCoefficient, Model372SensorExcitationMode, \
+    Model372MeasurementInputCurrentRange, Model372AutoRangeMode, Model372InputSensorUnits, \
+    Model372MeasurementInputResistance, Model372HeaterOutputSettings, Model372OutputMode, Model372InputChannel, \
+    Model372InputSetupSettings, Model372ControlInputCurrentRange, Model372MeasurementInputVoltageRange, \
+    Model372InputChannelSettings, Model372Polarity, Model372SampleHeaterOutputRange
 
 log = logging.getLogger()
 

@@ -21,9 +21,8 @@ from mkidcontrol.devices import LakeShoreMixin
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS336
 
-from lakeshore import Model336, Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients, \
-                      Model336InputSensorUnits, Model336InputSensorSettings, Model336InputSensorType, \
-                      Model336RTDRange, Model336DiodeRange, Model336ThermocoupleRange
+from lakeshore import Model336, Model336InputSensorUnits, Model336InputSensorSettings, Model336InputSensorType, \
+    Model336RTDRange, Model336DiodeRange, Model336ThermocoupleRange
 
 log = logging.getLogger(__name__)
 
