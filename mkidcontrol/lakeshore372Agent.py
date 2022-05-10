@@ -15,9 +15,6 @@ values (i.e. Output 7) then it will return the values for the highest number cha
 will give you the reult of OUTMODE? 2, since 2 is the highest channel number available to that query)
 
 N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/model_372.html
-
-TODO: Enable/disable channels
-
 TODO: Docstrings
 
 TODO: 'Block' settings (e.g. excitation cannot be in V if mode is Current)
