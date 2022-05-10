@@ -21,6 +21,7 @@ from lakeshore import Model372CurveHeader, Model372CurveFormat, Model372CurveTem
 
 log = logging.getLogger(__name__)
 
+Serial = serial.Serial
 
 def load_tvals(curve):
     if curve == 1:
@@ -47,79 +48,6 @@ def escapeString(string):
     Takes a string and escapes newline characters so they can be logged and display the newline characters in that string
     """
     return string.replace('\n', '\\n').replace('\r', '\\r')
-
-
-responses960 = {b'*IDN?\n': b"Stanford_Research_Systems,SIM960,s/n021840,ver2.17\r\n",
-                b'LLIM?\n': b"-0.10\r\n",
-                b'ULIM?\n': b"+10.00\r\n",
-                b'INPT?\n': b"0\r\n",
-                b'SETP?\n': b"+0.000\r\n",
-                b'GAIN?\n': b"-1.6E+1\r\n",
-                b'INTG?\n': b"+2.0E-1\r\n",
-                b'DERV?\n': b"+1.0E-5\r\n",
-                b'RAMP?\n': b"1\r\n",
-                b'RATE?\n': b"+0.5E-2\r\n",
-                b'PCTL?\n': b"1\r\n",
-                b'ICTL?\n': b"1\r\n",
-                b'DCTL?\n': b"0\r\n",
-                b'APOL?\n': b"0\r\n",
-                b'AMAN?\n': b"0\r\n",  # needs a function to flip between manual/PID
-                b'MMON?\n': b"-00.000000\r\n",  # needs a function to generate plausible vals
-                b'OMON?\n': b"+00.000000\r\n",  # needs a function to generate plausible vals
-                b'MOUT?\n': b"+00.000000\r\n"}  # needs a function to generate plausible vals
-SERIAL_SIM_CONFIG = {'open': True, 'write_error': False, 'read_error': False, 'responses': responses960}
-
-
-class SimulatedSerial:
-    def __init__(self, *args, **kwargs):
-        self._lastwrite=''
-
-    def close(self):
-        pass
-
-    def write(self, msg):
-        if SERIAL_SIM_CONFIG['write_error']:
-            raise SerialException('')
-        self._lastwrite = msg
-
-        # Some dynamic updating of values as if the SIM960 received the command and updated its output accordingly
-        if self._lastwrite[:4] == b"MOUT":
-            if self._lastwrite.decode()[4] == "?":
-                pass
-            else:
-                val = self._lastwrite.decode("utf-8").rstrip('\r\n').split(" ")[1]
-                SERIAL_SIM_CONFIG['responses'][b"MOUT?\n"] = f"+{val}\r\n".encode("utf-8")
-                SERIAL_SIM_CONFIG['responses'][b"OMON?\n"] = f"+{val}\r\n".encode("utf-8")
-        if self._lastwrite[:4] == b"AMAN":
-            if self._lastwrite.decode()[4] == "?":
-                pass
-            else:
-                val = self._lastwrite.decode("utf-8").rstrip('\r\n').split(" ")[1]
-                SERIAL_SIM_CONFIG['responses'][b"AMAN?\n"] = f"{val}\r\n".encode("utf-8")
-
-    def readline(self):
-        if SERIAL_SIM_CONFIG['read_error']:
-            raise SerialException('')
-
-        resp = SERIAL_SIM_CONFIG['responses'][self._lastwrite]
-        try:
-            return resp
-        except TypeError:
-            resp.encode('utf-8')
-
-    def isOpen(self):
-        return SERIAL_SIM_CONFIG['open']
-
-
-Serial = serial.Serial
-def enable_simulator():
-    global Serial
-    Serial = SimulatedSerial
-
-
-def disable_simulator():
-    global Serial
-    Serial = serial.Serial
 
 
 class SerialDevice:
