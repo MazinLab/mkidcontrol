@@ -457,5 +457,3 @@ if __name__ == "__main__":
     except RedisError as e:
         log.critical(f"Redis server error! {e}")
         sys.exit(1)
-
-    print('go')
