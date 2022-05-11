@@ -139,6 +139,28 @@ class LakeShore336(LakeShoreMixin, Model336):
             super().__init__(com_port=port, timeout=timeout)
         self.name = name
 
+    def change_curve(self, channel, command_code, curve_num=None):
+        """
+        Takes in an input channel and the relevant command code from the LAKESHORE_COMMANDS dict to query what the
+        current calibration curve is in use. If the curve_num given is not none or the same as the one which is already
+        loaded in, it will attempt to change to a new calibration curve for that input channel
+        If no curve number is given or the user tries to change to the current curve (i.e. Channel A uses Curve 2, try
+        switching to curve 2), no change will be made.
+        """
+        current_curve = self.query_settings(command_code, channel)
+
+        if current_curve != curve_num and curve_num is not None:
+            try:
+                log.info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
+                self.set_input_curve(channel, curve_num)
+            except (SerialException, IOError) as e:
+                log.error(f"...failed: {e}")
+                raise e
+
+        else:
+            log.warning(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
+                     f"sent to Lake Shore {self.model_number}.")
+
     def modify_input_sensor(self, channel: (str, int), command_code, **desired_settings):
         """
         Reads in the current settings of the input sensor at channel <channel>, changes any setting passed as an

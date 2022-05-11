@@ -154,7 +154,8 @@ class LakeShore372(LakeShoreMixin, Model372):
 
     def configure_input_sensor(self, channel, command_code, **desired_settings):
         """
-
+        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
+        modify in order to configure the input sensor for the given channel.
         """
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
@@ -184,7 +185,9 @@ class LakeShore372(LakeShoreMixin, Model372):
 
     def modify_channel_settings(self, channel, command_code, **desired_settings):
         """
-
+        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
+        modify in order to modify the settings of how the channel reads out the sensor and how it is reported.
+        This is the command for the LakeShore 372 where the calibration curve can be changed
         """
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
@@ -203,7 +206,8 @@ class LakeShore372(LakeShoreMixin, Model372):
 
     def configure_heater_settings(self, channel, command_code, **desired_settings):
         """
-
+        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
+        modify in order to configure the settings for the output heater from the LakeShore 372.
         """
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
@@ -223,7 +227,8 @@ class LakeShore372(LakeShoreMixin, Model372):
 
     def change_temperature_setpoint(self, channel, command_code, setpoint=None):
         """
-
+        Takes in an allowable channel number, command code (to query the current settings), and the new setpoint the
+        user would like to control the device at. Setpointwill always be in units of Kelvin.
         """
         current_setpoint = self.query_settings(command_code, channel)
         if current_setpoint != setpoint and setpoint is not None:
@@ -241,7 +246,9 @@ class LakeShore372(LakeShoreMixin, Model372):
 
     def modify_pid_settings(self, channel, command_code, **desired_settings):
         """
-
+        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
+        modify in order to update the PID loop. Desired settings can be 'gain', 'integral', or 'derivative', for the
+        P, I, and D parameters, respectively (a value of 0 means the term is unused).
         """
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
@@ -255,7 +262,8 @@ class LakeShore372(LakeShoreMixin, Model372):
 
     def modify_heater_output_range(self, channel, command_code, range=None):
         """
-
+        Takes in an allowable channel number, command code (to query the current settings), and the desired heater range
+        from the allowed values, which step from 31.6 uA to 100 mA stepping up by a factor of 3 each step.
         """
         current_range = self.query_settings(command_code, channel)
 
@@ -271,7 +279,7 @@ class LakeShore372(LakeShoreMixin, Model372):
                     log.error(f"...failed: {e}")
                     raise e
         else:
-            # For a channel that is not the sample heater, this value must be a percentage
+            # For a channel that is not the sample heater, this value must be on or off
             if current_range == range or range is None:
                 log.info(f"Attempting to set the output range for the output heater from {current_range} to the "
                          f"same value. No change requested to the instrument.")
