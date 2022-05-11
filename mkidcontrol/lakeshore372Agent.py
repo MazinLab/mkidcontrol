@@ -43,7 +43,6 @@ ALLOWED_INPUT_CHANNELS = ("A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
 ENABLED_OUTPUT_CHANNELS = (0, )
 ALLOWED_OUTPUT_CHANNELS = (0, 1, 2)
 
-
 TEMPERATURE_KEY = 'status:temps:device-stage:temp'
 RESISTANCE_KEY = 'status:temps:device-stage:resistance'
 EXCITATION_POWER_KEY = 'status:temps:device-stage:excitation-power'
@@ -148,9 +147,15 @@ class LakeShore372(LakeShoreMixin, Model372):
 
     @property
     def setpoint(self):
+        """
+        Returns the setpoint for the sample heater in Kelvin
+        """
         return self.get_setpoint_kelvin(0)
 
     def configure_input_sensor(self, channel, command_code, **desired_settings):
+        """
+
+        """
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         if channel.upper() == "A":
@@ -178,6 +183,9 @@ class LakeShore372(LakeShoreMixin, Model372):
             raise e
 
     def modify_channel_settings(self, channel, command_code, **desired_settings):
+        """
+
+        """
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         settings = Model372InputChannelSettings(enable=new_settings['enable'],
@@ -194,7 +202,9 @@ class LakeShore372(LakeShoreMixin, Model372):
             raise e
 
     def configure_heater_settings(self, channel, command_code, **desired_settings):
+        """
 
+        """
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         settings = Model372HeaterOutputSettings(output_mode=Model372OutputMode(new_settings['output_mode']),
@@ -212,6 +222,9 @@ class LakeShore372(LakeShoreMixin, Model372):
             raise e
 
     def change_temperature_setpoint(self, channel, command_code, setpoint=None):
+        """
+
+        """
         current_setpoint = self.query_settings(command_code, channel)
         if current_setpoint != setpoint and setpoint is not None:
             log.info(f"Changing temperature regulation value for output channel {channel} to {setpoint} from "
@@ -227,6 +240,9 @@ class LakeShore372(LakeShoreMixin, Model372):
                         f"sent to Lake Shore 372.")
 
     def modify_pid_settings(self, channel, command_code, **desired_settings):
+        """
+
+        """
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         try:
@@ -238,6 +254,9 @@ class LakeShore372(LakeShoreMixin, Model372):
             raise e
 
     def modify_heater_output_range(self, channel, command_code, range=None):
+        """
+
+        """
         current_range = self.query_settings(command_code, channel)
 
         if channel == 0:

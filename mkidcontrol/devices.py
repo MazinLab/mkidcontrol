@@ -1017,13 +1017,18 @@ class LakeShoreMixin:
         return dict(model=self.model_number, firmware=self.firmware_version, sn=self.serial_number)
 
     def temp(self):
+        """
+        Returns the temperature for all enabled input channels of the lakeshore temperature controller.
+        If there is only 1 channel enabled, returns a float, otherwise returns a list.
+        Raises an IOError if there is a problem communicating with the opened serial port
+        """
         temp_vals = []
         for channel in self.enabled_input_channels:
             try:
                 temp_rdg = float(self.get_kelvin_reading(channel))
                 log.info(f"Measured a temperature of {temp_rdg} K from channel {channel}")
                 temp_vals.append(temp_rdg)
-            except IOError as e:
+            except (SerialException, IOError) as e:
                 log.error(f"Serial error: {e}")
                 raise IOError(f"Serial error: {e}")
 
@@ -1033,6 +1038,14 @@ class LakeShoreMixin:
         return temp_vals
 
     def sensor_vals(self):
+        """
+        Returns the sensor values for all enabled input channels of the lakeshore temperature controller.
+        - For the LakeShore 372, all readings will be resistances
+        - For the LakeShore 336, readings can be EITHER resistance or voltage depending on the type of sensor being
+          used. The reporting of the proper unit will be handled by the agent itself.
+        If there is only 1 channel enabled, returns a float, otherwise returns a list.
+        Raises an IOError if there is a problem communicating with the opened serial port
+        """
         readings = []
         for channel in self.enabled_input_channels:
             try:
@@ -1044,7 +1057,7 @@ class LakeShoreMixin:
                     sens = float(self.get_sensor_reading(channel))
                     log.info(f"Measured a value of {sens} from channel {channel}")
                     readings.append(sens)
-            except IOError as e:
+            except (SerialException, IOError) as e:
                 log.error(f"Serial error: {e}")
                 raise IOError(f"Serial error: {e}")
 
@@ -1054,13 +1067,19 @@ class LakeShoreMixin:
         return readings
 
     def excitation_power(self):
+        """
+        Returns the excitation power for all enabled input channels of the lakeshore 372. Not implemented in the
+        lakeshore 336.
+        If there is only 1 channel enabled, returns a float, otherwise returns a list.
+        Raises an IOError if there is a problem communicating with the opened serial port
+        """
         readings = []
         for channel in self.enabled_input_channels:
             try:
                 pwr = float(self.get_excitation_power(channel))
                 log.info(f"Measured an excitation power of {pwr} W from channel {channel}")
                 readings.append(pwr)
-            except IOError as e:
+            except (SerialException, IOError) as e:
                 log.error(f"Serial error: {e}")
                 raise IOError(f"Serial error: {e}")
 
@@ -1070,7 +1089,20 @@ class LakeShoreMixin:
         return readings
 
     def query_settings(self, command_code, channel=None, curve_num=None):
+        """
+        Using a command code (from either the COMMANDS336 or COMMANDS372 dict) and either a channel or curve number,
+        sends the appropriate query to the lakeshore device. If the result that gets returned is a class instance,
+        parses it using the vars() function to turn it into a dict where each key is the property name and each value is
+        its corresponding value.
+        This is used by the 'modification' functions to query the current configuration of a channel or curve, which can
+        then be modified and have any subset of those settings changed (if allowable).
+        Raises an IOError in case of a serial hiccup.
+        """
         model = self.model_number
+
+        if channel is None and curve_num is None:
+            raise ValueError(f"Insufficient information to query a channel or a curve!")
+
         try:
             if command_code == "INTYPE":
                 if model == "MODEL336":
@@ -1106,6 +1138,15 @@ class LakeShoreMixin:
                          f"Ignoring request")
 
     def _generate_new_settings(self, channel=None, curve=None, command_code=None, **desired_settings):
+        """
+        Uses the command code (string from the 'COMMAND' key in the LAKESHORE_COMMANDS dict) along with a curve/channel
+        number to first query the current settings for whatever setting is desired to be changed.
+        Next, takes the dictionary that is returned by the query_settings() function and iterates through the
+        **desired_settings. The new_settings dictionary will be populated with the same keys as returned by the query_settings
+        call. If any of the keys are present as keys in the **desired_settings, those will be added as the values in the
+        new_settings dict, otherwise they will remain the same as in the query. The new_settings dict is then returned
+        to be used by one of the 'modify_...' functions.
+        """
         if command_code is None:
             raise IOError(f"Insufficient information to query {self.model_num[-3:]}, no command code given.")
 
@@ -1131,6 +1172,13 @@ class LakeShoreMixin:
         return new_settings
 
     def change_curve(self, channel, command_code, curve_num=None):
+        """
+        Takes in an input channel and the relevant command code from the LAKESHORE_COMMANDS dict to query what the
+        current calibration curve is in use. If the curve_num given is not none or the same as the one which is already
+        loaded in, it will attempt to change to a new calibration curve for that input channel.
+        If no curve number is given or the user tries to change to the current curve (i.e. Channel A uses Curve 2, try
+        switching to curve 2), no change will be made
+        """
         current_curve = self.query_settings(command_code, channel)
 
         if current_curve != curve_num and curve_num is not None:
@@ -1142,10 +1190,17 @@ class LakeShoreMixin:
                 raise e
 
         else:
-            log.info(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
+            log.warning(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
                      f"sent to Lake Shore {self.model_number}.")
 
     def modify_curve_header(self, curve_num, command_code, **desired_settings):
+        """
+        Follows the standard modify_<setting>() pattern. Updates a user-specifiable curve header. This command will not
+        work if the user attempts to modify a preset curve on either the LakeShore 336 or 372. Primarily useful for
+        when a user is loading in a new curve and wants to name it, set its serial number, etc. (see kwargs in the
+        function below).
+        Will raise an IOError in the case of a serial error
+        """
         new_settings = self._generate_new_settings(curve=curve_num, command_code=command_code, **desired_settings)
 
         if self.model_number == "MODEL372":
@@ -1168,7 +1223,7 @@ class LakeShoreMixin:
             self.set_curve_header(curve_number=curve_num, curve_header=header)
         except (SerialException, IOError) as e:
             log.error(f"...failed: {e}")
-            raise e
+            raise IOError(f"{e}")
 
     def load_curve_data(self, curve_num, data=None, data_file=None):
         """
