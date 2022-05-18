@@ -99,57 +99,14 @@ class LakeShore625(LakeShoreDevice):
         self.last_current_read = current
         return current
 
-# if __name__ == "__main__":
-#     util.setup_logging('sim921Agent')
-#     redis.setup_redis(create_ts_keys=TS_KEYS)
-#     lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=initializer)
-#
+if __name__ == "__main__":
+    util.setup_logging('lakeshore625Agent')
     redis.setup_redis(create_ts_keys=TS_KEYS)
+    lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=initializer)
+
 #     # ---------------------------------- MAIN OPERATION (The eternal loop) BELOW HERE ----------------------------------
 #     # TODO
 #     def callback(t, r, v):
 #         d = {k: x for k, x in zip((TEMP_KEY, RES_KEY, OUTPUT_VOLTAGE_KEY), (t, r, v)) if x}
 #         redis.store(d, timeseries=True)
 #     sim.monitor(QUERY_INTERVAL, (sim.temp, sim.resistance, sim.output_voltage), value_callback=callback)
-#
-#     while True:
-#         try:
-#             for key, val in redis.listen(COMMAND_KEYS):
-#                 log.debug(f"sim921agent received {key}, {val}. Trying to send a command.")
-#                 key = key.removeprefix('command:')
-#                 if key in SETTING_KEYS:
-#                     try:
-#                         cmd = SimCommand(key, val)
-#                     except ValueError as e:
-#                         log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
-#                         continue
-#                     try:
-#                         log.info(f"Processing command '{cmd}'")
-#                         sim.send(cmd.sim_string)
-#                         redis.store({cmd.setting: cmd.value})
-#                         redis.store({STATUS_KEY: "OK"})
-#                     except IOError as e:
-#                         redis.store({STATUS_KEY: f"Error {e}"})
-#                         log.error(f"Comm error: {e}")
-#                 elif key == REGULATION_TEMP_KEY:
-#                     temp = float(val)
-#                     curve = int(redis.read(CALIBRATION_CURVE_KEY))
-#                     res = sim.convert_temperature_to_resistance(temp, curve)
-#                     if res:
-#                         t_cmd = SimCommand(TEMP_SEPOINT_KEY, temp)
-#                         r_cmd = SimCommand(RES_SETPOINT_KEY, res)
-#                         try:
-#                             sim.send(t_cmd.sim_string)
-#                             redis.store({t_cmd.setting: t_cmd.value})
-#                             sim.send(r_cmd.sim_string)
-#                             redis.store({r_cmd.setting: r_cmd.value})
-#                             redis.store({STATUS_KEY: "OK"})
-#                         except IOError as e:
-#                             redis.store({STATUS_KEY: f"Error {e}"})
-#                             log.error(f"Comm error: {e}")
-#                     else:
-#                         pass
-#
-#         except RedisError as e:
-#             log.critical(f"Redis server error! {e}")
-#             sys.exit(1)
