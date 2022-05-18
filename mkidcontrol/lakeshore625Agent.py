@@ -42,30 +42,54 @@ VALID_MODELS = ('MODEL625')
 
 SETTING_KEYS = tuple(COMMANDS625.keys())
 
-# TEMP_KEY = 'status:temps:mkidarray:temp'
-# RES_KEY = 'status:temps:mkidarray:resistance'
-# OUTPUT_VOLTAGE_KEY = 'status:device:sim921:sim960-vout'
-# TS_KEYS = [TEMP_KEY, RES_KEY, OUTPUT_VOLTAGE_KEY]
-#
-# REGULATION_TEMP_KEY = "device-settings:mkidarray:regulating-temp"
-# CALIBRATION_CURVE_KEY = 'device-settings:sim921:curve-number'
-# TEMP_SEPOINT_KEY = 'device-settings:sim921:temp-offset'
-# RES_SETPOINT_KEY = 'device-settings:sim921:resistance-offset'
-#
-# OUTPUT_MODE_KEY = 'device-settings:sim921:output-mode'
-# OUTPUT_MODE_COMMAND_KEY = f"command:{OUTPUT_MODE_KEY}"
-
 STATUS_KEY = "status:device:ls625:status"
 FIRMWARE_KEY = "status:device:ls625:firmware"
 MODEL_KEY = 'status:device:ls625:model'
 SN_KEY = 'status:device:ls625:sn'
 
-log = logging.getLogger()
+
+def firmware_pull(lakeshore):
+    # Grab and store device info
+    try:
+        info = lakeshore.device_info
+        d = {FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['sn']}
+    except IOError as e:
+        log.error(f"When checking device info: {e}")
+        d = {FIRMWARE_KEY: '', MODEL_KEY: '', SN_KEY: ''}
+
+    try:
+        redis.store(d)
+    except RedisError:
+        log.warning('Storing device info to redis failed')
+
+
+def initializer(lakeshore):
+    """
+    Callback run on connection to the sim whenever it is not initialized. This will only happen if the sim loses all
+    of its settings, which should never every happen. Any settings applied take immediate effect
+    """
+    firmware_pull(lakeshore)
+    try:
+        settings_to_load = redis.read(SETTING_KEYS, error_missing=True)
+        initialized_settings = lakeshore.apply_schema_settings(settings_to_load)
+        time.sleep(1)
+    except RedisError as e:
+        log.critical('Unable to pull settings from redis to initialize sim960')
+        raise IOError(e)
+    except KeyError as e:
+        log.critical('Unable to pull setting {e} from redis to initialize sim960')
+        raise IOError(e)
+
+    try:
+        redis.store(initialized_settings)
+    except RedisError:
+        log.warning('Storing device settings to redis failed')
 
 
 class LakeShore625(LakeShoreDevice):
-    def __init__(self, name, port, baudrate=9600, timeout=0.1, connect=True, valid_models=None, initializer=None):
-        super().__init__(name, port, baudrate, timeout, connect=connect, valid_models=valid_models, initializer=initializer)
+    def __init__(self, name, port, baudrate=9600, parity=serial.PARITY_ODD, bytesize=serial.SEVENBITS, timeout=0.1, connect=True, valid_models=None, initializer=None):
+        super().__init__(name, port, baudrate=baudrate, timeout=timeout, parity=parity, bytesize=bytesize,
+                         connect=connect, valid_models=valid_models, initializer=initializer)
 
         if connect:
             self.connect(raise_errors=False)
