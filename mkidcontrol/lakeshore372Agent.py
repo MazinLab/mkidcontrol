@@ -61,6 +61,25 @@ SETTING_KEYS = tuple(COMMANDS372.keys())
 
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
 
+OUTPUT_MODE_KEY = 'device-settings:ls372:heater-channel-0:output-mode'
+OUTPUT_MODE_COMMAND_KEY = f"command:{OUTPUT_MODE_KEY}"
+
+
+def to_pid_output():
+    redis.publish(OUTPUT_MODE_COMMAND_KEY, "CLOSED_LOOP", store=False)
+
+
+def to_no_output():
+    redis.publish(OUTPUT_MODE_COMMAND_KEY, "OFF", store=False)
+
+
+def in_pid_output():
+    return redis.read(OUTPUT_MODE_KEY) == "CLOSED_LOOP"
+
+
+def in_no_output():
+    return redis.read(OUTPUT_MODE_KEY) == "OFF"
+
 
 class LakeShore372Command:
     def __init__(self, schema_key, value=None):
