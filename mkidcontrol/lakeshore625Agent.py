@@ -15,8 +15,10 @@ import logging
 import threading
 
 from mkidcontrol.devices import LakeShoreDevice
-from mkidcontrol.pcredis import PCRedis, RedisError
+from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.util as util
+import mkidcontrol.mkidredis as redis
+
 
 COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'9600': '0', '19200': '1',
                                                                                '38400': '2', '57600': '3'}},
@@ -76,6 +78,7 @@ class LakeShore625(LakeShoreDevice):
 #     redis.setup_redis(create_ts_keys=TS_KEYS)
 #     lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=initializer)
 #
+    redis.setup_redis(create_ts_keys=TS_KEYS)
 #     # ---------------------------------- MAIN OPERATION (The eternal loop) BELOW HERE ----------------------------------
 #     # TODO
 #     def callback(t, r, v):

@@ -18,10 +18,11 @@ import sys
 import logging
 from serial import SerialException
 
-from mkidcontrol.mkidredis import MKIDRedis, RedisError
+from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.devices import LakeShoreMixin
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS336
+import mkidcontrol.mkidredis as redis
 
 from lakeshore import Model336, Model336InputSensorUnits, Model336InputSensorSettings, Model336InputSensorType, \
     Model336RTDRange, Model336DiodeRange, Model336ThermocoupleRange
@@ -200,7 +201,7 @@ class LakeShore336(LakeShoreMixin, Model336):
 if __name__ == "__main__":
 
     util.setup_logging('lakeshore336Agent')
-    redis = MKIDRedis(create_ts_keys=TS_KEYS)
+    redis.setup_redis(create_ts_keys=TS_KEYS)
 
     try:
         lakeshore = LakeShore336('LakeShore336', '/dev/ls336')

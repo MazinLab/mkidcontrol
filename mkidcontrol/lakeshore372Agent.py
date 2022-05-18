@@ -29,6 +29,7 @@ from mkidcontrol.mkidredis import MKIDRedis, RedisError
 from mkidcontrol.devices import LakeShoreMixin
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS372
+import mkidcontrol.mkidredis as redis
 
 from lakeshore import Model372, Model372CurveTemperatureCoefficient, Model372SensorExcitationMode, \
     Model372MeasurementInputCurrentRange, Model372AutoRangeMode, Model372InputSensorUnits, \
@@ -295,7 +296,7 @@ class LakeShore372(LakeShoreMixin, Model372):
 if __name__ == "__main__":
 
     util.setup_logging('lakeshore372Agent')  # TODO: Add to logging yaml
-    redis = MKIDRedis(create_ts_keys=TS_KEYS)
+    redis.setup_redis(create_ts_keys=TS_KEYS)
 
     try:
         lakeshore = LakeShore372('LakeShore372', 57600, '/dev/ls372')
