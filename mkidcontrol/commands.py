@@ -7,70 +7,139 @@ from mkidcontrol.devices import load_tvals
 
 
 class SimCommand:
- def __init__(self, schema_key, value=None):
-  """
-  Initializes a SimCommand. Takes in a redis device-setting:* key and desired value an evaluates it for its type,
-  the mapping of the command, and appropriately sets the mapping|range for the command. If the setting is not
-  supported, raise a ValueError.
+    def __init__(self, schema_key, value=None):
+        """
+        Initializes a SimCommand. Takes in a redis device-setting:* key and desired value an evaluates it for its type,
+        the mapping of the command, and appropriately sets the mapping|range for the command. If the setting is not
+        supported, raise a ValueError.
 
-  If no value is specified it will create the command as a query
+        If no value is specified it will create the command as a query
+        """
+        if schema_key not in COMMAND_DICT.keys():
+            raise ValueError(f'Unknown command: {schema_key}')
 
-  """
-  if schema_key not in COMMAND_DICT.keys():
-   raise ValueError(f'Unknown command: {schema_key}')
+        self.range = None
+        self.mapping = None
+        self.value = value
+        self.setting = schema_key
 
-  self.range = None
-  self.mapping = None
-  self.value = value
-  self.setting = schema_key
+        self.command = COMMAND_DICT[self.setting]['command']
+        setting_vals = COMMAND_DICT[self.setting]['vals']
 
-  self.command = COMMAND_DICT[self.setting]['command']
-  setting_vals = COMMAND_DICT[self.setting]['vals']
+        if isinstance(setting_vals, dict):
+            self.mapping = setting_vals
+        else:
+            self.range = setting_vals
 
-  if isinstance(setting_vals, dict):
-   self.mapping = setting_vals
-  else:
-   self.range = setting_vals
-  self._vet()
+        self._vet()
 
- def _vet(self):
-  """Verifies value agaisnt papping or range and handles necessary casting"""
-  if self.value is None:
-   return True
+    def _vet(self):
+        """Verifies value agaisnt papping or range and handles necessary casting"""
+        if self.value is None:
+            return True
 
-  value = self.value
-  if self.mapping is not None:
-   if value not in self.mapping:
-    raise ValueError(f'Invalid value {value}. Options are: {list(self.mapping.keys())}.')
-  else:
-   try:
-    self.value = float(value)
-   except ValueError:
-    raise ValueError(f'Invalid value {value}, must be castable to float.')
-   if not self.range[0] <= self.value <= self.range[1]:
-    raise ValueError(f'Invalid value {value}, must in {self.range}.')
+        value = self.value
+        if self.mapping is not None:
+            if value not in self.mapping:
+                raise ValueError(f'Invalid value {value}. Options are: {list(self.mapping.keys())}.')
+        else:
+            try:
+                self.value = float(value)
+            except ValueError:
+                raise ValueError(f'Invalid value {value}, must be castable to float.')
+            if not self.range[0] <= self.value <= self.range[1]:
+                raise ValueError(f'Invalid value {value}, must in {self.range}.')
 
- def __str__(self):
-  return f"{self.setting}->{self.value}: {self.sim_string}"
+    def __str__(self):
+        return f"{self.setting}->{self.value}: {self.sim_string}"
 
- @property
- def is_query(self):
-  return self.value is None
+    @property
+    def is_query(self):
+        return self.value is None
 
- @property
- def sim_string(self):
-  """
-  Returns the command string for the SIM.
-  """
-  if self.is_query:
-   return self.sim_query_string
-  v = self.mapping[self.value] if self.range is None else self.value
-  return f"{self.command} {v}"
+    @property
+    def sim_string(self):
+        """
+        Returns the command string for the SIM.
+        """
+        if self.is_query:
+            return self.sim_query_string
 
- @property
- def sim_query_string(self):
-  """ Returns the corresponding command string to query for the setting"""
-  return f"{self.command}?"
+        v = self.mapping[self.value] if self.range is None else self.value
+        return f"{self.command} {v}"
+
+    @property
+    def sim_query_string(self):
+        """ Returns the corresponding command string to query for the setting"""
+        return f"{self.command}?"
+
+
+class LakeShoreCommand:
+    def __init__(self, schema_key, value=None):
+        """
+        Initializes a SimCommand. Takes in a redis device-setting:* key and desired value an evaluates it for its type,
+        the mapping of the command, and appropriately sets the mapping|range for the command. If the setting is not
+        supported, raise a ValueError.
+
+        If no value is specified it will create the command as a query
+        """
+        if schema_key not in COMMAND_DICT.keys():
+            raise ValueError(f'Unknown command: {schema_key}')
+
+        self.range = None
+        self.mapping = None
+        self.value = value
+        self.setting = schema_key
+
+        self.command = COMMAND_DICT[self.setting]['command']
+        setting_vals = COMMAND_DICT[self.setting]['vals']
+
+        if isinstance(setting_vals, dict):
+            self.mapping = setting_vals
+        else:
+            self.range = setting_vals
+
+        self._vet()
+
+    def _vet(self):
+        """Verifies value agaisnt papping or range and handles necessary casting"""
+        if self.value is None:
+            return True
+
+        value = self.value
+        if self.mapping is not None:
+            if value not in self.mapping:
+                raise ValueError(f'Invalid value {value}. Options are: {list(self.mapping.keys())}.')
+        else:
+            try:
+                self.value = float(value)
+            except ValueError:
+                raise ValueError(f'Invalid value {value}, must be castable to float.')
+            if not self.range[0] <= self.value <= self.range[1]:
+                raise ValueError(f'Invalid value {value}, must in {self.range}.')
+
+    def __str__(self):
+        return f"{self.setting}->{self.value}: {self.sim_string}"
+
+    @property
+    def is_query(self):
+        return self.value is None
+
+    @property
+    def ls_string(self):
+        """
+        Returns the command string for the SIM.
+        """
+        if self.is_query:
+            return self.ls_query_string
+
+        v = self.mapping[self.value] if self.range is None else self.value
+        return f"{self.command} {v}"
+
+    @property
+    def ls_query_string(self):
+        """ Returns the corresponding command string to query for the setting"""
+        return f"{self.command}?"
 
 
 # ---- Lake Shore 336 Commands ----
