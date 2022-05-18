@@ -13,7 +13,7 @@ import threading
 import serial
 from serial import SerialException
 
-from mkidcontrol.commands import SimCommand
+from mkidcontrol.commands import SimCommand, LakeShoreCommand
 
 from lakeshore import Model372CurveHeader, Model372CurveFormat, Model372CurveTemperatureCoefficient,\
                       Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients
@@ -424,9 +424,30 @@ class LakeShoreDevice(SerialDevice):
             self.initializer(self)
             self._initialized = True
 
+    def apply_schema_settings(self, settings_to_load):
+        """
+        Configure the sim device with a dict of redis settings via SimCommand translation
+
+        In the event of an IO error configuration is aborted and the IOError raised. Partial configuration is possible
+        In the even that a setting is not valid it is skipped
+
+        Returns the sim settings and the values per the schema
+        """
+        ret = {}
+        for setting, value in settings_to_load.items():
+            try:
+                cmd = LakeShoreCommand(setting, value)
+                log.debug(cmd)
+                self.send(cmd.sim_string)
+                ret[setting] = value
+            except ValueError as e:
+                log.warning(f"Skipping bad setting: {e}")
+                ret[setting] = self.query(cmd.sim_query_string)
+        return ret
+
 
 class LakeShore240(LakeShoreDevice):
-    def __init__(self, name, port, baudrate=115200, timeout=0.1, connect=True, valid_models=None, parity=serial.PARITY_NONE, bytesize=serial.SEVENBITS):
+    def __init__(self, name, port, baudrate=115200, timeout=0.1, connect=True, valid_models=None, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS):
         super().__init__(name, port, baudrate, timeout, connect=connect, valid_models=valid_models, parity=parity, bytesize=bytesize)
 
         self._monitor_thread = None  # Maybe not even necessary since this only queries
