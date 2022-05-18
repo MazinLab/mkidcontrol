@@ -10,6 +10,8 @@ This module is responsible for reading out the non-device thermometry. This incl
 N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/model_336.html
 
 TODO: Figure out how to 'block' settings if other settings are in place (e.g. Input range cannot be in V if sensor type is RTD)
+
+TODO: Initialization of settings on startup
 """
 
 import sys

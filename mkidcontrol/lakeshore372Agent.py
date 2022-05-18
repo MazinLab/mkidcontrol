@@ -16,9 +16,9 @@ will give you the reult of OUTMODE? 2, since 2 is the highest channel number ava
 
 N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/model_372.html
 
-TODO: Docstrings
-
 TODO: 'Block' settings (e.g. excitation cannot be in V if mode is Current)
+
+TODO: Initialization of settings on startup
 """
 
 import sys

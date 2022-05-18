@@ -4,8 +4,9 @@ Author: Noah Swimmer
 
 Program for communicating with and controlling the LakeShore625 Superconducting Magnet Power Supply.
 
-This module is responsible for reading out
+This module is responsible for TODO
 
+TODO: All
 """
 
 import sys
