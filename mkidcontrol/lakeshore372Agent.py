@@ -48,6 +48,8 @@ TEMPERATURE_KEY = 'status:temps:device-stage:temp'
 RESISTANCE_KEY = 'status:temps:device-stage:resistance'
 EXCITATION_POWER_KEY = 'status:temps:device-stage:excitation-power'
 
+REGULATION_TEMP_KEY = "device-settings:mkidarray:regulating-temp"
+
 TS_KEYS = (TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY)
 
 STATUS_KEY = 'status:device:ls372:status'
@@ -360,6 +362,7 @@ if __name__ == "__main__":
                         lakeshore.configure_heater_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
                     elif cmd.command_code == "SETP":
                         lakeshore.change_temperature_setpoint(channel=cmd.channel, command_code=cmd.command_code, setpoint=cmd.command_value)
+                        redis.store({REGULATION_TEMP_KEY: cmd.command_value})
                     elif cmd.command_code == "PID":
                         lakeshore.modify_pid_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
                     elif cmd.command_code == "RANGE":
