@@ -13,12 +13,14 @@ import sys
 import time
 import logging
 import threading
+import serial
 
 from mkidcontrol.devices import LakeShoreDevice
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.util as util
 import mkidcontrol.mkidredis as redis
 
+log = logging.getLogger()
 
 COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'9600': '0', '19200': '1',
                                                                                '38400': '2', '57600': '3'}},
