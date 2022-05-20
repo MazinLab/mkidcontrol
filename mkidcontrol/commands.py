@@ -3,7 +3,6 @@ Author: Noah Swimmer, 10 May 2022
 """
 
 import numpy as np
-from mkidcontrol.devices import load_tvals
 
 
 class SimCommand:
@@ -140,6 +139,26 @@ class LakeShoreCommand:
     def ls_query_string(self):
         """ Returns the corresponding command string to query for the setting"""
         return f"{self.command}?"
+
+
+def load_tvals(curve):
+    if curve == 1:
+        file = '/home/mazinlab/picturec/docs/hardware_reference_documentation/thermometry/RX-102A/RX-102A_Mean_Curve.tbl'
+        # import pkg_resources as pkg
+        # file = pkg.resource_filename('hardware.thermometry.RX-102A', 'RX-102A_Mean_Curve.tbl')
+    else:
+        return 0
+
+    try:
+        curve_data = np.loadtxt(file)
+        temp_data = curve_data[:, 0]
+    except OSError:
+        log.error(f"Could not find curve data file.")
+        raise ValueError(f"{file} couldn't be loaded.")
+    except IndexError:
+        raise ValueError(f"{file} couldn't be loaded.")
+
+    return {str(i): i for i in temp_data}
 
 
 # ---- Lake Shore 336 Commands ----
