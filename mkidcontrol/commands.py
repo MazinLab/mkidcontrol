@@ -251,7 +251,7 @@ COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:enable': 
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:dwell-time': {'command': 'INSET', 'vals': [0, 200]} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:pause-time': {'command': 'INSET', 'vals': [3, 200]} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:curve-number': {'command': 'INSET', 'vals': {str(cn): cn for cn in np.arange(1,60)}} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:temperatur-coefficient': {'command': 'INSET', 'vals': {'NEGATIVE': 1, 'POSITIVE': 2}} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:temperature-coefficient': {'command': 'INSET', 'vals': {'NEGATIVE': 1, 'POSITIVE': 2}} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:output-mode': {'command': 'OUTMODE', 'vals': {'OFF': 0,
  'MONITOR_OUT': 1,
  'OPEN_LOOP': 2,
@@ -284,7 +284,7 @@ COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:polarity': {'com
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:setpoint': {'command': 'SETP', 'vals': [0, 4]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:gain': {'command': 'PID', 'vals': [0, 1000]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:integral': {'command': 'PID', 'vals': [0, 10000]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:derivative': {'command': 'PID', 'vals': [0, 2500]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:ramp_rate': {'command': 'PID', 'vals': [0, 2500]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:range': {'command': 'RANGE', 'vals': {'OFF': 0, 'ON': True,
  'RANGE_31_POINT_6_MICRO_AMPS': 1,
  'RANGE_100_MICRO_AMPS': 2,
