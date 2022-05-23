@@ -16,6 +16,7 @@ TODO: Initialization of settings on startup
 
 import sys
 import logging
+import time
 from serial import SerialException
 
 from mkidcontrol.mkidredis import RedisError
@@ -47,6 +48,44 @@ QUERY_INTERVAL = 1
 SETTING_KEYS = tuple(COMMANDS336.keys())
 
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
+
+
+def firmware_pull(device):
+    # Grab and store device info
+    try:
+        info = device.device_info
+        d = {FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['sn']}
+    except IOError as e:
+        log.error(f"When checking device info: {e}")
+        d = {FIRMWARE_KEY: '', MODEL_KEY: '', SN_KEY: ''}
+
+    try:
+        redis.store(d)
+    except RedisError:
+        log.warning('Storing device info to redis failed')
+
+
+def initializer(device):
+    """
+    Callback run on connection to the sim whenever it is not initialized. This will only happen if the sim loses all
+    of its settings, which should never every happen. Any settings applied take immediate effect
+    """
+    firmware_pull(device)
+    try:
+        settings_to_load = redis.read(SETTING_KEYS, error_missing=True)
+        initialized_settings = device.apply_schema_settings(settings_to_load)
+        time.sleep(1)
+    except RedisError as e:
+        log.critical('Unable to pull settings from redis to initialize sim960')
+        raise IOError(e)
+    except KeyError as e:
+        log.critical('Unable to pull setting {e} from redis to initialize sim960')
+        raise IOError(e)
+
+    try:
+        redis.store(initialized_settings)
+    except RedisError:
+        log.warning('Storing device settings to redis failed')
 
 
 class LakeShore336Command:
@@ -124,23 +163,24 @@ class LakeShore336Command:
 
 
 class LakeShore336(LakeShoreMixin, Model336):
-    def __init__(self, name, port=None, timeout=0.1):
+    def __init__(self, name, port=None, timeout=0.1, initializer=None):
         """
         Initialize the LakeShore336 unit. Requires a name, typically something like 'LakeShore336' or '336'.
         The port and timeout parameters are optional. If port is none, the __init__() function from the Model 336 super
         class will search the device tree for units which have the correct PID/VID combination. If timeout is none, it
         will default to 0.1 seconds, which is lower than the default of 2 seconds in the superclass.
         """
-        self.device_serial = None  # Creates a class attribute called device_serial. This will be overwritten by the
-        # instance inherited from the superclass, but for clarity in what attributes are available, we initialize here.
-        self.enabled_input_channels = ENABLED_CHANNELS  # Create a class attribute which is the tuple of enabled
-        # channels to be used in the LakeShoreMixin class
+        self.device_serial = None
+        self.enabled_input_channels = ENABLED_CHANNELS
+        self.initializer = initializer
+        self._initialized = False
 
         if port is None:
             super().__init__(timeout=timeout)
         else:
             super().__init__(com_port=port, timeout=timeout)
         self.name = name
+        self._postconnect()
 
     def change_curve(self, channel, command_code, curve_num=None):
         """
@@ -197,6 +237,27 @@ class LakeShore336(LakeShoreMixin, Model336):
             log.error(f"...failed: {e}")
             raise e
 
+    def apply_schema_settings(self, settings_to_load):
+        """
+        Configure the sim device with a dict of redis settings via SimCommand translation
+
+        In the event of an IO error configuration is aborted and the IOError raised. Partial configuration is possible
+        In the even that a setting is not valid it is skipped
+
+        Returns the sim settings and the values per the schema
+        """
+        ret = {}
+        for setting, value in settings_to_load.items():
+            try:
+                cmd = LakeShore336Command(setting, value)
+                log.debug(cmd)
+                self.send(cmd.sim_string)
+                ret[setting] = value
+            except ValueError as e:
+                log.warning(f"Skipping bad setting: {e}")
+                ret[setting] = self.query(cmd.sim_query_string)
+        return ret
+
 
 if __name__ == "__main__":
 
@@ -204,22 +265,9 @@ if __name__ == "__main__":
     redis.setup_redis(create_ts_keys=TS_KEYS)
 
     try:
-        lakeshore = LakeShore336('LakeShore336', '/dev/ls336')
+        lakeshore = LakeShore336('LakeShore336', '/dev/ls336', initializer=initializer)
     except:
-        lakeshore = LakeShore336('LakeShore336')
-
-    try:
-        info = lakeshore.device_info
-        # Note that placing the store before exit makes this program behave differently in an abort
-        #  than both of the sims, which would not alter the database. I like this better.
-        redis.store({FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['sn']})
-    except IOError as e:
-        log.error(f"When checking device info: {e}")
-        redis.store({FIRMWARE_KEY: '', MODEL_KEY: '', SN_KEY: ''})
-        sys.exit(1)
-    except RedisError as e:
-        log.critical(f"Redis server error! {e}")
-        sys.exit(1)
+        lakeshore = LakeShore336('LakeShore336', initializer=initializer)
 
     def callback(tvals, svals):
         vals = tvals + svals

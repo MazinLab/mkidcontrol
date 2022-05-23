@@ -1015,6 +1015,11 @@ class LakeShoreMixin:
             log.warning(f"Unable to open serial port: {e}")
             raise Exception(f"Unable to open serial port: {e}")
 
+    def _postconnect(self):
+        if self.initializer and not self._initialized:
+            self.initializer(self)
+            self._initialized = True
+
     @property
     def device_info(self):
         return dict(model=self.model_number, firmware=self.firmware_version, sn=self.serial_number)
@@ -1090,6 +1095,24 @@ class LakeShoreMixin:
             readings = readings[0]
 
         return readings
+
+    def query_single_setting(self, schema_key, command_code):
+        _, inst, c, key = schema_key.split(":")
+        key = key.replace("-", "_")
+        c = c.split("-")
+
+        if c[-2] == "channel":
+            channel = c[-1]
+            curve = None
+        elif c[-2] == "curve":
+            curve = c[-1]
+            channel = None
+
+        settings = self.query_settings(command_code, channel, curve)
+        try:
+            return settings[key]
+        except (AttributeError, TypeError):
+            return settings
 
     def query_settings(self, command_code, channel=None, curve_num=None):
         """

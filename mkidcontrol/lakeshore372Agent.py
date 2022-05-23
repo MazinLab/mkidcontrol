@@ -18,14 +18,15 @@ N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/mod
 
 TODO: 'Block' settings (e.g. excitation cannot be in V if mode is Current)
 
-TODO: Initialization of settings on startup
+TODO: Output voltage key value to report the control voltage to the lakeshore 625 magnet current control
 """
 
 import sys
 import logging
+import time
 from serial.serialutil import SerialException
 
-from mkidcontrol.mkidredis import MKIDRedis, RedisError
+from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.devices import LakeShoreMixin
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS372
@@ -48,9 +49,11 @@ TEMPERATURE_KEY = 'status:temps:device-stage:temp'
 RESISTANCE_KEY = 'status:temps:device-stage:resistance'
 EXCITATION_POWER_KEY = 'status:temps:device-stage:excitation-power'
 
+OUTPUT_VOLTAGE_KEY = 'status:device:ls372:output-voltage'
+
 REGULATION_TEMP_KEY = "device-settings:mkidarray:regulating-temp"
 
-TS_KEYS = (TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY)
+TS_KEYS = (TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY)
 
 STATUS_KEY = 'status:device:ls372:status'
 FIRMWARE_KEY = "status:device:ls372:firmware"
@@ -81,6 +84,44 @@ def in_pid_output():
 
 def in_no_output():
     return redis.read(OUTPUT_MODE_KEY) == "OFF"
+
+
+def firmware_pull(device):
+    # Grab and store device info
+    try:
+        info = device.device_info
+        d = {FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['sn']}
+    except IOError as e:
+        log.error(f"When checking device info: {e}")
+        d = {FIRMWARE_KEY: '', MODEL_KEY: '', SN_KEY: ''}
+
+    try:
+        redis.store(d)
+    except RedisError:
+        log.warning('Storing device info to redis failed')
+
+
+def initializer(device):
+    """
+    Callback run on connection to the sim whenever it is not initialized. This will only happen if the sim loses all
+    of its settings, which should never every happen. Any settings applied take immediate effect
+    """
+    firmware_pull(device)
+    try:
+        settings_to_load = redis.read(SETTING_KEYS, error_missing=True)
+        initialized_settings = device.apply_schema_settings(settings_to_load)
+        time.sleep(1)
+    except RedisError as e:
+        log.critical('Unable to pull settings from redis to initialize sim960')
+        raise IOError(e)
+    except KeyError as e:
+        log.critical('Unable to pull setting {e} from redis to initialize sim960')
+        raise IOError(e)
+
+    try:
+        redis.store(initialized_settings)
+    except RedisError:
+        log.warning('Storing device settings to redis failed')
 
 
 class LakeShore372Command:
@@ -158,14 +199,40 @@ class LakeShore372Command:
 
 
 class LakeShore372(LakeShoreMixin, Model372):
-    def __init__(self, name, baudrate=57600, port=None, timeout=0.1):
+    def __init__(self, name, baudrate=57600, port=None, timeout=0.1, initializer=None):
 
+        self.device_serial = None
         self.enabled_input_channels = ENABLED_INPUT_CHANNELS
+        self.initializer = initializer
+        self._initialized = False
+
         if port is None:
             super().__init__(baud_rate=baudrate, timeout=timeout)
         else:
             super().__init__(baud_rate=baudrate, com_port=port, timeout=timeout)
         self.name = name
+        self._postconnect()
+
+    def apply_schema_settings(self, settings_to_load):
+        """
+        Configure the sim device with a dict of redis settings via SimCommand translation
+
+        In the event of an IO error configuration is aborted and the IOError raised. Partial configuration is possible
+        In the even that a setting is not valid it is skipped
+
+        Returns the sim settings and the values per the schema
+        """
+        ret = {}
+        for setting, value in settings_to_load.items():
+            try:
+                cmd = LakeShore372Command(setting, value)
+                log.debug(cmd)
+                self.send(cmd.sim_string)
+                ret[setting] = value
+            except ValueError as e:
+                log.warning(f"Skipping bad setting: {e}")
+                ret[setting] = self.query(cmd.sim_query_string)
+        return ret
 
     @property
     def setpoint(self):
@@ -173,6 +240,13 @@ class LakeShore372(LakeShoreMixin, Model372):
         Returns the setpoint for the sample heater in Kelvin
         """
         return self.get_setpoint_kelvin(0)
+
+    def output_voltage(self):
+        """
+        Returns the current output to the sample heater in percent of total output
+        Range runs from 0 to 100%
+        """
+        return self.get_heater_output(0)
 
     def configure_input_sensor(self, channel, command_code, **desired_settings):
         """
@@ -320,28 +394,15 @@ if __name__ == "__main__":
     redis.setup_redis(create_ts_keys=TS_KEYS)
 
     try:
-        lakeshore = LakeShore372('LakeShore372', 57600, '/dev/ls372')
+        lakeshore = LakeShore372('LakeShore372', 57600, '/dev/ls372', initializer=initializer)
     except:
-        lakeshore = LakeShore372('LakeShore372', 57600)
+        lakeshore = LakeShore372('LakeShore372', 57600, initializer=initializer)
 
-    try:
-        info = lakeshore.device_info
-        # Note that placing the store before exit makes this program behave differently in an abort
-        #  than both of the sims, which would not alter the database. I like this better.
-        redis.store({FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['sn']})
-    except IOError as e:
-        log.error(f"When checking device info: {e}")
-        redis.store({FIRMWARE_KEY: '', MODEL_KEY: '', SN_KEY: ''})
-        sys.exit(1)
-    except RedisError as e:
-        log.critical(f"Redis server error! {e}")
-        sys.exit(1)
-
-    def callback(temperature, resistance, excitation):
-        d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY), (temperature, resistance, excitation)) if x}
+    def callback(temp, res, ex, ov):
+        d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY), (temp, res, ex, ov)) if x}
         redis.store(d, timeseries=True)
 
-    lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals, lakeshore.excitation_power), value_callback=callback)
+    lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals, lakeshore.excitation_power, lakeshore.output_voltage), value_callback=callback)
 
     try:
         while True:
