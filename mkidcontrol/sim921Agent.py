@@ -64,10 +64,10 @@ def in_manual_output():
     return redis.read(OUTPUT_MODE_KEY) == SIM921OutputMode.MANUAL
 
 
-def firmware_pull(sim):
+def firmware_pull(device):
     # Grab and store device info
     try:
-        info = sim.device_info
+        info = device.device_info
         d = {FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['sn']}
     except IOError as e:
         log.error(f"When checking device info: {e}")
@@ -79,15 +79,15 @@ def firmware_pull(sim):
         log.warning('Storing device info to redis failed')
 
 
-def initializer(sim):
+def initializer(device):
     """
     Callback run on connection to the sim whenever it is not initialized. This will only happen if the sim loses all
     of its settings, which should never every happen. Any settings applied take immediate effect
     """
-    firmware_pull(sim)
+    firmware_pull(device)
     try:
         settings_to_load = redis.read(SETTING_KEYS, error_missing=True)
-        initialized_settings = sim.apply_schema_settings(settings_to_load)
+        initialized_settings = device.apply_schema_settings(settings_to_load)
         time.sleep(1)
     except RedisError as e:
         log.critical('Unable to pull settings from redis to initialize sim960')
@@ -100,6 +100,7 @@ def initializer(sim):
         redis.store(initialized_settings)
     except RedisError:
         log.warning('Storing device settings to redis failed')
+
 
 
 if __name__ == "__main__":
