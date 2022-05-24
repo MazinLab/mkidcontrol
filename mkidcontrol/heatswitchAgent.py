@@ -97,7 +97,7 @@ class HeatswitchMotor:
         :return:
         """
         reported_position = int(self.hs.get_position())
-        last_recorded_position = int(redis.read(MOTOR_POS)[1])  # TODO: Parse redis value
+        last_recorded_position = int(redis.read(MOTOR_POS)[1])
 
         distance = abs(reported_position - last_recorded_position)
 
