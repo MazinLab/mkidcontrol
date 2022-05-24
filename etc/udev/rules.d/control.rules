@@ -15,4 +15,4 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{seri
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1fb9", ATTRS{idProduct}=="0301", ATTRS{serial}=="336ABAB", SYMLINK+="ls336"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1fb9", ATTRS{idProduct}=="0305", ATTRS{serial}=="372A00B", SYMLINK+="ls372"
 
-# TODO: Check this udev rule -> SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="A602HWLLA", SYMLINK+="heatswitch"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6001", ATTR{serial}=="A602HWLL", SYMLINK+="heatswitch"
