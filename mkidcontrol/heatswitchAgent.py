@@ -45,9 +45,9 @@ DEFAULT_ACCELERATION = 2
 FULL_OPEN_POSITION = 0
 FULL_CLOSE_POSITION = 4194303
 
-HS_POS = "status:device:heatswitch:position"  # OPENED | OPENING | CLOSED | CLOSING
+HS_POS_STATE = "status:device:heatswitch:position"  # OPENED | OPENING | CLOSED | CLOSING
 MOTOR_POS = "status:device:heatswitch-motor:position"  # Integer between 0 and 4194303
-HEATSWITCH_MOVE_KEY = f"command:{HS_POS}"
+HEATSWITCH_MOVE_KEY = f"command:{HS_POS_STATE}"
 
 COMMAND_KEYS = (HEATSWITCH_MOVE_KEY,)
 TS_KEYS = (MOTOR_POS,)
@@ -415,7 +415,7 @@ class HeatswitchController(LockedMachine):
     def record_entry(self, event):
         self.state_entry_time[self.state] = time.time()
         log.info(f"Recorded entry: {self.state}")
-        redis.store({HS_POS: self.state})
+        redis.store({HS_POS_STATE: self.state})
         # write_persisted_state(self.statefile, self.state)
 
 
