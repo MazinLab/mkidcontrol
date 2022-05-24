@@ -15,8 +15,6 @@ switch too tightly.
 Note: Documentation for zaber python library exists at https://www.zaber.com/software/docs/motion-library/
 Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdf
 
-TODO: Udev rule for motor control
-
 TODO: Error handling
 """
 
@@ -210,115 +208,6 @@ class HeatswitchMotor:
         self._monitor_thread.start()
 
 
-class SimHeatswitch:
-    def __init__(self):
-        self.last_recorded_position = None
-
-        self.running_current = 13
-        self.acceleration = 2
-        self.max_position = FULL_CLOSE_POSITION
-        self.min_position = FULL_OPEN_POSITION
-        self.max_velocity = 3e3
-        self.max_relative_move = 4194303
-        self.device_mode = 8
-
-        self._initialize_position()
-
-    def _initialize_position(self):
-        self.last_recorded_position = min(np.random.randint(0, self.max_position * 8), self.max_position)
-        log.info(f"Motor position initialized to {self.last_recorded_position}")
-
-    def motor_position(self):
-        return self.last_recorded_position
-
-    def move_by(self, dist, error_on_disallowed=False):
-        """
-        TODO
-        :param dist:
-        :param error_on_disallowed:
-        :return:
-        """
-        pos = self.last_recorded_position
-        if abs(dist) > self.max_relative_move:
-            if dist > 0:
-                log.warning(
-                    f"Requested move of {dist} steps not allowed, restricting to the max value of {self.max_relative_move} steps")
-                dist = self.max_relative_move
-            elif dist < 0:
-                log.warning(
-                    f"Requested move of {dist} steps not allowed, restricting to the max value of -{self.max_relative_move} steps")
-                dist = -1 * self.max_relative_move
-
-        final_pos = pos + dist
-        new_final_pos = min(self.max_position, max(self.min_position, final_pos))
-
-        if new_final_pos != final_pos:
-            new_dist = new_final_pos - pos
-            if error_on_disallowed:
-                raise Exception(f"Move requested from {pos} to {final_pos} ({dist} steps) is not allowed")
-            else:
-                log.warning(f"Move requested from {pos} to {final_pos} ({dist} steps) is not "
-                            f"allowed, restricting move to furthest allowed position of {new_final_pos} ({new_dist} steps).")
-                pos += new_dist
-                self.last_recorded_position = pos
-        else:
-            log.info(f"Move requested from {pos} to {final_pos} ({dist} steps). Moving now...")
-            pos += dist
-            self.last_recorded_position = pos
-
-        return self.last_recorded_position
-
-    def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
-        """
-        Given a monitoring function (or is of the same) and either one or the same number of optional callback
-        functions call the monitors every interval. If one callback it will get all the values in the order of the
-        monitor funcs, if a list of the same number as of monitorables each will get a single value.
-
-        Monitor functions may not return None.
-
-        When there is a 1-1 correspondence the callback is not called in the event of a monitoring error.
-        If a single callback is present for multiple monitor functions values that had errors will be sent as None.
-        Function must accept as many arguments as monitor functions.
-        """
-        if not isinstance(monitor_func, (list, tuple)):
-            monitor_func = (monitor_func,)
-        if value_callback is not None and not isinstance(value_callback, (list, tuple)):
-            value_callback = (value_callback,)
-        if not (value_callback is None or len(monitor_func) == len(value_callback) or len(value_callback) == 1):
-            raise ValueError('When specified, the number of callbacks must be one or the number of monitor functions')
-
-        def f():
-            while True:
-                vals = []
-                for func in monitor_func:
-                    try:
-                        vals.append(func())
-                    except IOError as e:
-                        log.error(f"Failed to poll {func}: {e}")
-                        vals.append(None)
-
-                if value_callback is not None:
-                    if len(value_callback) > 1 or len(monitor_func) == 1:
-                        for v, cb in zip(vals, value_callback):
-                            if v is not None:
-                                try:
-                                    cb(v)
-                                except Exception as e:
-                                    log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
-                    else:
-                        cb = value_callback[0]
-                        try:
-                            cb(*vals)
-                        except Exception as e:
-                            log.error(f"Callback {cb} error. args={vals}.", exc_info=True)
-
-                time.sleep(interval)
-
-        self._monitor_thread = threading.Thread(target=f, name='Monitor Thread')
-        self._monitor_thread.daemon = True
-        self._monitor_thread.start()
-
-
 class HeatswitchController(LockedMachine):
     LOOP_INTERVAL = 1
     BLOCKS = defaultdict(set)
@@ -350,7 +239,6 @@ class HeatswitchController(LockedMachine):
                   State('closing', on_enter='record_entry'))
 
         hs = HeatswitchMotor('/dev/heaswitch')
-        # hs = SimHeatswitch()
 
         hs.monitor(QUERY_INTERVAL, hs.motor_position, value_callback=monitor_callback)
 
