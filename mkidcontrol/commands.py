@@ -57,18 +57,18 @@ class SimCommand:
         return self.value is None
 
     @property
-    def sim_string(self):
+    def ls_string(self):
         """
         Returns the command string for the SIM.
         """
         if self.is_query:
-            return self.sim_query_string
+            return self.ls_query_string
 
         v = self.mapping[self.value] if self.range is None else self.value
         return f"{self.command} {v}"
 
     @property
-    def sim_query_string(self):
+    def ls_query_string(self):
         """ Returns the corresponding command string to query for the setting"""
         return f"{self.command}?"
 
