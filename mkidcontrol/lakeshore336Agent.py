@@ -263,11 +263,11 @@ class LakeShore336(LakeShoreMixin, Model336):
         try:
             log.info(f"Processing command {cmd.setting} -> {cmd.value}")
             if cmd.command_code == "INTYPE":
-                lakeshore.modify_input_sensor(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+                self.modify_input_sensor(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
             elif cmd.command_code == "INCRV":
-                lakeshore.change_curve(channel=cmd.channel, command_code=cmd.command_code, curve_num=cmd.command_value)
+                self.change_curve(channel=cmd.channel, command_code=cmd.command_code, curve_num=cmd.command_value)
             elif cmd.command_code == "CRVHDR":
-                lakeshore.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+                self.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
             else:
                 pass
         except IOError as e:

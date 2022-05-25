@@ -239,24 +239,24 @@ class LakeShore372(LakeShoreMixin, Model372):
         try:
             log.info(f"Processing command {cmd.setting} -> {cmd.value}")
             if cmd.command_code == "INTYPE":
-                lakeshore.configure_input_sensor(channel=cmd.channel, command_code=cmd.command_code,
+                self.configure_input_sensor(channel=cmd.channel, command_code=cmd.command_code,
                                                  **cmd.desired_setting)
             elif cmd.command_code == "INSET":
-                lakeshore.modify_channel_settings(channel=cmd.channel, command_code=cmd.command_code,
+                self.modify_channel_settings(channel=cmd.channel, command_code=cmd.command_code,
                                                   **cmd.desired_setting)
             elif cmd.command_code == "OUTMODE":
-                lakeshore.configure_heater_settings(channel=cmd.channel, command_code=cmd.command_code,
+                self.configure_heater_settings(channel=cmd.channel, command_code=cmd.command_code,
                                                     **cmd.desired_setting)
             elif cmd.command_code == "SETP":
-                lakeshore.change_temperature_setpoint(channel=cmd.channel, command_code=cmd.command_code,
+                self.change_temperature_setpoint(channel=cmd.channel, command_code=cmd.command_code,
                                                       setpoint=cmd.command_value)
             elif cmd.command_code == "PID":
-                lakeshore.modify_pid_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+                self.modify_pid_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
             elif cmd.command_code == "RANGE":
-                lakeshore.modify_heater_output_range(channel=cmd.channel, command_code=cmd.command_code,
+                self.modify_heater_output_range(channel=cmd.channel, command_code=cmd.command_code,
                                                      range=cmd.command_value)
             elif cmd.command_code == "CRVHDR":
-                lakeshore.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+                self.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
             else:
                 log.info(f"Command code '{cmd.command_code}' not recognized! No change will be made")
                 pass
