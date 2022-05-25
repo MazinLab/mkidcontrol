@@ -421,11 +421,11 @@ class LakeShoreDevice(SerialDevice):
             try:
                 cmd = LakeShoreCommand(setting, value)
                 log.debug(cmd)
-                self.send(cmd.sim_string)
+                self.send(cmd.ls_string)
                 ret[setting] = value
             except ValueError as e:
                 log.warning(f"Skipping bad setting: {e}")
-                ret[setting] = self.query(cmd.sim_query_string)
+                ret[setting] = self.query(cmd.ls_query_string)
         return ret
 
 
