@@ -356,7 +356,7 @@ class LakeShore372(LakeShoreMixin, Model372):
         Takes in an allowable channel number, command code (to query the current settings), and the new setpoint the
         user would like to control the device at. Setpointwill always be in units of Kelvin.
         """
-        current_setpoint = self.query_settings(command_code, channel)
+        current_setpoint = self.query_settings(command_code, channel=channel)
         if current_setpoint != setpoint and setpoint is not None:
             log.info(f"Changing temperature regulation value for output channel {channel} to {setpoint} from "
                      f"{current_setpoint}")
@@ -391,7 +391,7 @@ class LakeShore372(LakeShoreMixin, Model372):
         Takes in an allowable channel number, command code (to query the current settings), and the desired heater range
         from the allowed values, which step from 31.6 uA to 100 mA stepping up by a factor of 3 each step.
         """
-        current_range = self.query_settings(command_code, channel)
+        current_range = self.query_settings(command_code, channel=channel)
 
         if channel == 0:
             if current_range.value == range or range is None:

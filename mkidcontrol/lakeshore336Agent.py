@@ -33,8 +33,8 @@ log = logging.getLogger(__name__)
 ENABLED_CHANNELS = ('B', 'C', 'D')
 ALLOWED_CHANNELS = ("A", "B", "C", "D")
 
-TEMP_KEYS = ['status:temps:77k-stage:temp', 'status:temps:4k-stage:temp', 'status:temps:1k-stage:temp']
-SENSOR_VALUE_KEYS = ['status:temps:77k-stage:voltage', 'status:temps:4k-stage:voltage', 'status:temps:1k-stage:resistance']
+TEMP_KEYS = ['status:temps:1k-stage:temp', 'status:temps:4k-stage:temp', 'status:temps:77k-stage:temp']
+SENSOR_VALUE_KEYS = ['status:temps:1k-stage:resistance', 'status:temps:4k-stage:voltage', 'status:temps:77k-stage:voltage']
 
 TS_KEYS = TEMP_KEYS + SENSOR_VALUE_KEYS
 
@@ -191,7 +191,7 @@ class LakeShore336(LakeShoreMixin, Model336):
         If no curve number is given or the user tries to change to the current curve (i.e. Channel A uses Curve 2, try
         switching to curve 2), no change will be made.
         """
-        current_curve = self.query_settings(command_code, channel)
+        current_curve = self.query_settings(command_code, channel=channel)
 
         if current_curve != curve_num and curve_num is not None:
             try:
@@ -257,6 +257,7 @@ class LakeShore336(LakeShoreMixin, Model336):
             except ValueError as e:
                 log.warning(f"Skipping bad setting: {e}")
                 ret[setting] = self.query_single_setting(cmd.setting, cmd.command_code)
+            time.sleep(0.05)
         return ret
 
     def handle_command(self, cmd):
