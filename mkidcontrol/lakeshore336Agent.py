@@ -73,6 +73,7 @@ def initializer(device):
     firmware_pull(device)
     try:
         settings_to_load = redis.read(SETTING_KEYS, error_missing=True)
+        # TODO: Handle initialization with proper command handling
         initialized_settings = device.apply_schema_settings(settings_to_load)
         time.sleep(1)
     except RedisError as e:
@@ -250,13 +251,28 @@ class LakeShore336(LakeShoreMixin, Model336):
         for setting, value in settings_to_load.items():
             try:
                 cmd = LakeShore336Command(setting, value)
-                log.debug(cmd)
-                self.send(cmd.sim_string)
+                log.debug(f"Setting LakeShore 336 {cmd.setting} to {cmd.value}")
+                self.handle_command(cmd)
                 ret[setting] = value
             except ValueError as e:
                 log.warning(f"Skipping bad setting: {e}")
-                ret[setting] = self.query(cmd.sim_query_string)
+                ret[setting] = self.query_single_setting(cmd.setting, cmd.command_code)
         return ret
+
+    def handle_command(self, cmd):
+        try:
+            log.info(f"Processing command {cmd.setting} -> {cmd.value}")
+            if cmd.command_code == "INTYPE":
+                lakeshore.modify_input_sensor(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+            elif cmd.command_code == "INCRV":
+                lakeshore.change_curve(channel=cmd.channel, command_code=cmd.command_code, curve_num=cmd.command_value)
+            elif cmd.command_code == "CRVHDR":
+                lakeshore.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+            else:
+                pass
+        except IOError as e:
+            log.error(f"Comm error: {e}")
+            raise e
 
 
 if __name__ == "__main__":
@@ -287,15 +303,7 @@ if __name__ == "__main__":
                     log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
                     continue
                 try:
-                    log.info(f"Processing command '{cmd}'")
-                    if cmd.command_code == "INTYPE":
-                        lakeshore.modify_input_sensor(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
-                    elif cmd.command_code == "INCRV":
-                        lakeshore.change_curve(channel=cmd.channel, command_code=cmd.command_code, curve_num=cmd.command_value)
-                    elif cmd.command_code == "CRVHDR":
-                        lakeshore.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
-                    else:
-                        pass
+                    lakeshore.handle_command(cmd)
                     redis.store({cmd.setting: cmd.value})
                     redis.store({STATUS_KEY: "OK"})
                 except IOError as e:

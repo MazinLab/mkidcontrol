@@ -109,6 +109,7 @@ def initializer(device):
     firmware_pull(device)
     try:
         settings_to_load = redis.read(SETTING_KEYS, error_missing=True)
+        # TODO: Handle initialization with proper command handling
         initialized_settings = device.apply_schema_settings(settings_to_load)
         time.sleep(1)
     except RedisError as e:
@@ -226,13 +227,42 @@ class LakeShore372(LakeShoreMixin, Model372):
         for setting, value in settings_to_load.items():
             try:
                 cmd = LakeShore372Command(setting, value)
-                log.debug(cmd)
-                self.send(cmd.sim_string)
+                log.debug(f"Setting LakeShore 372 {cmd.setting} to {cmd.value}")
+                self.handle_command(cmd)
                 ret[setting] = value
             except ValueError as e:
                 log.warning(f"Skipping bad setting: {e}")
-                ret[setting] = self.query(cmd.sim_query_string)
+                ret[setting] = self.query_single_setting(cmd.setting, cmd.command_code)
         return ret
+
+    def handle_command(self, cmd):
+        try:
+            log.info(f"Processing command {cmd.setting} -> {cmd.value}")
+            if cmd.command_code == "INTYPE":
+                lakeshore.configure_input_sensor(channel=cmd.channel, command_code=cmd.command_code,
+                                                 **cmd.desired_setting)
+            elif cmd.command_code == "INSET":
+                lakeshore.modify_channel_settings(channel=cmd.channel, command_code=cmd.command_code,
+                                                  **cmd.desired_setting)
+            elif cmd.command_code == "OUTMODE":
+                lakeshore.configure_heater_settings(channel=cmd.channel, command_code=cmd.command_code,
+                                                    **cmd.desired_setting)
+            elif cmd.command_code == "SETP":
+                lakeshore.change_temperature_setpoint(channel=cmd.channel, command_code=cmd.command_code,
+                                                      setpoint=cmd.command_value)
+            elif cmd.command_code == "PID":
+                lakeshore.modify_pid_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+            elif cmd.command_code == "RANGE":
+                lakeshore.modify_heater_output_range(channel=cmd.channel, command_code=cmd.command_code,
+                                                     range=cmd.command_value)
+            elif cmd.command_code == "CRVHDR":
+                lakeshore.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+            else:
+                log.info(f"Command code '{cmd.command_code}' not recognized! No change will be made")
+                pass
+        except IOError as e:
+            log.error(f"Comm error: {e}")
+            raise e
 
     @property
     def setpoint(self):
@@ -414,26 +444,10 @@ if __name__ == "__main__":
                     log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
                     continue
                 try:
-                    log.info(f"Processing command '{cmd}'")
-                    if cmd.command_code == "INTYPE":
-                        lakeshore.configure_input_sensor(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
-                    elif cmd.command_code == "INSET":
-                        lakeshore.modify_channel_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
-                    elif cmd.command_code == "OUTMODE":
-                        lakeshore.configure_heater_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
-                    elif cmd.command_code == "SETP":
-                        lakeshore.change_temperature_setpoint(channel=cmd.channel, command_code=cmd.command_code, setpoint=cmd.command_value)
-                        redis.store({REGULATION_TEMP_KEY: cmd.command_value})
-                    elif cmd.command_code == "PID":
-                        lakeshore.modify_pid_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
-                    elif cmd.command_code == "RANGE":
-                        lakeshore.modify_heater_output_range(channel=cmd.channel, command_code=cmd.command_code, range=cmd.command_value)
-                    elif cmd.command_code == "CRVHDR":
-                        lakeshore.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
-                    else:
-                        log.info(f"Command code '{cmd.command_code}' not recognized! No change will be made")
-                        pass
+                    lakeshore.handle_command(cmd)
                     redis.store({cmd.setting: cmd.value})
+                    if cmd.command_code == "SETP":
+                        redis.store({REGULATION_TEMP_KEY: cmd.command_value})
                     redis.store({STATUS_KEY: "OK"})
                 except IOError as e:
                     redis.store({STATUS_KEY: f"Error {e}"})
