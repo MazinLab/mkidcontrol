@@ -832,6 +832,8 @@ class SIM921(SimDevice):
 class HeatswitchPosition:
     OPEN = 'open'
     CLOSE = 'close'
+    OPENED = 'opened'
+    CLOSED = 'closed'
 
 
 class Currentduino(SerialDevice):

@@ -43,9 +43,9 @@ DEFAULT_ACCELERATION = 2
 FULL_OPEN_POSITION = 0
 FULL_CLOSE_POSITION = 4194303
 
-HS_POS_STATE = "status:device:heatswitch:position"  # OPENED | OPENING | CLOSED | CLOSING
+HEATSWITCH_STATUS_KEY = "status:device:heatswitch:position"  # OPENED | OPENING | CLOSED | CLOSING
 MOTOR_POS = "status:device:heatswitch-motor:position"  # Integer between 0 and 4194303
-HEATSWITCH_MOVE_KEY = f"command:{HS_POS_STATE}"
+HEATSWITCH_MOVE_KEY = f"command:{HEATSWITCH_STATUS_KEY}"
 
 COMMAND_KEYS = (HEATSWITCH_MOVE_KEY,)
 TS_KEYS = (MOTOR_POS,)
@@ -58,6 +58,22 @@ def write_persisted_state(statefile, state):
     except IOError:
         # log.warning('Unable to log state entry', exc_info=True)
         pass
+
+
+def close():
+    redis.publish(HEATSWITCH_MOVE_KEY, HeatswitchPosition.CLOSE, store=False)
+
+
+def open():
+    redis.publish(HEATSWITCH_MOVE_KEY, HeatswitchPosition.OPEN, store=False)
+
+
+def is_opened():
+    return redis.read(HEATSWITCH_STATUS_KEY) == HeatswitchPosition.OPENED
+
+
+def is_closed():
+    return redis.read(HEATSWITCH_STATUS_KEY) == HeatswitchPosition.CLOSED
 
 
 def monitor_callback(mpos):
@@ -303,7 +319,7 @@ class HeatswitchController(LockedMachine):
     def record_entry(self, event):
         self.state_entry_time[self.state] = time.time()
         log.info(f"Recorded entry: {self.state}")
-        redis.store({HS_POS_STATE: self.state})
+        redis.store({HEATSWITCH_STATUS_KEY: self.state})
         # write_persisted_state(self.statefile, self.state)
 
 
