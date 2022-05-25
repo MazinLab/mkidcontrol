@@ -369,6 +369,7 @@ class LakeShoreDevice(SerialDevice):
         self.terminator = '\n'
         self.initializer = initializer
         self._initialized = False
+        self._rlock = threading.RLock()
 
         if connect:
             self.connect(raise_errors=False)
@@ -482,8 +483,69 @@ class LakeShore240(LakeShoreDevice):
 
 
 class MagnetState(enum.Enum):
-     PID = enum.auto()
-     MANUAL = enum.auto()
+    PID = enum.auto()
+    MANUAL = enum.auto()
+
+
+class LakeShore625(LakeShoreDevice):
+    def __init__(self, name, port, baudrate=9600, parity=serial.PARITY_ODD, bytesize=serial.SEVENBITS, timeout=0.1, connect=True, valid_models=None, initializer=None):
+        super().__init__(name, port, baudrate=baudrate, timeout=timeout, parity=parity, bytesize=bytesize,
+                         connect=connect, valid_models=valid_models, initializer=initializer)
+
+        if connect:
+            self.connect(raise_errors=False)
+
+        self.last_current_read = None
+        self.last_field_read = None
+        self.last_voltage_read = None
+        self.max_current = None
+        self.max_compliance_voltage = None
+        self.max_ramp_rate = None
+
+    def current(self):
+        current = self.query("RDGI?")
+        self.last_current_read = current
+        return current
+
+    def field(self):
+        field = self.query("RDGF?")
+        self.last_field_read = field
+        return field
+
+    def output_voltage(self):
+        voltage = self.query("RDGV?")
+        self.last_voltage_read = voltage
+        return voltage
+
+    def limits(self):
+        current, voltage, rate = self.query("LIMIT?").split(',')
+        self.max_current = current
+        self.max_compliance_voltage = voltage
+        self.max_ramp_rate = rate
+
+    @property
+    def mode(self):
+        """ Returns MagnetState or raises IOError (which means we don't know!) """
+        return MagnetState.MANUAL if self.query("XPGM?") == '0' else MagnetState.PID
+
+    @mode.setter
+    def mode(self, value: MagnetState):
+        """ Set the magnet state, state may not be set of Off directly.
+        If transistioning to manual ensure that the manual current doesn't hiccup
+        """
+        with self._rlock:
+            mode = self.mode
+            if mode == value:
+                return
+            if value == MagnetState.MANUAL:
+                self.send("XPGM 0")
+                self.send("SETI 0.000")
+            else:
+                self.send("XPGM 1")
+
+    def kill_current(self):
+        # TODO
+        pass
 
 
 class SIM960(SimDevice):
