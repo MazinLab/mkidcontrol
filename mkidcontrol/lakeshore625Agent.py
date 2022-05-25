@@ -16,33 +16,42 @@ import sys
 import time
 import logging
 import threading
-import serial
+from datetime import datetime, timedelta
+from collections import defaultdict
+from transitions import MachineError, State, Transition
+from transitions.extensions import LockedMachine
+import pkg_resources
 
-from mkidcontrol.devices import LakeShoreDevice
+from mkidcontrol.devices import LakeShore625, MagnetState
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.util as util
 import mkidcontrol.mkidredis as redis
-from mkidcontrol.lakeshore372Agent import to_no_output, to_pid_output, in_no_output, in_pid_output
+from mkidcontrol.commands import COMMANDS625, LakeShoreCommand
+import mkidcontrol.heatswitchAgent as heatswitch
+import mkidcontrol.lakeshore372Agent as ls372
 
-log = logging.getLogger()
-
-COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'9600': '0', '19200': '1',
-                                                                               '38400': '2', '57600': '3'}},
-               'device-settings:ls625:current-output-limit': {'command': 'LIMIT', 'vals': [0.0, 60.1000]},
-               'device-settings:ls625:voltage-output-limit': {'command': 'LIMIT', 'vals': [0.1000, 5.0000]},
-               'device-settings:ls625:rate-output-limit': {'command': 'LIMIT', 'vals': [0.0001, 99.999]},
-               'device-settings:ls625:magnetic-field-parameter': {'command': 'FLDS 1,', 'vals': [0.0100, 10.000]},  # Note: For ARCONS = 4.0609 kG/A
-               'device-settings:ls625:quench-parameter': {'command': 'QNCH 1,', 'vals': [0.0100, 10.000]},
-               'device-settings:ls625:ramp-rate': {'command': 'RATE', 'vals': [0.0001, 99.999]},
-               'device-settings:ls625:desired-current': {'command': 'SETI', 'vals': [0.0000, 60.1000]},
-               'device-settings:ls625:compliance-voltage': {'command': 'SETV', 'vals': [0.1000, 5.0000]},
-               'device-settings:ls625:stop-current-ramp': {'command': 'STOP', 'vals': ''},
-               'device-settings:ls625:control-mode': {'command': 'XPGM', 'vals': {'internal': '0', 'external': '1', 'sum': '2'}}
-               }
+QUERY_INTERVAL = 1
+MAX_PERSISTED_STATE_LIFE_SECONDS = 3600
 
 DEVICE = '/dev/ls625'
-QUERY_INTERVAL = 1
-VALID_MODELS = ('MODEL625')
+VALID_MODELS = ('MODEL625', )
+
+SOAK_TIME_KEY = 'device-settings:ls625:soak-time'
+SOAK_CURRENT_KEY = 'device-settings:ls625:soak-current'
+RAMP_RATE_KEY = 'device-settings:ls625:ramp-rate'
+COOLDOWN_SCHEDULED_KEY = 'device-settings:ls625:cooldown-scheduled'
+
+IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY = 'device-settings:ls625:enable-temperature-regulation-upper-limit'
+STATEFILE_PATH_KEY = 'device-settings:ls625:statefile'  # /mkidcontrol/mkidcontrol/logs/statefile.txt
+
+STOP_RAMP_KEY = 'command:device-settings:ls625:stop-current-ramp'
+COLD_AT_CMD = 'be-cold-at'
+COLD_NOW_CMD = 'get-cold'
+ABORT_CMD = 'abort-cooldown'
+CANCEL_COOLDOWN_CMD = 'cancel-scheduled-cooldown'
+QUENCH_KEY = 'event:quenching'
+
+MAGNET_COMMAND_KEYS = (COLD_AT_CMD, COLD_NOW_CMD, ABORT_CMD, CANCEL_COOLDOWN_CMD, STOP_RAMP_KEY)
 
 SETTING_KEYS = tuple(COMMANDS625.keys())
 
@@ -51,19 +60,17 @@ FIRMWARE_KEY = "status:device:ls625:firmware"
 MODEL_KEY = 'status:device:ls625:model'
 SN_KEY = 'status:device:ls625:sn'
 
-TEMPERATURE_KEY = 'status:temps:device-stage:temp'
-
+MAGNET_STATE_KEY = 'status:magnet:state' # OFF | RAMPING | SOAKING | QUENCH (DON'T QUENCH!)
 MAGNET_CURRENT_KEY = 'status:magnet:current'
 MAGNET_FIELD_KEY = 'status:magnet:field'
-
 OUTPUT_VOLTAGE_KEY = 'status:device:ls625:output-voltage'
 
-TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, TEMPERATURE_KEY]
+TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY]
 
-SETTING_KEYS = tuple(COMMANDS625.keys())
+COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS + MAGNET_COMMAND_KEYS]
 
-COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
-
+DEVICE_TEMP_KEY = 'status:temps:device-stage:temp'
+REGULATION_TEMP_KEY = "device-settings:device-stage:regulating-temp"
 
 def firmware_pull(device):
     # Grab and store device info
