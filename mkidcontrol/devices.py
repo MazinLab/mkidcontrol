@@ -852,6 +852,8 @@ class HeatswitchPosition:
     CLOSE = 'close'
     OPENED = 'opened'
     CLOSED = 'closed'
+    OPENING = 'opening'
+    CLOSING = 'closing'
 
 
 class Currentduino(SerialDevice):
