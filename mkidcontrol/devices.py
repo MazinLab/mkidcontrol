@@ -31,6 +31,24 @@ def escapeString(string):
     return string.replace('\n', '\\n').replace('\r', '\\r')
 
 
+def write_persisted_state(statefile, state):
+    try:
+        with open(statefile, 'w') as f:
+            f.write(f'{time.time()}:{state}')
+    except IOError:
+        log.warning('Unable to log state entry', exc_info=True)
+        pass
+
+def load_persisted_state(statefile):
+    try:
+        with open(statefile, 'r') as f:
+            persisted_state_time, persisted_state = f.readline().split(':')
+            persisted_state_time, persisted_state = float(persisted_state_time.strip()), persisted_state.strip()
+    except Exception:
+        persisted_state_time, persisted_state = None, None
+    return persisted_state_time, persisted_state
+
+
 class SerialDevice:
     def __init__(self, port, baudrate=115200, timeout=0.1, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS,
                  name=None, terminator='\n', response_terminator=''):
