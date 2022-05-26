@@ -29,6 +29,7 @@ from transitions.extensions import LockedMachine
 
 from mkidcontrol.mkidredis import MKIDRedis, RedisError
 import mkidcontrol.util as util
+from mkidcontrol.devices import HeatswitchPosition, write_persisted_state, load_persisted_state
 from zaber_motion import Library
 from zaber_motion.binary import Connection, BinarySettings, CommandCode
 
@@ -49,15 +50,6 @@ HEATSWITCH_MOVE_KEY = f"command:{HEATSWITCH_STATUS_KEY}"
 
 COMMAND_KEYS = (HEATSWITCH_MOVE_KEY,)
 TS_KEYS = (MOTOR_POS,)
-
-
-def write_persisted_state(statefile, state):
-    try:
-        with open(statefile, 'w') as f:
-            f.write(f'{time.time()}:{state}')
-    except IOError:
-        # log.warning('Unable to log state entry', exc_info=True)
-        pass
 
 
 def close():
@@ -84,12 +76,47 @@ def monitor_callback(mpos):
         log.warning('Storing motor position to redis failed')
 
 
+def compute_initial_state(heatswitch):
+    # TODO: Adapt to heatswitch from lakeshore
+    """
+    Initial states can be opening, closing, opened, or closed
+    """
+    try:
+        if heatswitch.initialized:
+            pass
+        else:
+            heatswitch._initialize_position()
+
+        # NB: This is handled by the call to _initialize_position() which keeps the motor and DB in sync
+        position = redis.read(MOTOR_POS)[1]
+
+        if position == FULL_CLOSE_POSITION:
+            initial_state = "closed"
+        elif position == FULL_OPEN_POSITION:
+            initial_state = "opened"
+        else:
+            if redis.read(HEATSWITCH_STATUS_KEY) == HeatswitchPosition.OPENING:
+                initial_state = "opening"
+            else:
+                initial_state = "closing"
+    except IOError:
+        log.critical('Lost heatswitch connection during agent startup. defaulting to unknown')
+        initial_state = "unknown"
+    except RedisError:
+        log.critical('Lost redis connection during compute_initial_state startup.')
+        raise
+    log.info(f"\n\n------ Initial State is: {initial_state} ------\n")
+    return initial_state
+
+
 class HeatswitchMotor:
     def __init__(self, port, timeout=(4194303 * 1.25)/3e3, set_mode=False):
         c = Connection.open_serial_port(port)
         self.hs = c.detect_devices()[0]
 
+        self.initialized = False
         self.last_recorded_position = None
+        self.last_move = 0
 
         # Initializes the heatswitch to
         self._initialize_position()
@@ -110,7 +137,7 @@ class HeatswitchMotor:
         TODO
         :return:
         """
-        reported_position = int(self.hs.get_position())
+        reported_position = int(self.motor_position())
         last_recorded_position = int(redis.read(MOTOR_POS)[1])
 
         distance = abs(reported_position - last_recorded_position)
@@ -127,10 +154,25 @@ class HeatswitchMotor:
                         f" was made, YOU MUST SET THE CURRENT POSITION MANUALLY")
             self.hs.generic_command(CommandCode.SET_CURRENT_POSITION, last_recorded_position)
 
-        self.last_recorded_position = self.hs.get_position()
+        self.initialized = True
+        self.last_recorded_position = self.motor_position()
+
+    @property
+    def state(self):
+        if self.motor_position() == FULL_CLOSE_POSITION:
+            return HeatswitchPosition.CLOSED
+        elif self.motor_position() == FULL_OPEN_POSITION:
+            return HeatswitchPosition.OPENED
+        else:
+            if self.last_move >= 0:
+                return HeatswitchPosition.CLOSING
+            else:
+                return HeatswitchPosition.OPENING
 
     def motor_position(self):
-        return self.last_recorded_position
+        position = self.hs.get_position()
+        log.debug(f"Motor has reported that it is at position {position}")
+        return position
 
     def move_by(self, dist, error_on_disallowed=False):
         """
@@ -159,15 +201,32 @@ class HeatswitchMotor:
                 log.warning(f"Move requested from {pos} to {final_pos} ({dist} steps) is not "
                          f"allowed, restricting move to furthest allowed position of {new_final_pos} ({new_dist} steps).")
                 try:
-                    self.last_recorded_position = self.hs.move_relative(new_dist)
-                    log.info(f"Successfully moved to {self.last_recorded_position}")
+                    new_pos = self.hs.move_relative(new_dist)
+                    if new_pos == self.motor_position():
+                        self.last_recorded_position = new_pos
+                        self.last_move = new_dist
+                        log.info(f"Successfully moved to {self.last_recorded_position}")
+                    else:
+                        log.critical(f"Reported motor position ({self.motor_position()}) not equal to expected destination ({new_pos})!\n"
+                                     f"Setting last recorded position to {self.motor_position()}")
+                        self.last_recorded_position = self.motor_position()
+                        self.last_move = self.motor_position() - pos
                 except:
                     log.error(f"Move failed!!")
         else:
             log.info(f"Move requested from {pos} to {final_pos} ({dist} steps). Moving now...")
             try:
-                self.last_recorded_position = self.hs.move_relative(dist)
-                log.info(f"Successfully moved to {self.last_recorded_position}")
+                new_pos = self.hs.move_relative(dist)
+                if new_pos == self.motor_position():
+                    self.last_recorded_position = new_pos
+                    self.last_move = dist
+                    log.info(f"Successfully moved to {self.last_recorded_position}")
+                else:
+                    log.critical(
+                        f"Reported motor position ({self.motor_position()}) not equal to expected destination ({new_pos})!\n"
+                        f"Setting last recorded position to {self.motor_position()}")
+                    self.last_recorded_position = self.motor_position()
+                    self.last_move = self.motor_position() - pos
             except:
                 log.error(f"Move failed!!")
 
@@ -254,25 +313,16 @@ class HeatswitchController(LockedMachine):
                   State('closed', on_enter='record_entry'),
                   State('closing', on_enter='record_entry'))
 
-        hs = HeatswitchMotor('/dev/heaswitch')
+        hs = HeatswitchMotor('/dev/heatswitch')
 
-        hs.monitor(QUERY_INTERVAL, hs.motor_position, value_callback=monitor_callback)
+        hs.monitor(QUERY_INTERVAL, (hs.motor_position,), value_callback=monitor_callback)
 
         self.hs = hs
         self.lock = threading.RLock()
         self._run = False  # Set to false to kill the main loop
         self._mainthread = None
 
-        # initial = compute_initial_state(self.hs, self.statefile)
-        if self.hs.last_recorded_position == self.hs.max_position:
-            initial = "closed"
-        elif self.hs.last_recorded_position == self.hs.min_position:
-            initial = "opened"
-        else:
-            if np.random.randint(0, 1000) % 2 == 0:
-                initial = "opening"
-            else:
-                initial = "closing"
+        initial = compute_initial_state(self.hs)
         self.state_entry_time = {initial: time.time()}
         LockedMachine.__init__(self, transitions=transitions, initial=initial, states=states,
                                machine_context=self.lock, send_event=True)
@@ -320,7 +370,7 @@ class HeatswitchController(LockedMachine):
         self.state_entry_time[self.state] = time.time()
         log.info(f"Recorded entry: {self.state}")
         redis.store({HEATSWITCH_STATUS_KEY: self.state})
-        # write_persisted_state(self.statefile, self.state)
+        write_persisted_state(self.statefile, self.state)
 
 
 if __name__ == "__main__":
