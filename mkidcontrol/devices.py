@@ -1178,7 +1178,7 @@ class LakeShoreMixin:
         except (AttributeError, TypeError):
             return settings
 
-    def query_settings(self, command_code, channel=None, curve_num=None):
+    def query_settings(self, command_code, channel=None, curve=None):
         """
         Using a command code (from either the COMMANDS336 or COMMANDS372 dict) and either a channel or curve number,
         sends the appropriate query to the lakeshore device. If the result that gets returned is a class instance,
@@ -1190,7 +1190,7 @@ class LakeShoreMixin:
         """
         model = self.model_number
 
-        if channel is None and curve_num is None:
+        if channel is None and curve is None:
             raise ValueError(f"Insufficient information to query a channel or a curve!")
 
         try:
@@ -1219,8 +1219,8 @@ class LakeShoreMixin:
                 data = self.get_heater_output_range(channel)
                 log.debug(f"Read the current heater output range for channel {channel}: {data}")
             elif command_code == "CRVHDR":
-                data = vars(self.get_curve_header(curve_num))
-                log.debug(f"Read the curve header from curve {curve_num}: {data}")
+                data = vars(self.get_curve_header(curve))
+                log.debug(f"Read the curve header from curve {curve}: {data}")
             return data
         except (IOError, SerialException) as e:
             raise IOError(f"Serial error communicating with Lake Shore {self.model_number[-3:]}: {e}")
@@ -1243,9 +1243,9 @@ class LakeShoreMixin:
 
         try:
             if channel is not None:
-                settings = self.query_settings(command_code, channel)
+                settings = self.query_settings(command_code, channel=channel)
             elif curve is not None:
-                settings = self.query_settings(command_code, curve)
+                settings = self.query_settings(command_code, curve=curve)
             else:
                 log.error(f"Insufficient values given for curve or channel to query! Cannot generate up-to-date settings."
                           f"Ignoring request to modify settings.")
