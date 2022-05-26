@@ -109,7 +109,6 @@ def initializer(device):
     firmware_pull(device)
     try:
         settings_to_load = redis.read(SETTING_KEYS, error_missing=True)
-        # TODO: Handle initialization with proper command handling
         initialized_settings = device.apply_schema_settings(settings_to_load)
         time.sleep(1)
     except RedisError as e:
