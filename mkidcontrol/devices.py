@@ -387,10 +387,10 @@ class LakeShoreDevice(SerialDevice):
         self.terminator = '\n'
         self.initializer = initializer
         self._initialized = False
-        self._rlock = threading.RLock()
 
         if connect:
             self.connect(raise_errors=False)
+            self.initialized_at_last_connect = self._initialized
 
     def format_msg(self, msg:str):
         """
@@ -425,7 +425,16 @@ class LakeShoreDevice(SerialDevice):
             self.initializer(self)
             self._initialized = True
 
+    def read_schema_settings(self, settings):
+        # TODO: Handle "LIMIT?"
+        ret = {}
+        for setting in settings:
+            cmd = LakeShoreCommand(setting)
+            ret[setting] = self.query(cmd.ls_query_string)
+        return ret
+
     def apply_schema_settings(self, settings_to_load):
+        # TODO: Handle "LIMIT?"
         """
         Configure the sim device with a dict of redis settings via SimCommand translation
 
@@ -525,6 +534,9 @@ class LakeShore625(LakeShoreDevice):
         self.last_current_read = current
         return current
 
+    def set_desired_current(self, current):
+        self.send(f"SETI {current}")
+
     def field(self):
         field = self.query("RDGF?")
         self.last_field_read = field
@@ -562,8 +574,7 @@ class LakeShore625(LakeShoreDevice):
                 self.send("XPGM 1")
 
     def kill_current(self):
-        # TODO
-        pass
+        self.send("SETI 0.000")
 
 
 class SIM960(SimDevice):
