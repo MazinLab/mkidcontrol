@@ -1154,7 +1154,7 @@ class LakeShoreMixin:
             try:
                 if self.model_number == "MODEL372":
                     res = float(self.get_resistance_reading(channel))
-                    log.info(f"Measured a resistance of {res} kOhms from channel {channel}")
+                    log.info(f"Measured a resistance of {res} Ohms from channel {channel}")
                     readings.append(res)
                 elif self.model_number == "MODEL336":
                     sens = float(self.get_sensor_reading(channel))
