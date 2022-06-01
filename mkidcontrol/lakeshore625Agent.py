@@ -6,9 +6,9 @@ Program for communicating with and controlling the LakeShore625 Superconducting 
 
 This module is responsible for TODO
 
-NOTE: At powerup, the current is set initially to 0.00 A
+NOTE: At powerup, the current is set initially to 0.00 A (This is important in the case of a power hiccup during ramping)
 
-TODO: Quench detection values. Theory for  value choice exists at npage 48 of the LakeShore 625 manual
+TODO: Quench detection values, and limit values. Theory for  value choice exists at npage 48 of the LakeShore 625 manual
  (V_LS625compliance,max = 5V, V_max,magnet=125 mV,  L=~35H, I_max=9.4A)
 """
 
