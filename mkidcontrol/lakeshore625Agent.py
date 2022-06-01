@@ -140,30 +140,29 @@ class MagnetController(LockedMachine):
                                #  'regulating':('device-settings:ls625:setpoint-mode',)
 
     def __init__(self, statefile='./magnetstate.txt'):
-        # TODO: Make sure everything here tracks, especially when entering regulation! Make sure the order of operation
-        #  is correct for switching the LS372 to PID mode and LS625 to externally programmed current.
+
         transitions = [
             {'trigger': 'abort', 'source': '*', 'dest': 'deramping'},
 
             {'trigger': 'quench', 'source': '*', 'dest': 'off'},
 
             {'trigger': 'start', 'source': 'off', 'dest': 'hs_closing',
-             'prepare': ('close_heatswitch', 'ls372_to_no_output')},
+             'prepare': ('close_heatswitch', 'ls372_to_no_output', 'to_manual_mode')},
             {'trigger': 'start', 'source': 'deramping', 'dest': 'hs_closing',
-             'prepare': ('close_heatswitch', 'ls372_to_no_output')},
+             'prepare': ('close_heatswitch', 'ls372_to_no_output', 'to_manual_mode')},
 
-            {'trigger': 'next', 'source': 'hs_closing', 'dest': 'starting_ramp', 'conditions': 'heatswitch_closed'},
             {'trigger': 'next', 'source': 'hs_closing', 'dest': None,
-             'prepare': ('close_heatswitch', 'ls372_to_no_output')},
+             'prepare': 'close_heatswitch'},
+            {'trigger': 'next', 'source': 'hs_closing', 'dest': 'starting_ramp',
+             'conditions': ('heatswitch_closed', 'ls372_in_no_output')},
 
-            {'trigger': 'next', 'source': 'starting_ramp', 'dest': None, 'conditions': 'heatswitch_closed',
-             'after': 'start_current_ramp'},
             {'trigger': 'next', 'source': 'starting_ramp', 'dest': 'ramping',
-             'conditions': ('heatswitch_closed', 'ramp_ok')},
+             'conditions': ('heatswitch_closed', 'in_manual_mode'), 'prepare': 'start_current_ramp'},
 
             {'trigger': 'next', 'source': 'ramping', 'dest': None, 'conditions': 'ramp_ok',
              'unless': 'current_ready_to_soak'},
             {'trigger': 'next', 'source': 'ramping', 'dest': 'soaking', 'conditions': 'current_ready_to_soak'},
+            {'trigger': 'next', 'source': 'ramping', 'dest': 'deramping'},
 
             {'trigger': 'next', 'source': 'soaking', 'dest': None, 'unless': 'soak_time_expired',
              'conditions': 'current_at_soak'},
@@ -171,27 +170,34 @@ class MagnetController(LockedMachine):
              'conditions': ('current_at_soak', 'soak_time_expired')},
             {'trigger': 'next', 'source': 'soaking', 'dest': 'deramping'},
 
+            {'trigger': 'next', 'source': 'hs_opening', 'dest': None, 'prepare': 'open_heatswitch'},
             {'trigger': 'next', 'source': 'hs_opening', 'dest': 'starting_deramp',
              'conditions': ('heatswitch_opened',)},
-            {'trigger': 'next', 'source': 'hs_opening', 'dest': None, 'prepare': ('open_heatswitch',)},
 
-            {'trigger': 'next', 'source': 'starting_deramp', 'dest': None, 'conditions': 'heatswitch_opened',
-             'after': 'start_current_deramp'},
-            {'trigger': 'next', 'source': 'starting_deramp', 'dest': 'cooling',
-             'conditions': ('heatswitch_opened', 'deramp_ok')},
+            {'trigger': 'next', 'source': 'starting_deramp', 'dest': 'cooling', 'conditions': 'heatswitch_opened',
+             'prepare': 'start_current_deramp'},
 
             {'trigger': 'next', 'source': 'cooling', 'dest': None, 'unless': 'device_ready_for_regulate',
              'conditions': ('heatswitch_opened', 'deramp_ok')},
-            {'trigger': 'next', 'source': 'cooling', 'dest': 'regulating', 'before': 'to_pid_mode',
-             'conditions': ('heatswitch_opened',), 'prepare': ('ls372_to_pid_mode',)},
+            {'trigger': 'next', 'source': 'cooling', 'dest': 'prep_regulating',
+             'conditions': ('heatswitch_opened', 'device_ready_for_regulate')},
             {'trigger': 'next', 'source': 'cooling', 'dest': 'deramping', 'conditions': 'heatswitch_closed'},
 
+            {'trigger': 'next', 'source': 'prep_regulating', 'dest': None, 'prepare': 'to_pid_mode',
+             'conditions': ('heatswitch_opened', 'device_ready_for_regulate'), 'unless': 'in_pid_mode'},
+            {'trigger': 'next', 'source': 'prep_regulating', 'dest': 'regulating',
+             'conditions': ('heatswitch_opened', 'device_ready_for_regulate', 'in_pid_mode'), 'after': 'ls372_to_pid'},
+            {'trigger': 'next', 'source': 'prep_regulating', 'dest': 'deramping'},
+
             {'trigger': 'next', 'source': 'regulating', 'dest': None,
-             'conditions': ['device_regulatable', 'in_pid_mode']},
+             'conditions': ('device_regulatable', 'in_pid_mode', 'ls372_in_pid')},
+            {'trigger': 'next', 'source': 'regulating', 'dest': None,
+             'conditions': ('device_regulatable', 'in_pid_mode', 'ls372_in_no_output'), 'prepare': 'ls372_to_pid'},
             {'trigger': 'next', 'source': 'regulating', 'dest': 'deramping'},
 
-            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'unless': 'current_off'},
-            {'trigger': 'next', 'source': 'deramping', 'dest': 'off', 'prepare': 'ls372_to_no_output'},
+            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'prepare': ('to_manual_mode', 'kill_current'),
+             'unless': 'current_off'},
+            {'trigger': 'next', 'source': 'deramping', 'dest': 'off', 'prepare': ('ls372_to_no_output', 'kill_current')},
 
             {'trigger': 'next', 'source': 'off', 'dest': None}
         ]
@@ -205,6 +211,7 @@ class MagnetController(LockedMachine):
             State('hs_opening', on_enter='record_entry'),
             State('starting_deramp', on_enter='record_entry'),
             State('cooling', on_enter='record_entry'),
+            State('prep_regulating', on_enter='record_entry'),
             State('regulating', on_enter='record_entry'),
             # Entering ramping MUST succeed
             State('deramping', on_enter='record_entry'))
@@ -452,9 +459,13 @@ class MagnetController(LockedMachine):
     def to_pid_mode(self, event):
         self.lakeshore.mode = MagnetState.PID
 
+    def in_manual_mode(self, event):
+        return self.lakeshore.mode == MagnetState.MANUAL
+
+    def to_manual_mode(self, event):
+        self.lakeshore.mode = MagnetState.MANUAL
+
     def start_current_ramp(self, event):
-        # TODO: Consider if the best way to do this is send a command to the lakeshore rather
-        #  than a setter. Mostly to make sure that the redis DB stays in sync with everything
         limit = self.lakeshore.MAX_CURRENT
         try:
             desired_current = redis.read(SOAK_CURRENT_KEY)
@@ -488,16 +499,22 @@ class MagnetController(LockedMachine):
             log.warning('Failed to start deramp, lakeshore 625 is offline')
 
     def ramp_ok(self, event):
-        # TODO
-        return True
+        # TODO: Is there a better way to do this?
+        if self.state == 'ramping' and self.lakeshore.last_current_read >= 0 and self.lakeshore.last_current_read <= redis.read(SOAK_CURRENT_KEY):
+            return True
+        else:
+            return False
 
     def deramp_ok(self, event):
         # TODO
-        return True
+        if self.state == 'deramping' and self.lakeshore.last_current_read >= 0 and self.lakeshore.last_current_read <= redis.read(SOAK_CURRENT_KEY):
+            return True
+        else:
+            return False
 
     def device_ready_for_regulate(self, event):
         try:
-            return float(redis.read(DEVICE_TEMP_KEY)[1]) <= float(redis.read(REGULATION_TEMP_KEY))
+            return float(redis.read(DEVICE_TEMP_KEY)[1]) <= float(redis.read(REGULATION_TEMP_KEY)) * 1.5
         except RedisError:
             return False
 
@@ -507,15 +524,17 @@ class MagnetController(LockedMachine):
 
         NOTE: enforce_upper_limit is controlled by an ENGINEERING KEY that must be changed DIRECTLY IN REDIS. It cannot
          be commanded and must be manually changed
+
+        TODO: Consider adding more logic into this to see if the current is still able to provide regulation?
         """
         enforce_upper_limit = redis.read(IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY)
-        if enforce_upper_limit == "on":
-            try:
-                return float(redis.read(DEVICE_TEMP_KEY)[1]) <= 1.10 * redis.read(REGULATION_TEMP_KEY)
-            except RedisError:
-                return False
-        else:
-            return True
+        try:
+            if enforce_upper_limit == "on":
+                return float(redis.read(DEVICE_TEMP_KEY)[1]) <= MAX_REGULATE_TEMP
+            else:
+                return True
+        except RedisError:
+            return False
 
     def kill_current(self, event):
         """Kill the current if possible, return False if fail"""
