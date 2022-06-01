@@ -287,7 +287,7 @@ class HeatswitchController(LockedMachine):
     LOOP_INTERVAL = 1
     BLOCKS = defaultdict(set)
 
-    def __init__(self):
+    def __init__(self, statefile='./heatswitchmotorstate.txt'):
         transitions = [
             # NOTE: Heatswitch will not allow the user to start reopening while closing or start reclosing while opening
             {'trigger': 'open', 'source': 'closed', 'dest': 'opening'},
@@ -321,6 +321,7 @@ class HeatswitchController(LockedMachine):
         self.lock = threading.RLock()
         self._run = False  # Set to false to kill the main loop
         self._mainthread = None
+        self.statefile = statefile
 
         initial = compute_initial_state(self.hs)
         self.state_entry_time = {initial: time.time()}
