@@ -1130,6 +1130,10 @@ class LakeShoreMixin:
             try:
                 temp_rdg = float(self.get_kelvin_reading(channel))
                 log.info(f"Measured a temperature of {temp_rdg} K from channel {channel}")
+                if temp_rdg == 0:
+                    log.debug(f"Temperature from channel {channel} was read to be 0. This usually means that temperature"
+                              f" is above the calibration limit. Setting to 40K (RX-102A max calibrated temp).")
+                    temp_rdg = 40.0
                 temp_vals.append(temp_rdg)
             except (SerialException, IOError) as e:
                 log.error(f"Serial error: {e}")
