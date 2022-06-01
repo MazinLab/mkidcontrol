@@ -515,6 +515,8 @@ class MagnetState(enum.Enum):
 
 
 class LakeShore625(LakeShoreDevice):
+    MAX_CURRENT = 9.4
+
     def __init__(self, name, port, baudrate=9600, parity=serial.PARITY_ODD, bytesize=serial.SEVENBITS, timeout=0.1, connect=True, valid_models=None, initializer=None):
         super().__init__(name, port, baudrate=baudrate, timeout=timeout, parity=parity, bytesize=bytesize,
                          connect=connect, valid_models=valid_models, initializer=initializer)
