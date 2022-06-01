@@ -74,7 +74,7 @@ class SimCommand:
 
 
 class LakeShoreCommand:
-    def __init__(self, schema_key, value=None):
+    def __init__(self, schema_key, value=None, limit_vals:dict=None):
         """
         Initializes a SimCommand. Takes in a redis device-setting:* key and desired value an evaluates it for its type,
         the mapping of the command, and appropriately sets the mapping|range for the command. If the setting is not
@@ -85,10 +85,14 @@ class LakeShoreCommand:
         if schema_key not in COMMAND_DICT.keys():
             raise ValueError(f'Unknown command: {schema_key}')
 
+        if schema_key[-5:] == 'limit' and limit_vals:
+            raise ValueError(f"Cannot handle command for {schema_key} without the existing limit values")
+
         self.range = None
         self.mapping = None
         self.value = value
         self.setting = schema_key
+        self.limit_values = limit_vals
 
         self.command = COMMAND_DICT[self.setting]['command']
         setting_vals = COMMAND_DICT[self.setting]['vals']
@@ -124,6 +128,19 @@ class LakeShoreCommand:
     def is_query(self):
         return self.value is None
 
+    def _parse_limit_values(self):
+        field_to_change = self.setting.split(":")[:-6]
+        if field_to_change == 'current':
+            self.limit_values['current'] = self.value
+        elif field_to_change == 'compliance-voltage':
+            self.limit_values['voltage'] = self.value
+        elif field_to_change == 'rate':
+            self.limit_values['rate'] = self.value
+        else:
+            raise ValueError(f"Unknown limit field: {field_to_change}")
+
+        return f"{self.limit_values['current']}, {self.limit_values['voltage']}, {self.limit_values['rate']}"
+
     @property
     def ls_string(self):
         """
@@ -132,8 +149,11 @@ class LakeShoreCommand:
         if self.is_query:
             return self.ls_query_string
 
-        v = self.mapping[self.value] if self.range is None else self.value
-        return f"{self.command} {v}"
+        if self.command == "LIMIT":
+            v = self._parse_limit_values()
+        else:
+            v = self.mapping[self.value] if self.range is None else self.value
+            return f"{self.command} {v}"
 
     @property
     def ls_query_string(self):
