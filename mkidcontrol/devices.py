@@ -529,6 +529,11 @@ class LakeShore625(LakeShoreDevice):
         self.max_compliance_voltage = None
         self.max_ramp_rate = None
 
+    @property
+    def limits(self):
+        current_lim, voltage_lim, rate_limit = self.query("LIMIT?").split(',')
+        return {'current': current_lim, 'voltage': voltage_lim, 'rate': rate_limit}
+
     def current(self):
         current = self.query("RDGI?")
         self.last_current_read = current
@@ -546,12 +551,6 @@ class LakeShore625(LakeShoreDevice):
         voltage = self.query("RDGV?")
         self.last_voltage_read = voltage
         return voltage
-
-    def limits(self):
-        current, voltage, rate = self.query("LIMIT?").split(',')
-        self.max_current = current
-        self.max_compliance_voltage = voltage
-        self.max_ramp_rate = rate
 
     @property
     def mode(self):

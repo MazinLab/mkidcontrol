@@ -202,20 +202,6 @@ COMMANDS336.update({f'device-settings:ls336:curve-{cu}:temperature-limit': {'com
 COMMANDS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': {'NEGATIVE': 1,
                                                                                                       'POSITIVE': 2}} for cu in np.arange(21, 60)})
 
-# ---- Lake Shore 625 Commands ----
-COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'9600': '0', '19200': '1',
-                                                                               '38400': '2', '57600': '3'}},
-               'device-settings:ls625:current-output-limit': {'command': 'LIMIT', 'vals': [0.0, 60.1000]},
-               'device-settings:ls625:compliance-voltage-limit': {'command': 'LIMIT', 'vals': [0.1000, 5.0000]},
-               'device-settings:ls625:rate-output-limit': {'command': 'LIMIT', 'vals': [0.0001, 99.999]},
-               'device-settings:ls625:magnetic-field-parameter': {'command': 'FLDS 1,', 'vals': [0.0100, 10.000]},  # Note: For ARCONS = 4.0609 kG/A
-               'device-settings:ls625:quench-ramp-rate': {'command': 'QNCH 1,', 'vals': [0.0100, 10.000]},
-               'device-settings:ls625:ramp-rate': {'command': 'RATE', 'vals': [0.0001, 99.999]},
-               'device-settings:ls625:desired-current': {'command': 'SETI', 'vals': [0.0000, 60.1000]},
-               'device-settings:ls625:compliance-voltage': {'command': 'SETV', 'vals': [0.1000, 5.0000]},
-               'device-settings:ls625:control-mode': {'command': 'XPGM', 'vals': {'internal': '0', 'external': '1', 'sum': '2'}}
-               }
-
 
 # ---- Lake Shore 372 Commands ----
 ENABLED_372_INPUT_CHANNELS = ("A")
@@ -340,6 +326,21 @@ COMMANDS372.update({f'device-settings:ls372:curve-{cu}:curve-data-format': {'com
 COMMANDS372.update({f'device-settings:ls372:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(21, 60)})
 COMMANDS372.update({f'device-settings:ls372:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': {'NEGATIVE': 1,
                                                                                                       'POSITIVE': 2}} for cu in np.arange(21, 60)})
+
+# ---- Lake Shore 625 Commands ----
+COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'9600': '0', '19200': '1',
+                                                                               '38400': '2', '57600': '3'}},
+               'device-settings:ls625:current-limit': {'command': 'LIMIT', 'vals': [0.0, 60.1000]},
+               'device-settings:ls625:compliance-voltage-limit': {'command': 'LIMIT', 'vals': [0.1000, 5.0000]},
+               'device-settings:ls625:rate-limit': {'command': 'LIMIT', 'vals': [0.0001, 99.999]},
+               'device-settings:ls625:magnetic-field-parameter': {'command': 'FLDS 1,', 'vals': [0.0100, 10.000]},  # Note: For ARCONS = 4.0609 kG/A
+               'device-settings:ls625:quench-ramp-rate': {'command': 'QNCH 1,', 'vals': [0.0100, 10.000]},
+               'device-settings:ls625:ramp-rate': {'command': 'RATE', 'vals': [0.0001, 99.999]},
+               'device-settings:ls625:desired-current': {'command': 'SETI', 'vals': [0.0000, 60.1000]},
+               'device-settings:ls625:compliance-voltage': {'command': 'SETV', 'vals': [0.1000, 5.0000]},
+               'device-settings:ls625:control-mode': {'command': 'XPGM', 'vals': {'internal': '0', 'external': '1', 'sum': '2'}}
+               }
+
 
 # ---- SRS SIM 921 Commands ----
 COMMANDS921 = {'device-settings:sim921:resistance-range': {'command': 'RANG', 'vals': {'20e-3': '0', '200e-3': '1', '2': '2',
