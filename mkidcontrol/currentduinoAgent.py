@@ -16,8 +16,8 @@ import logging
 import threading
 
 from mkidcontrol.devices import Currentduino, HeatswitchPosition
-import mkidcontrol.pcredis as redis
-from mkidcontrol.pcredis import RedisError
+import mkidcontrol.mkidredis as redis
+from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.util as util
 
 

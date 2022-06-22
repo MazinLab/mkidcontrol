@@ -12,7 +12,7 @@ import numpy as np
 import time
 
 from mkidcontrol.devices import Hemtduino
-from mkidcontrol.pcredis import PCRedis, RedisError
+from mkidcontrol.mkidredis import MKIDRedis, RedisError
 import mkidcontrol.util as util
 
 
