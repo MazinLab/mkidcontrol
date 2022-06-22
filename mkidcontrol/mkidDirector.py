@@ -27,8 +27,8 @@ import select
 
 import mkidcontrol.util as util
 from mkidcontrol.frontend.config import Config
-import mkidcontrol.pcredis as redis
-from mkidcontrol.devices import COMMAND_DICT, SimCommand
+import mkidcontrol.mkidredis as redis
+from mkidcontrol.commands import COMMAND_DICT, SimCommand
 import mkidcontrol.currentduinoAgent as heatswitch
 
 from mkidcontrol.sim960Agent import SIM960_KEYS
@@ -55,23 +55,34 @@ TS_KEYS = ['status:temps:mkidarray:temp', 'status:temps:mkidarray:resistance', '
            'status:feedline2:hemt:drain-current-bias', 'status:feedline3:hemt:drain-current-bias',
            'status:feedline4:hemt:drain-current-bias', 'status:feedline5:hemt:drain-current-bias',
            'status:device:sim960:hcfet-control-voltage', 'status:highcurrentboard:current',
-           'status:device:sim960:current-setpoint', 'status:device:sim921:sim960-vout', 'status:device:sim960:vin']
+           'status:device:sim960:current-setpoint', 'status:device:sim921:sim960-vout', 'status:device:sim960:vin',
+           'status:temps:77k-stage:temp', 'status:temps:77k-stage:voltage', 'status:temps:4k-stage:temp',
+           'status:temps:4k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
+           'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current']
 
-CHART_KEYS = {'Device T':'status:temps:mkidarray:temp',
-              'LHe T':'status:temps:lhetank',
-              'LN2 T':'status:temps:ln2tank',
-              'Magnet I':'status:device:sim960:current-setpoint',
-              'Measured I':'status:highcurrentboard:current'}
+CHART_KEYS = {'Device T':'status:temps:device-stage:temp',
+              '1K Stage':'status:temps:1k-stage:temp',
+              '3K Stage':'status:temps:4k-stage:temp',
+              '50K Stage':'status:temps:77k-stage:temp',
+              'Magnet I':'status:magnet:current'}
 
 RAMP_SLOPE_KEY = 'device-settings:sim960:ramp-rate'
 DERAMP_SLOPE_KEY = 'device-settings:sim960:deramp-rate'
 SOAK_TIME_KEY = 'device-settings:sim960:soak-time'
 SOAK_CURRENT_KEY = 'device-settings:sim960:soak-current'
 
-KEYS = SIM921_KEYS + SIM960_KEYS + LAKESHORE240_KEYS + CURRENTDUINO_KEYS + HEMTTEMP_KEYS + list(COMMAND_DICT.keys())
+KEYS = SIM921_KEYS + SIM960_KEYS + LAKESHORE240_KEYS + CURRENTDUINO_KEYS + HEMTTEMP_KEYS + list(COMMAND_DICT.keys()) + ['status:temps:77k-stage:temp',
+           'status:temps:77k-stage:voltage',
+           'status:temps:4k-stage:temp',
+           'status:temps:4k-stage:voltage',
+           'status:temps:1k-stage:temp',
+           'status:temps:1k-stage:resistance',
+           'status:temps:device-stage:temp',
+           'status:temps:device-stage:resistance',
+           'status:magnet:current']
 
 
-DASHDATA = np.load('/picturec/picturec/frontend/dashboard_placeholder.npy')
+DASHDATA = np.load('/mkidcontrol/mkidcontrol/frontend/dashboard_placeholder.npy')
 
 
 redis.setup_redis(create_ts_keys=TS_KEYS)
@@ -286,8 +297,8 @@ def view_array_data():
     'device view' on the homepage of the flask application.
     """
     frame_to_use = 100
-    x = DASHDATA[frame_to_use][110:175, 100:165]
-    noise = 25 * np.random.randn(65, 65)
+    x = DASHDATA[frame_to_use][100:170, 100:170]
+    noise = 25 * np.random.randn(70, 70)
     y = x + noise
     z = [{'z': y.tolist(), 'type': 'heatmap', 'showscale':False}]
     plot_layout = {'title': 'Array'}
