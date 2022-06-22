@@ -16,13 +16,14 @@ setuptools.setup(
     # TODO may prove to be a major headache and we need to use either entry points or break the files into two parts
     #  with the script in bin/
     scripts=['mkidcontrol/quenchAgent.py',
+             'mkidcontrol/heatswitchAgent.py',
              'mkidcontrol/lakeshore240Agent.py',
              'mkidcontrol/lakeshore336Agent.py',
              'mkidcontrol/lakeshore372Agent.py',
              'mkidcontrol/lakeshore625Agent.py',
              'mkidcontrol/currentduinoAgent.py',
              'mkidcontrol/hemttempAgent.py',
-             'mkidcontrol/piccDirector.py',
+             'mkidcontrol/mkidDirector.py',
              'mkidcontrol/sim960Agent.py',
              'mkidcontrol/sim921Agent.py'],
     classifiers=[
