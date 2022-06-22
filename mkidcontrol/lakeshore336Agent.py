@@ -256,7 +256,7 @@ class LakeShore336(LakeShoreMixin, Model336):
             except ValueError as e:
                 log.warning(f"Skipping bad setting: {e}")
                 ret[setting] = self.query_single_setting(cmd.setting, cmd.command_code)
-            time.sleep(0.05)
+            time.sleep(0.1)
         return ret
 
     def handle_command(self, cmd):
