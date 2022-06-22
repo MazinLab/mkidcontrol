@@ -1223,6 +1223,8 @@ class LakeShoreMixin:
         This is used by the 'modification' functions to query the current configuration of a channel or curve, which can
         then be modified and have any subset of those settings changed (if allowable).
         Raises an IOError in case of a serial hiccup.
+
+        TODO: Consider pulling from redis as opposed to querying the device itself
         """
         model = self.model_number
 
