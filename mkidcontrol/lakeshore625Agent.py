@@ -319,6 +319,14 @@ class MagnetController(LockedMachine):
             finally:
                 time.sleep(self.LOOP_INTERVAL)
 
+    def ls_command(self, cmd):
+        """ Directly execute a SimCommand if if possible. May raise IOError or StateError"""
+        with self.lock:
+            if cmd.setting in self.BLOCKS.get(self.state, tuple()):
+                msg = f'Command {cmd} not supported while in state {self.state}'
+                log.error(msg)
+                raise StateError(msg)
+            self.lakeshore.send(cmd.ls_string)
 
     @property
     def min_time_until_cool(self):
@@ -583,7 +591,7 @@ if __name__ == "__main__":
                 if key in SETTING_KEYS:
                     try:
                         cmd = LakeShoreCommand(key, val)
-                        controller.sim_command(cmd)
+                        controller.ls_command(cmd)
                         redis.store({cmd.setting: cmd.value})
                     except (IOError, StateError):
                         pass
