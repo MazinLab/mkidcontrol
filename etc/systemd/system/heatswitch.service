@@ -1,0 +1,14 @@
+[Unit]
+Description=MKIDControl Heat Switch Motor Agent
+
+[Install]
+WantedBy=mkidcontrol.service
+WantedBy=lakeshore625.service
+
+[Service]
+Type=simple
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/heatswitchAgent.py
+WorkingDirectory=/home/mazinlab/mkidcontrol
+User=mazinlab
+RestartSec=100ms
+Restart=always

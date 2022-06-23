@@ -1,0 +1,14 @@
+[Unit]
+Description=MKIDControl Lake Shore 372 Agent
+
+[Install]
+WantedBy=mkidcontrol.service
+WantedBy=lakeshore625.service
+
+[Service]
+Type=simple
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/lakeshore372Agent.py
+WorkingDirectory=/home/mazinlab/mkidcontrol
+User=mazinlab
+RestartSec=100ms
+Restart=always

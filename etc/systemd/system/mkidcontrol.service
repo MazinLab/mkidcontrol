@@ -1,11 +1,9 @@
 [Unit]
 Description=MKID Control
-Wants=hemtduino.service
-Wants=currentduino.service
-Wants=lakeshore240.service
-Wants=sim921.service
-Wants=sim960.service
-Wants=quenchmon.service
+Wants=heatswitch.service
+Wants=lakeshore336.service
+Wants=lakeshore372.service
+Wants=lakeshore625.service
 After=redis.service
 
 [Install]
@@ -13,7 +11,7 @@ WantedBy=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/control/bin/piccDirector.py
+ExecStart=/home/mazinlab/anaconda3/envs/control/bin/mkidDirector.py
 WorkingDirectory=/home/mazinlab/mkidcontrol
 User=mazinlab
 RestartSec=100ms
