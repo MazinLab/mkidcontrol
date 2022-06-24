@@ -166,13 +166,9 @@ class MagnetController(LockedMachine):
 
             {'trigger': 'next', 'source': 'soaking', 'dest': None, 'unless': 'soak_time_expired',
              'conditions': 'current_at_soak'},
-            {'trigger': 'next', 'source': 'soaking', 'dest': 'hs_opening', 'prepare': ('open_heatswitch',),
+            {'trigger': 'next', 'source': 'soaking', 'dest': 'starting_deramp', 'prepare': ('open_heatswitch',),
              'conditions': ('current_at_soak', 'soak_time_expired')},
             {'trigger': 'next', 'source': 'soaking', 'dest': 'deramping'},
-
-            {'trigger': 'next', 'source': 'hs_opening', 'dest': None, 'prepare': 'open_heatswitch'},
-            {'trigger': 'next', 'source': 'hs_opening', 'dest': 'starting_deramp',
-             'conditions': ('heatswitch_opened',)},
 
             {'trigger': 'next', 'source': 'starting_deramp', 'dest': 'cooling', 'conditions': 'heatswitch_opened',
              'prepare': 'start_current_deramp'},
