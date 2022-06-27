@@ -170,9 +170,13 @@ class HeatswitchMotor:
                 return HeatswitchPosition.OPENING
 
     def motor_position(self):
-        position = self.hs.get_position()
-        log.debug(f"Motor has reported that it is at position {position}")
-        return position
+        for i in range(5):
+            try:
+                position = self.hs.get_position()
+                log.debug(f"Motor has reported that it is at position {position}")
+                return position
+            except Exception as e:
+                log.debug(f"Error in querying heat switch motor. Attempt {i+1} of 5 failed. Trying again.")
 
     def move_by(self, dist, error_on_disallowed=False):
         """
