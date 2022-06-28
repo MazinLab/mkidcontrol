@@ -1,0 +1,73 @@
+{% from 'bootstrap/form.html' import render_form, render_field, render_hidden_errors %}
+{% if form.mode_key.data == 'off' %}
+{% if  active_mode=='off' %}
+<h4>{{ _("Lamp is Off") }}</h4>
+{%else %}
+{{render_form(form)}}
+{%endif%}
+{% else %}
+    <h3>{{ _(form.mode_name.data) }}</h3>
+
+    <form action="{{url_for('main.index')}}" method="post" class="form" role="form">
+        {{ form.hidden_tag() }}
+        {{ render_hidden_errors(form) }}
+        <span class="noschedule">
+            {{render_field(form.submit)}}
+        </span>
+        <fieldset class="form-group">
+            {{ render_field(form.settings) }}
+            {% if 'mute' in form %}
+            {{ render_field(form.mute) }}
+            {% endif %}
+            <div class="btn-group" role="group" aria-label="Basic example">
+                {{ render_field(form.save) }}
+                {{ render_field(form.reset) }}
+            </div>
+        </fieldset>
+        <span class="noschedule">
+            {{render_field(form.sleep_timer)}}
+        </span>
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="dosched-check" onClick="toggleVis(this, 'schedule_info')">
+            <label class="form-check-label" for="dosched-check">Schedule?</label>
+        </div>
+        <fieldset class="form-group schedule_info"t>
+            <legend>
+                <label>{{form.schedule_data.label}}</label>
+            </legend>
+            <div class="form-group">
+                <label class="form-control-label" for="{{form.schedule_data.at.id}}">Alarm Time</label>
+                <div class="input-group date" id="mode-datetimepicker" data-target-input="nearest">
+                    {{form.schedule_data.at(**{'class_':'form-control datetimepicker-input',
+                                               'data-target':'#mode-datetimepicker'})}}
+                    <div class="input-group-append" data-target="#mode-datetimepicker" data-toggle="datetimepicker">
+                        <div class="input-group-text"><i class="fa fa-calendar"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            {{render_field(form.schedule_data.repeat)}}
+            <div class="btn-group" role="group" aria-label="Basic example">
+                {{render_field(form.schedule_data.schedule)}}
+                {{render_field(form.schedule_data.clear)}}
+            </div>
+        </fieldset>
+        <span class="noschedule">
+            {{render_field(form.submit)}}
+        </span>
+        <script type="text/javascript">
+            $(function () {$('#mode-datetimepicker').datetimepicker();});
+            function toggleVis(elem, name) {
+              if (elem.checked) {
+                  $("."+name).slideDown(500);
+                  $(".noschedule").hide();}
+              else {
+                  $("."+name).slideUp(500);
+                  $(".noschedule").show();
+              }
+            }
+
+            $(".schedule_info").hide();
+        </script>
+    </form>
+{% endif %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from 'bootstrap/form.html' import render_form, render_field %}
+
+{% block app_content %}
+    <div class="container-fluid">
+            <main role="main" class="col-12">
+
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+                    <h1 class="h2">The Manual</h1>
+                    such as one exists...
+                </div>
+
+                <div class="container">
+                    {% include '_manual.html' %}
+                </div>
+
+            </main>
+    </div>
+{% endblock %}

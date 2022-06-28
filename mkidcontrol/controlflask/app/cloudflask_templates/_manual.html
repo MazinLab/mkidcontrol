@@ -1,0 +1,62 @@
+<details>
+    <summary>Hardware Overview</summary>
+    <p> The cloud core is an 3D printed ABS frame bolted to 3/4" plywood ellipse wrapped in
+        coated chicken wire. The frame has four leg mounts attached to the underside of the plywood for
+        removable legs and can also support its weight from four mounting holes in the upper ribs.
+        The shell is a resewn pillowcase with velcro closures cotton batting glued on and coated with clear acrylic.
+        Both the shell and plywood are treated with flame retardant.
+        <br/>
+        The control electronics consist of a Raspberry Pi 4 (4GB) connected to a fadecandy controller, a reSpeaker circular
+        quad microphone array, three PWM fans, a relay, a 1Wire DS18B20 temperature sensor, and a Tribit bluetooth speaker.
+        The OS is on a fast microSD card and there is also a 128GB USB drive for additional storage.
+        The lighting electronics consist of 512 in eight individually fused strips of 64 driven by a 100W 5V power supply. The
+        LED 5V side and compute 5V side grounds are connected via a single point.
+        <br/>
+        The speaker is connected to the RPi via USB (power only), Bluetooth (Audio), and a NPN transistor connected
+        to a general purpose input/output (GPIO) pin (power toggling).
+        <br/>
+        The fans are connected to a GPIO supporting hardware PWM via a 3.3V to 5V logic level shifter, their
+        tachometer outputs are unnconected. Both the fans and 1Wire temp sensor are conected via the microphone
+        board which is connected to the RPi via a 40pin ribbon cable.
+        <br/>
+        The LED strips use 5V RGB ws1813 LEDs, each individually addressed by the fadecandy controller. Each color
+        consumes 20mA so full brightness would pull 31 amps, well in excess of the 18A the power supply can deliver.
+        The supply has a significant load-dependent output voltage so to prevent damage to the LEDs (which have a
+        do-not-exceed voltage of 5.3V) total load is limited to about 11A or ~35% peak brightness.
+    </p>
+</details>
+<details>
+    <summary>Software Overview</summary>
+    <p> The cloud is operated by a small host of (mostly) python3 daemons running on the Raspbian Buster linux
+        distrubution. The primary functions of the cloud are a light and audio show generator, an network wide
+        ad-blocker, and a airplay and spotify endpoint. To facilitate setup the cloud also serves as a captive web
+        host when not connected to wifi network.
+
+        Interaction with the cloud is typically via this web interface, updates and adminiistration are via
+        shared-key SSH to pi@cloudlight.local
+
+
+        At the system level
+        - mdns
+        - shairplay-sync
+        - respeaker
+        - cloud-lamp
+        - cloud-player
+        - cloud-web
+        - cloud-speaker
+        - cloud-temp
+        - cloud-rqwork
+        - cloud-rqsched
+        - fadecandy
+        - nginx
+        - redis-server
+        - comitup
+        - pihole
+
+    </p>
+</details>
+
+<details>
+    <summary>Starfall</summary>
+    <p>Some info about starfall</p>
+</details>

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from 'bootstrap/form.html' import render_form, render_field %}
+
+{% block app_content %}
+    <div class="container-fluid">
+        <div class="row">
+            <main role="main" class="col-12">
+<!--            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">-->
+
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Daemons</h1>
+                </div>
+                {% for service in services %}
+                <div class="row" id="service-div-{{service.name}}">
+                    {% set status=service.status_dict() %}
+                    <div class="col-">
+                        {% if status['running'] %}
+                        <span class="badge badge-pill badge-success" id="badge-{{service.name}}">
+                        {% elif status['failed'] %}
+                        <span class="badge badge-pill badge-danger" id="badge-{{service.name}}">
+                        {% else %}
+                        <span class="badge badge-pill badge-secondary" id="badge-{{service.name}}">
+                        {% endif %}
+                            {{status['state']}}
+                        </span>
+                    </div>
+                    <div class="col-sm">
+                        {{service.name}}
+                        {{service.description}}
+                    </div>
+                    <div class="col-sm">
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Service Controls">
+                            <button type="button" class="btn btn-primary" id="startbtn-{{service.name}}"
+                                    onclick="service('{{service.name}}','toggle-run')">
+                                {{status['toggle_state_command']}}
+                            </button>
+                            <button type="button" class="btn btn-primary" id="enablebtn-{{service.name}}"
+                                    {# {% if not service.enablable %} disabled {%endif%} #}
+                                    onclick="service('{{service.name}}','toggle-enable')">
+                                {{status['toggle_status_command']}}
+                            </button>
+                            <button type="button" class="btn btn-primary" id="restartbtn-{{service.name}}"
+                                    {% if not status['running'] %} disabled {%endif%}
+                                    onclick="service('{{service.name}}','restart')">
+                             Restart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div >
+                    <h2>Other Controls</h2>
+                    <p>
+                        <button class="btn btn-primary" type="button" onclick="start_task(this, 'email-logs')">
+                            <span class="{% if not exporting %} d-none {%endif%} spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Email Logs
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="system('reboot')"> Reboot </button>
+                        <button type="button" class="btn btn-warning" onclick="system('shutdown')"> Shutdown </button>
+                        <button type="button" class="btn btn-danger" onclick="system('reinit')"> Reinitialize redis </button>
+                    </p>
+                </div>
+            </main>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        function service(name, action) {$.post( "{{url_for('main.service')}}?name=" + name, {data: action});}
+        function system(action) {$.post( "{{url_for('main.system')}}", {data: action});}
+
+        function update_service_worker(name) {
+            setInterval(function () {                 //query periodically till done
+                $.getJSON('{{url_for("main.service")}}', {name: name}, function(data) {
+                    var x = $.escapeSelector(data.name);
+                    $("#startbtn-"+x).text(data.toggle_state_command);
+                    $("#enablebtn-"+x).text(data.toggle_status_command);
+                    $("#restartbtn-"+x).prop('disabled', !data.running);
+                    var badge = $("#badge-"+x).text(data.state);
+                    badge.removeClass('badge-success badge-danger badge-secondary');
+                    if (data.running) {
+                        badge.addClass("badge-success");
+                    } else if (data.failed) {
+                        badge.addClass("badge-danger");
+                    } else {
+                        badge.addClass("badge-secondary");
+                    }
+
+                });},
+                5000);
+        }
+
+        {% for s in services %} update_service_worker("{{s.name}}"); {%endfor%}
+
+        function start_task(elem, task) {
+            var spinner = $(elem).find('span');
+            spinner.removeClass('d-none')
+            $.post( "{{url_for('main.task')}}", {id: task, data: 'start'}).fail(
+                function () {spinner.addClass('d-none');});
+            var id = setInterval(function () {                 //query periodically till done
+                $.getJSON('{{url_for("main.task")}}', {id: task}, function(data) {
+                    if(data.done || data.error) {
+                        spinner.addClass('d-none');
+                        clearInterval(id);
+                    }
+                }).fail(function () {
+                    spinner.addClass('d-none');
+                    clearInterval(id);});
+                }, 10000);
+        }
+
+    </script>
+{% endblock %}

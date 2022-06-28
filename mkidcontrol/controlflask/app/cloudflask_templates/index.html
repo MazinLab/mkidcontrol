@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from 'bootstrap/form.html' import render_form, render_field %}
+
+{% block app_content %}
+
+<div class="dropdown">
+    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton"
+          data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        Lamp Mode
+    </button>
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+        {% for key, mode in modes %}
+        <a class="dropdown-item" id="{{key}}-link" href="javascript:modeform('{{key}}');">{{mode}}</a>
+        {% endfor %}
+    </div>
+</div>
+<div>
+    <span id="mode-form">
+        {% if form %} {% include '_mode_form.html' %} {% endif %}
+    </span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function modeform(name) {
+        // $(destElem).html('<img src="{{ url_for('static', filename='loading.gif') }}">');
+        $.post('/modeform', {data: name,
+        }).done(function(response) {$('#mode-form').html(response['html'])
+        }).fail(function() {$('#mode-form').text("{{ _('Error: Could not contact server.') }}");});
+    }
+</script>
+{% endblock %}

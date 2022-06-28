@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% from 'bootstrap/form.html' import render_form, render_field %}
+
+{% block app_content %}
+    <div class="container-fluid">
+        <main role="main" >
+
+            <div class="row">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Dashboard</h1>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div id="temp-plot" class="responsive-plot"></div>
+                </div>
+            </div>
+
+            <div>
+                <h4>System Status</h4>
+                Uptime: {{system_stat['uptime']}}
+                <dl class="row">
+                    <dt class="col-sm-3">WiFi</dt>
+                    <dd class="col-sm-9">SSID: {{system_stat['SSID']}} ({{system_stat['Frequency']}},
+                        {{system_stat['Bit Rate']}}, {{system_stat['Signal level']}},
+                        Qual: {{system_stat['Link Quality']}}) <br/>
+                        IP: {{system_stat['ip']}}
+                    </dd>
+                </dl>
+                <dl class="row">
+                    <dt class="col-sm-3">CPU Utilization</dt>
+                    <dd class="col-sm-9">{{system_stat['cpu']}}</dd>
+                </dl>
+                <dl class="row">
+                    <dt class="col-sm-3">RAM Utilization</dt>
+                    <dd class="col-sm-9">{{system_stat['ram']}}</dd>
+                </dl>
+                <dl class="row">
+                    <dt class="col-sm-3">Disk Utilization</dt>
+                    <dd class="col-sm-9">
+                        microSD: {{system_stat['sd']}} <br/>
+                        {{system_stat['ext_disks']}} </dd>
+                </dl>
+
+            </div>
+
+            <div class="row">
+                <h3>All Settings</h3>
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                            {% for col in table[0] %} <th>{{col}}</th>{% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in table[1:] %}
+                            <tr>
+                                <th>{{row[1]}}</th>
+                                <th id="{{row[0]}}">{{row[2]}}</th>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+{% endblock %}
+
+
+{% block scripts %}
+    {{ super() }}
+
+    <script src="{{ url_for('static', filename='js/plotly-latest.min.js') }}"></script>
+    <script>
+
+        var data = {{tempfig | safe}};
+        Plotly.react('temp-plot', data); //{#{{ temp_plot[0] | safe }}, {{ temp_plot[1] | safe }}, {{ temp_plot[2] | safe }});#}}
+
+        {% if current_user.is_authenticated %}
+
+        setInterval(function () {$.getJSON('{{url_for("main.redispoll")}}', {keys: 'all'}, update_entries);}, 1000);
+
+        function update_entries(data) {
+            Object.entries(data).forEach(function([key, value]) {
+                $(document.getElementById(key)).text(value)
+                // set update blinker
+            });
+        }
+
+        var psource = new EventSource('{{url_for("main.plotdata")}}');
+        psource.addEventListener("plot", function (event) {
+            var update = JSON.parse(event.data);
+            var elem = document.getElementById(update['id']);
+            if (elem) {
+                switch (update['kind']) {
+                    case "full":
+                        Plotly.react(update['id'], JSON.parse(update['data']));
+                        break;
+                    case "partial":
+                        Plotly.extendTraces(update['id'], {x: [update['data']['x']], y: [update['data']['y']]}, [0]);
+                        break;
+                }
+            }
+        }, false);
+        psource.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
+        psource.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
+
+        {% endif %}
+
+    </script>
+{% endblock %}

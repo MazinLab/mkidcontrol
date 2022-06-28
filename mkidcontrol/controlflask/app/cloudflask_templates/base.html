@@ -1,0 +1,123 @@
+{% extends 'base_bootstrap.html' %}
+{% from 'bootstrap/form.html' import render_form, render_field %}
+{% from 'bootstrap/nav.html' import render_nav_item %}
+
+{% block title %}
+    {% if title %}{{ title }} - Cloudlight{% else %}{{ _('Cloudlight') }}{% endif %}
+{% endblock %}
+
+    {% block styles %}
+    {{super()}}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='font-awesome/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tempusdominus-bootstrap-4.min.css') }}">
+    {% endblock %}
+
+{% block navbar %}
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <a class="navbar-brand" href="{{url_for('main.index')}}">{{_('Cloudlight')}}</a>
+      <button class="btn navbar-btn" onclick="off();" type="button">Off</button>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+          <ul class="navbar-nav">
+
+              <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink"
+                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      Levels
+                  </a>
+                  <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                      <span> Effect Volume
+                          <input class="dropdown-item" type="range" id="redisinput:player:effect:volume"
+                                 value="{{g.redis.read('player:effect:volume')}}" name="effectvol" min="0" max="1"
+                                 step="0.01"> </span>
+                      <span> Effect Brightness
+                          <input class="dropdown-item" type="range" id="redisinput:lamp:brightness"
+                                 value="{{g.redis.read('lamp:brightness')}}" name="effectbri" min="0" max="1"
+                                 step="0.01"> </span>
+                      {% if g.show_livecolor %}
+                      <span> Color <input class="dropdown-item" type="color" id="redisinput:lamp:color"
+                                          value="{{g.redis.read('lamp:color')}}" name="mastercolor"> </span>
+                      {% endif %}
+                      <span> Volume Limit
+                          <input class="dropdown-item" type="range" id="redisinput:speaker:volume_limit"
+                                 value="{{g.redis.read('speaker:volume_limit')}}" name="mastervol" min="0" max="1"
+                                 step="0.01"> </span>
+                      <span> Brightness Limit
+                          <input class="dropdown-item" type="range" id="redisinput:lamp:brightness_limit"
+                                 value="{{g.redis.read('lamp:brightness_limit')}}" name="masterbri" min="0" max="1"
+                                 step="0.01"> </span>
+                  </div>
+
+              </li>
+              {{ render_nav_item('main.status', _('Status'), use_li=True) }}
+              {{ render_nav_item('main.settings', _('Settings'), use_li=True) }}
+              {{ render_nav_item('main.services', _('Services'), use_li=True) }}
+              {{ render_nav_item('main.help', _('Help'), use_li=True) }}
+              {{ render_nav_item('main.pihole', _('PiHole Admin'), use_li=True) }}
+          </ul>
+      </div>
+      <ul class="nav navbar-nav navbar-right">
+          {% if current_user.is_anonymous %}
+          {{ render_nav_item('auth.login', _('Login'), use_li=True) }}
+          {% else %}
+          {{ render_nav_item('auth.logout', _('Logout'), use_li=True) }}
+          {% endif %}
+      </ul>
+
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-info" role="alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block app_content %}
+        {% endblock %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    {{ moment.include_moment(local_js=url_for('static', filename='js/moment-with-locales.min.js')) }}
+    {{ moment.lang(g.locale) }}
+    <script src="{{ url_for('static', filename='js/tempusdominus-bootstrap-4.min.js') }}"></script>
+
+    <script>
+        function off() {$.post( "{{url_for('main.off')}}", {data: 'now'});}
+        function livecontrol(event) {
+            var value;
+            switch (event.target.type) {
+                case 'checkbox':
+                    value = event.target.checked
+                    break;
+                default:
+                    value = event.target.value;
+            }
+            $.post("{{ url_for('main.rediscontrol') }}", {
+                source: event.target.id,
+                value: value,
+                element: event.target.type
+            }).done(function(response) {
+
+            }).fail(function() {event.target.value="0";});
+        }
+
+        function setup_redis_inputs() {
+            $("[id^=redisinput]").on('input', livecontrol);
+            $("[id^=redischange]").on('change', livecontrol);
+        }
+        setup_redis_inputs();
+    </script>
+{% endblock %}

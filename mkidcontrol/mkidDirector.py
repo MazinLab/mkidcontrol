@@ -14,30 +14,25 @@ TODO (FOR ALL DEVICES): Enable graceful power on/off handling (i.e. don't error 
 import flask
 from flask_wtf import FlaskForm
 from flask_bootstrap import Bootstrap
-from flask import request, redirect, url_for, render_template, jsonify, Response
+from flask import request, render_template, jsonify, Response
 import numpy as np
 import time, datetime
 import json
 import plotly
-from logging import getLogger
-import sys
 import subprocess
 import select
 
-
-import mkidcontrol.util as util
-from mkidcontrol.frontend.config import Config
+from mkidcontrol.controlflask.app.frontend.config import Config
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMAND_DICT, SimCommand
-import mkidcontrol.currentduinoAgent as heatswitch
 
 from mkidcontrol.sim960Agent import SIM960_KEYS
 from mkidcontrol.sim921Agent import SIM921_KEYS
 from mkidcontrol.lakeshore240Agent import LAKESHORE240_KEYS
 from mkidcontrol.hemttempAgent import HEMTTEMP_KEYS
 from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
-from mkidcontrol.frontend.customForms import CycleControlForm, MagnetControlForm, SIM921SettingForm, SIM960SettingForm, HeatswitchToggle, TestForm, \
-    SIM921_SETTING_KEYS, SIM960_SETTING_KEYS, HEATSWITCH_SETTING_KEYS, MAGNET_COMMAND_FORM_KEYS, CYCLE_KEYS, FIELD_KEYS
+from mkidcontrol.controlflask.app.frontend.customForms import CycleControlForm, MagnetControlForm, SIM921SettingForm, \
+    SIM960SettingForm, HeatswitchToggle, TestForm, FIELD_KEYS
 # util.setup_logging('piccDirector')
 
 app = flask.Flask(__name__)
