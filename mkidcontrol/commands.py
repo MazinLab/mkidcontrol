@@ -122,7 +122,7 @@ class LakeShoreCommand:
                 raise ValueError(f'Invalid value {value}, must in {self.range}.')
 
     def __str__(self):
-        return f"{self.setting}->{self.value}: {self.sim_string}"
+        return f"{self.setting}->{self.value}: {self.ls_string}"
 
     @property
     def is_query(self):
@@ -153,7 +153,7 @@ class LakeShoreCommand:
             v = self._parse_limit_values()
         else:
             v = self.mapping[self.value] if self.range is None else self.value
-            return f"{self.command} {v}"
+        return f"{self.command} {v}"
 
     @property
     def ls_query_string(self):
@@ -423,6 +423,7 @@ COMMAND_DICT.update(COMMANDS960)
 COMMAND_DICT.update(COMMANDS921)
 COMMAND_DICT.update(COMMANDSHS)
 COMMAND_DICT.update(COMMANDSMAGNET)
+COMMAND_DICT.update(COMMANDS625)
 
 LAKESHORE_COMMAND_DICT = {}
 LAKESHORE_COMMAND_DICT.update(COMMANDS336)
