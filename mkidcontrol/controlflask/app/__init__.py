@@ -17,7 +17,7 @@ import rq_scheduler
 import queue
 import numpy as np
 # try:
-from ...config import Config
+from ..config import Config
 # from ...config import schema_keys
 # except ValueError:
 #     from config import Config
@@ -111,8 +111,8 @@ def create_app(config_class=Config):
     moment.init_app(app)
     babel.init_app(app)
     app.redis = mkidredis.setup_redis() #Redis.from_url(app.config['REDIS_URL'])
-    app.task_queue = rq.Queue('cloudlight', connection=app.redis.redis)
-    app.scheduler = rq_scheduler.Scheduler('cloudlight', connection=app.redis.redis)
+    # app.task_queue = rq.Queue('cloudlight', connection=app.redis.redis)
+    # app.scheduler = rq_scheduler.Scheduler('cloudlight', connection=app.redis.redis)
     # app.announcer = MessageAnnouncer()
     # datalistener = threading.Thread(target=datagen, args=(app.redis, app.announcer), daemon=True)
     # datalistener.start()
@@ -151,9 +151,9 @@ def create_app(config_class=Config):
             stream_handler.setLevel(logging.INFO)
             app.logger.addHandler(stream_handler)
         else:
-            setup_logging('cloud-flask')
+            setup_logging('controlDirector')
 
-        app.logger.info('Cloudflask startup')
+        app.logger.info('MKID Control startup')
 
     return app
 

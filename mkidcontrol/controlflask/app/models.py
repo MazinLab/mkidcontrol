@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import redis
 import rq
-from app import db, login
+from . import db, login
 
 def query_index(*args):
     return 0,0

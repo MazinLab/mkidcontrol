@@ -26,33 +26,35 @@ class MKIDRedis(object):
     Redistimeseries keys should be created with the MKIDRedis object. Unlike normal redis keys, they must be created
     explicitly and should be done at the each program's start for clarity and ease.
     """
-    def __init__(self, host='localhost', port=6379, db=REDIS_DB, create_ts_keys=tuple()):
+    def __init__(self, host='localhost', port=6379, db=REDIS_DB, ts_keys=tuple()):
         self.redis = _Redis(host, port, db, socket_keepalive=True)
         self.redis_ts = None
-        if isinstance(create_ts_keys, str):
-            create_ts_keys = [create_ts_keys]
-        self.ts_keys = create_ts_keys
-        self.create_ts_keys(create_ts_keys)
-        if self.redis_ts:
-            self.range = self.redis_ts.range
+        self._connect_ts()
+
+        self.ts_keys = ts_keys
+        self.create_ts_keys(ts_keys)
+
         self.ps = None  # Redis pubsub object. None until initialized, used for inter-program communication
 
-    def _connect_ts(self):
+    def _connect_ts(self, force=False):
         """ Establish a redis time series client using the same connection info as for redis """
+        if self.redis_ts is not None and not force:
+            return
         args = self.redis.connection_pool.connection_kwargs
         self.redis_ts = _RTSClient(args['host'], args['port'], args['db'],  socket_keepalive=args['socket_keepalive'])
 
     def create_ts_keys(self, keys):
         """
         Given a list of keys, create them in the redis database.
-        :param keys: List of strings to create as redis timeseries keys. If the keys have been created it will be
+        :param keys: list of strings to create as redis timeseries keys. If the keys have been created it will be
         logged but no other action will be taken.
+
+        keys may a single string for a single key or a dictionary of key:retention_time_ms pairs
         """
-        if isinstance(keys,str):
-            keys = [keys]
 
         if self.redis_ts is None and keys:
             self._connect_ts()
+
         for k in keys:
             try:
                 self.redis_ts.create(k)
@@ -205,21 +207,46 @@ class MKIDRedis(object):
         """
         print(f"Default message handler: {message}")
 
+    def range(self, key: str, start=None, end=None):
+        if isinstance(start, (int, float)):
+            start = int(start)
+        elif isinstance(start, str):
+            if start == "-":
+                pass
+            else:
+                int(start)
+        elif start is None:
+            start = 0
+        else:
+            start = int(start.timestamp() * 1000)
+        if isinstance(end, (int, float)):
+            end = int(end)
+        elif isinstance(end, str):
+            if end == "+":
+                pass
+            else:
+                int(end)
+        elif end is None:
+            end = -1
+        else:
+            end = int(end.timestamp() * 1000)
+        return self.redis_ts.range(key, start, end)
+
 
 mkidredis = None
 store = None
 read = None
 listen = None
 publish = None
-pcr_range = None  # This breaks the naming mold since range is already a python special function
+mkr_range = None  # This breaks the naming mold since range is already a python special function
 redis_ts = None
 
-def setup_redis(host='localhost', port=6379, db=REDIS_DB, create_ts_keys=tuple()):
-    global mkidredis, store, read, listen, publish, pcr_range, redis_ts, ps
-    mkidredis = MKIDRedis(host=host, port=port, db=db, create_ts_keys=create_ts_keys)
+def setup_redis(host='localhost', port=6379, db=REDIS_DB, ts_keys=tuple()):
+    global mkidredis, store, read, listen, publish, mkr_range, redis_ts, ps
+    mkidredis = MKIDRedis(host=host, port=port, db=db, ts_keys=ts_keys)
     store = mkidredis.store
     read = mkidredis.read
     listen = mkidredis.listen
     publish = mkidredis.publish
-    pcr_range = mkidredis.range
+    mkr_range = mkidredis.range
     redis_ts = mkidredis.redis_ts

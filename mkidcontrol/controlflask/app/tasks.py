@@ -1,6 +1,6 @@
 from rq import get_current_job
-from app import create_app
-from mkidcontrol.controlflask.app.email import send_email
+from . import create_app
+from .email import send_email
 import os
 
 # def get_current_job(*args):

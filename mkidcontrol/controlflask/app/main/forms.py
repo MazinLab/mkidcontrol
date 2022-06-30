@@ -5,7 +5,7 @@ from wtforms import StringField, SubmitField, TextAreaField, BooleanField, FormF
 from wtforms.validators import ValidationError, DataRequired, Length, NumberRange
 from flask_babel import _, lazy_gettext as _l
 
-from ....config import MAX_LED_LEVEL
+# from ....config import MAX_LED_LEVEL
 
 
 class CloudControl(FlaskForm):
@@ -14,8 +14,8 @@ class CloudControl(FlaskForm):
                                validators=[NumberRange(120, 180), DataRequired()])
     thermal_brightness = FloatField('Thermal Dimming Multiplier', description='Limit total brightness ',
                                     validators=[NumberRange(0, 1), DataRequired()])
-    max_led_level = FloatField('LED Current Limit', description='Total brightness limit',
-                               validators=[NumberRange(0, MAX_LED_LEVEL), DataRequired()])
+    # max_led_level = FloatField('LED Current Limit', description='Total brightness limit',
+    #                            validators=[NumberRange(0, MAX_LED_LEVEL), DataRequired()])
     submit = SubmitField('Update')
 
 

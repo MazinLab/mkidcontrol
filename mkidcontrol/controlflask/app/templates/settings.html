@@ -9,12 +9,12 @@
             </div>
             <div class="row" style="text-align: center">
                 <div style="display: inline-block">
-                    <form id="open_form" action="{{ url_for('settings') }}" method="post">
+                    <form id="open_form" action="{{ url_for('main.settings') }}" method="post">
                         <button type="submit" id="open" value="open">Open</button>
                     </form>
                 </div>
                 <div style="display: inline-block">
-                    <form id="close_form" action="{{ url_for('settings') }}" method="post">
+                    <form id="close_form" action="{{ url_for('main.settings') }}" method="post">
                         <button type="submit" id="close" value="close">Close</button>
                     </form>
                 </div>
@@ -30,7 +30,7 @@
                 {% for field in sform %}
                     {% if field.id != "csrf_token" %}
                         <div class="row">
-                            <form id="{{ field.id }}_form" action="{{ url_for('settings') }}" method="post">
+                            <form id="{{ field.id }}_form" action="{{ url_for('main.settings') }}" method="post">
                                 <div class="column" style="float: left; margin-left: 4%; width: 25%">
                                     {{ sform.hidden_tag() }}
                                     {{ field.label }}
