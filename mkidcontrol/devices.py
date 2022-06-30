@@ -375,6 +375,7 @@ class SimDevice(SerialDevice):
 class LakeShoreDevice(SerialDevice):
     def __init__(self, name, port, baudrate=9600, timeout=0.1, connect=True, valid_models=None,
                  parity=serial.PARITY_ODD, bytesize=serial.SEVENBITS, initializer=None):
+
         super().__init__(port, baudrate, timeout, name=name, parity=parity, bytesize=bytesize)
 
         if isinstance(valid_models, tuple):
@@ -387,10 +388,10 @@ class LakeShoreDevice(SerialDevice):
         self.terminator = '\n'
         self.initializer = initializer
         self._initialized = False
+        self.initialized_at_last_connect = False
 
         if connect:
             self.connect(raise_errors=False)
-            self.initialized_at_last_connect = self._initialized
 
     def format_msg(self, msg:str):
         """
@@ -398,6 +399,9 @@ class LakeShoreDevice(SerialDevice):
         *NOTE: By choice, using .upper(), if we manually store a name of a curve/module, it will be in all caps.
         """
         return super().format_msg(msg.strip().upper())
+
+    def _lsspecificconnect(self):
+        pass
 
     @property
     def device_info(self):
@@ -421,8 +425,10 @@ class LakeShoreDevice(SerialDevice):
         if self.name[:-3] == '240':
             self.name += f"-{model[-2:]}"
 
+        self._lsspecificconnect()
+
         if self.initializer and not self._initialized:
-            self.initializer(self)
+            self.initializer()
             self._initialized = True
 
     def read_schema_settings(self, settings):
@@ -517,12 +523,7 @@ class MagnetState(enum.Enum):
 class LakeShore625(LakeShoreDevice):
     MAX_CURRENT = 9.4
 
-    def __init__(self, name, port, baudrate=9600, parity=serial.PARITY_ODD, bytesize=serial.SEVENBITS, timeout=0.1, connect=True, valid_models=None, initializer=None):
-        super().__init__(name, port, baudrate=baudrate, timeout=timeout, parity=parity, bytesize=bytesize,
-                         connect=connect, valid_models=valid_models, initializer=initializer)
-
-        if connect:
-            self.connect(raise_errors=False)
+    def __init__(self, port, baudrate=9600, parity=serial.PARITY_ODD, bytesize=serial.SEVENBITS, timeout=0.1, connect=True, valid_models=None, initializer=None):
 
         self.last_current_read = None
         self.last_field_read = None
@@ -531,10 +532,23 @@ class LakeShore625(LakeShoreDevice):
         self.max_compliance_voltage = None
         self.max_ramp_rate = None
 
+        super().__init__("LS625", port, baudrate=baudrate, timeout=timeout, parity=parity, bytesize=bytesize,
+                         connect=connect, valid_models=valid_models, initializer=initializer)
+
     @property
     def limits(self):
         current_lim, voltage_lim, rate_limit = self.query("LIMIT?").split(',')
         return {'current': current_lim, 'voltage': voltage_lim, 'rate': rate_limit}
+
+    def _lsspecificconnect(self):
+        mode = self.query("XPGM?")
+        current = self.query("SETI?")
+
+        if int(mode) == 0 and float(current) == 0.0:
+            self._initialized = True
+        else:
+            self._initialized = False
+        self.initialized_at_last_connect = self._initialized
 
     def current(self):
         current = self.query("RDGI?")
