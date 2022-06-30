@@ -31,9 +31,9 @@ from mkidcontrol.sim921Agent import SIM921_KEYS
 from mkidcontrol.lakeshore240Agent import LAKESHORE240_KEYS
 from mkidcontrol.hemttempAgent import HEMTTEMP_KEYS
 from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
-from mkidcontrol.controlflask.app.frontend.customForms import CycleControlForm, MagnetControlForm, SIM921SettingForm, \
+from mkidcontrol.controlflask.app.main.customForms import CycleControlForm, MagnetControlForm, SIM921SettingForm, \
     SIM960SettingForm, HeatswitchToggle, TestForm, FIELD_KEYS
-# util.setup_logging('piccDirector')
+# util.setup_logging('mkidDirector')
 
 app = flask.Flask(__name__)
 app.logger.setLevel('DEBUG')
@@ -58,23 +58,24 @@ TS_KEYS = ['status:temps:mkidarray:temp', 'status:temps:mkidarray:resistance', '
 CHART_KEYS = {'Device T':'status:temps:device-stage:temp',
               '1K Stage':'status:temps:1k-stage:temp',
               '3K Stage':'status:temps:4k-stage:temp',
-              '50K Stage':'status:temps:77k-stage:temp',
-              'Magnet I':'status:magnet:current'}
+              '50K Stage':'status:temps:77k-stage:temp'}#,
+              # 'Magnet I':'status:magnet:current'}
 
 RAMP_SLOPE_KEY = 'device-settings:sim960:ramp-rate'
 DERAMP_SLOPE_KEY = 'device-settings:sim960:deramp-rate'
 SOAK_TIME_KEY = 'device-settings:sim960:soak-time'
 SOAK_CURRENT_KEY = 'device-settings:sim960:soak-current'
 
-KEYS = SIM921_KEYS + SIM960_KEYS + LAKESHORE240_KEYS + CURRENTDUINO_KEYS + HEMTTEMP_KEYS + list(COMMAND_DICT.keys()) + ['status:temps:77k-stage:temp',
-           'status:temps:77k-stage:voltage',
-           'status:temps:4k-stage:temp',
-           'status:temps:4k-stage:voltage',
-           'status:temps:1k-stage:temp',
-           'status:temps:1k-stage:resistance',
-           'status:temps:device-stage:temp',
-           'status:temps:device-stage:resistance',
-           'status:magnet:current']
+KEYS = SIM921_KEYS + SIM960_KEYS + LAKESHORE240_KEYS + CURRENTDUINO_KEYS + HEMTTEMP_KEYS + list(COMMAND_DICT.keys()) + \
+       ['status:temps:77k-stage:temp',
+        'status:temps:77k-stage:voltage',
+        'status:temps:4k-stage:temp',
+        'status:temps:4k-stage:voltage',
+        'status:temps:1k-stage:temp',
+        'status:temps:1k-stage:resistance',
+        'status:temps:device-stage:temp',
+        'status:temps:device-stage:resistance',
+        'status:magnet:current']
 
 
 DASHDATA = np.load('/mkidcontrol/mkidcontrol/frontend/dashboard_placeholder.npy')
@@ -117,16 +118,19 @@ def other_plots():
     Flask endpoint for 'other plots'. This page has ALL sensor plots in one place for convenience (in contrast to index,
     which only has one at a time).
     """
+    print('going to other plots page!')
     form = FlaskForm()
-    lhe_d, lhe_l, lhe_c = initialize_sensor_plot('LHe T')
-    ln2_d, ln2_l, ln2_c = initialize_sensor_plot('LN2 T')
     devt_d, devt_l, devt_c = initialize_sensor_plot('Device T')
-    magc_d, magc_l, magc_c = initialize_sensor_plot('Measured I')
-    smagc_d, smagc_l, smagc_c = initialize_sensor_plot('Magnet I')
+    onek_d, onek_l, onek_c = initialize_sensor_plot('1K Stage')
+    threek_d, threek_l, threek_c = initialize_sensor_plot('3K Stage')
+    fiftyk_d, fiftyk_l, fiftyk_c = initialize_sensor_plot('50K Stage')
+    # magc_d, magc_l, magc_c = initialize_sensor_plot('Magnet I')
+
     return render_template('other_plots.html', title='Other Plots', form=form,
-                           lhe_d=lhe_d, lhe_l=lhe_l, lhe_c=lhe_c, ln2_d=ln2_d, ln2_l=ln2_l, ln2_c=ln2_c,
-                           devt_d=devt_d, devt_l=devt_l, devt_c=devt_c, magc_d=magc_d, magc_l=magc_l, magc_c=magc_c,
-                           smagc_d=smagc_d, smagc_l=smagc_l, smagc_c=smagc_c)
+                           devt_d=devt_d, devt_l=devt_l, devt_c=devt_c,
+                           onek_d=onek_d, onek_l=onek_l, onek_c=onek_c,
+                           threek_d=threek_d, threek_l=threek_l, threek_c=threek_c,
+                           fiftyk_d=fiftyk_d, fiftyk_l=fiftyk_l, fiftyk_c=fiftyk_c)
 
 
 @app.route('/settings', methods=['GET', 'POST'])

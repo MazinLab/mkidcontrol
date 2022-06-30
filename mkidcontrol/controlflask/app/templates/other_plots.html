@@ -5,24 +5,24 @@
     <div class="container" style="float:left; margin-left: 10%; max-width: 78%; padding: 0px">
         <div class="column" style="float:left; width: 33%">
             <div class="row" id="device_temp"></div>
-            <div class="row" id="lhe"></div>
+            <div class="row" id="fiftyk"></div>
         </div>
 
         <div class="column" style="float: left; width: 33%">
-            <div class="row" id="desired_magnet_current"></div>
-            <div class="row" id="ln2"></div>
+            <div class="row" id="onek"></div>
+<!--            <div class="row" id="magnet_current"></div>-->
         </div>
         <div class="column" style="float: left; width: 33%">
-            <div class="row" id="magnet_current"></div>
+            <div class="row" id="threek"></div>
         </div>
     </div>
 
     <script>
         Plotly.newPlot('device_temp', {{ devt_d | safe }}, {{ devt_l | safe }}, {{ devt_c | safe}})
-        Plotly.newPlot('magnet_current', {{ magc_d | safe }}, {{ magc_l | safe }}, {{ magc_c | safe}})
-        Plotly.newPlot('lhe', {{ lhe_d | safe }}, {{ lhe_l | safe }}, {{ lhe_c | safe}})
-        Plotly.newPlot('ln2', {{ ln2_d | safe }}, {{ ln2_l | safe }}, {{ ln2_c | safe}})
-        Plotly.newPlot('desired_magnet_current', {{ smagc_d | safe }}, {{ smagc_l | safe }}, {{ smagc_c | safe}})
+        Plotly.newPlot('onek', {{ onek_d | safe }}, {{ onek_l | safe }}, {{ onek_c | safe}})
+        Plotly.newPlot('threek', {{ threek_d | safe }}, {{ threek_l | safe }}, {{ threek_c | safe}})
+        Plotly.newPlot('fiftyk', {{ fiftyk_d | safe }}, {{ fiftyk_l | safe }}, {{ fiftyk_c | safe}})
+        // Plotly.newPlot('magnet_current', {{ magc_d | safe }}, {{ magc_l | safe }}, {{ magc_c | safe}})
     </script>
 
     <script>
@@ -31,11 +31,11 @@
             source.addEventListener("message", function (e) {
                 var newdata = JSON.parse(e.data);
                 // console.log("Message: ", newdata);
-                update_plot("lhe", "status:temps:lhetank", newdata);
-                update_plot("ln2", "status:temps:ln2tank", newdata);
-                update_plot("device_temp", "status:temps:mkidarray:temp", newdata);
-                update_plot("desired_magnet_current", "status:device:sim960:current-setpoint", newdata);
-                update_plot("magnet_current", "status:highcurrentboard:current", newdata);
+                update_plot("device_temp", "status:temps:device-stage:temp", newdata);
+                update_plot("onek", "status:temps:1k-stage:temp", newdata);
+                update_plot("threek", "status:temps:4k-stage:temp", newdata);
+                update_plot("fiftyk", "status:temps:77k-stage:temp", newdata);
+                // update_plot("magnet_current", "status:magnet:current", newdata);
             }, false);
             source.addEventListener("open", function (e) {
                 console.log('Connection was opened: ', e);

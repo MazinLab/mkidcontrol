@@ -9,9 +9,6 @@ from flask import render_template, flash, redirect, url_for, request, g, \
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 
-import cloudlight.fadecandy
-from cloudlight.util import get_services as cloudlight_services
-from cloudlight.util import get_service as cloudlight_service
 from app import db
 from .forms import EmptyForm
 from ..models import User, Post, Message, Notification
@@ -25,9 +22,6 @@ import datetime
 import json
 from rq.job import Job, NoSuchJobError
 import pytz
-from cloudlight.fadecandy import EFFECTS
-from cloudlight.util import get_system_status
-
 
 
 def guess_language(x):
