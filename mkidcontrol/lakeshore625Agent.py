@@ -140,7 +140,6 @@ class MagnetController(LockedMachine):
                                #  'regulating':('device-settings:ls625:setpoint-mode',)
 
     def __init__(self, statefile='./magnetstate.txt'):
-
         transitions = [
             {'trigger': 'abort', 'source': '*', 'dest': 'deramping'},
 
@@ -212,7 +211,7 @@ class MagnetController(LockedMachine):
             # Entering ramping MUST succeed
             State('deramping', on_enter='record_entry'))
 
-        lakeshore = LakeShore625(name='ls625', port=DEVICE, valid_models=VALID_MODELS, initializer=self.initialize_lakeshore)
+        lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=self.initialize_lakeshore)
         # NB If the settings are manufacturer defaults then the ls625 had a major upset, generally initialize_sim
         # will not be called
 
@@ -227,7 +226,7 @@ class MagnetController(LockedMachine):
         self._run = False  # Set to false to kill the main loop
         self._mainthread = None
 
-        initial = compute_initial_state(self.sim, self.statefile)
+        initial = compute_initial_state(self.lakeshore, self.statefile)
         self.state_entry_time = {initial: time.time()}
         LockedMachine.__init__(self, transitions=transitions, initial=initial, states=states, machine_context=self.lock,
                                send_event=True)
@@ -240,7 +239,7 @@ class MagnetController(LockedMachine):
 
     def initialize_lakeshore(self):
         """
-        Callback run on connection to the sim whenever it is not initialized. This will only happen if the sim loses all
+        Callback run on connection to the lakeshore whenever it is not initialized. This will only happen if the sim loses all
         of its settings, which should never every happen. Any settings applied take immediate effect
         """
         self.firmware_pull()
