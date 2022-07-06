@@ -10,10 +10,6 @@ control current in the magnet.
 
 From the manual -> Do not query more than 20 times per second
 
-*NOTE: For queries where you access a specific channel (e.g. Output A,1,2, Input A,1-16, etc.) if you go above the legal
-values (i.e. Output 7) then it will return the values for the highest number channel. (For example, querying OUTMODE? 5
-will give you the reult of OUTMODE? 2, since 2 is the highest channel number available to that query)
-
 N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/model_372.html
 
 TODO: 'Block' settings (e.g. excitation cannot be in V if mode is Current)
@@ -24,19 +20,12 @@ TODO: Output voltage key value to report the control voltage to the lakeshore 62
 import sys
 import logging
 import time
-from serial.serialutil import SerialException
 
 from mkidcontrol.mkidredis import RedisError
-from mkidcontrol.devices import LakeShoreMixin
+from mkidcontrol.devices import LakeShore372
 import mkidcontrol.util as util
-from mkidcontrol.commands import COMMANDS372
+from mkidcontrol.commands import COMMANDS372, LakeShore372Command
 import mkidcontrol.mkidredis as redis
-
-from lakeshore import Model372, Model372CurveTemperatureCoefficient, Model372SensorExcitationMode, \
-    Model372MeasurementInputCurrentRange, Model372AutoRangeMode, Model372InputSensorUnits, \
-    Model372MeasurementInputResistance, Model372HeaterOutputSettings, Model372OutputMode, Model372InputChannel, \
-    Model372InputSetupSettings, Model372ControlInputCurrentRange, Model372MeasurementInputVoltageRange, \
-    Model372InputChannelSettings, Model372Polarity, Model372SampleHeaterOutputRange
 
 log = logging.getLogger()
 
@@ -112,10 +101,10 @@ def initializer(device):
         initialized_settings = device.apply_schema_settings(settings_to_load)
         time.sleep(1)
     except RedisError as e:
-        log.critical('Unable to pull settings from redis to initialize sim960')
+        log.critical('Unable to pull settings from redis to initialize LS372')
         raise IOError(e)
     except KeyError as e:
-        log.critical('Unable to pull setting {e} from redis to initialize sim960')
+        log.critical('Unable to pull setting {e} from redis to initialize LS372')
         raise IOError(e)
 
     try:
@@ -124,312 +113,20 @@ def initializer(device):
         log.warning('Storing device settings to redis failed')
 
 
-class LakeShore372Command:
-    def __init__(self, schema_key, value=None):
-        """
-        Initializes a LakeShore372Command. Takes in a redis device-setting:* key and desired value an evaluates it for
-        its type, the mapping of the command, and appropriately sets the mapping|range for the command. If the setting
-        is not supported, raise a ValueError.
-        """
-
-        if schema_key not in COMMANDS372.keys():
-            raise ValueError(f'Unknown command: {schema_key}')
-
-        self.range = None
-        self.mapping = None
-        self.value = value
-        self.setting = schema_key
-
-        self.command = COMMANDS372[self.setting]['command']
-        setting_vals = COMMANDS372[self.setting]['vals']
-
-        if isinstance(setting_vals, dict):
-            self.mapping = setting_vals
-        else:
-            self.range = setting_vals
-        self._vet()
-
-    def _vet(self):
-        value = self.value
-
-        if self.mapping is not None:
-            if value not in self.mapping:
-                raise ValueError(f"Invalid value: {value} Options are: {list(self.mapping.keys())}.")
-        elif self.range is not None:
-            try:
-                self.value = float(value)
-            except ValueError:
-                raise ValueError(f'Invalid value {value}, must be castable to float.')
-            if not self.range[0] <= self.value <= self.range[1]:
-                raise ValueError(f'Invalid value {value}, must in {self.range}.')
-        else:
-            self.value = str(value)
-
-    def __str__(self):
-        return f"{self.setting_field}->{self.command_value}"
-
-    @property
-    def command_code(self):
-        return self.command
-
-    @property
-    def setting_field(self):
-        return self.setting.split(":")[-1].replace('-', '_')
-
-    @property
-    def command_value(self):
-        if self.mapping is not None:
-            return self.mapping[self.value]
-        else:
-            return self.value
-
-    @property
-    def desired_setting(self):
-        return {self.setting_field: self.command_value}
-
-    @property
-    def channel(self):
-        id_str = self.setting.split(":")[2]
-        return id_str[-1] if 'channel' in id_str else None
-
-    @property
-    def curve(self):
-        id_str = self.setting.split(":")[2]
-        return id_str[-1] if 'curve' in id_str else None
-
-
-class LakeShore372(LakeShoreMixin, Model372):
-    def __init__(self, name, baudrate=57600, port=None, timeout=0.1, initializer=None):
-
-        self.device_serial = None
-        self.enabled_input_channels = ENABLED_INPUT_CHANNELS
-        self.initializer = initializer
-        self._initialized = False
-
-        if port is None:
-            super().__init__(baud_rate=baudrate, timeout=timeout)
-        else:
-            super().__init__(baud_rate=baudrate, com_port=port, timeout=timeout)
-        self.name = name
-        self._postconnect()
-
-    def apply_schema_settings(self, settings_to_load):
-        """
-        Configure the sim device with a dict of redis settings via SimCommand translation
-
-        In the event of an IO error configuration is aborted and the IOError raised. Partial configuration is possible
-        In the even that a setting is not valid it is skipped
-
-        Returns the sim settings and the values per the schema
-        """
-        ret = {}
-        for setting, value in settings_to_load.items():
-            try:
-                cmd = LakeShore372Command(setting, value)
-                log.debug(f"Setting LakeShore 372 {cmd.setting} to {cmd.value}")
-                self.handle_command(cmd)
-                ret[setting] = value
-            except ValueError as e:
-                log.warning(f"Skipping bad setting: {e}")
-                ret[setting] = self.query_single_setting(cmd.setting, cmd.command_code)
-            time.sleep(0.1)
-        return ret
-
-    def handle_command(self, cmd):
-        try:
-            log.info(f"Processing command {cmd.setting} -> {cmd.value}")
-            if cmd.command_code == "INTYPE":
-                self.configure_input_sensor(channel=cmd.channel, command_code=cmd.command_code,
-                                                 **cmd.desired_setting)
-            elif cmd.command_code == "INSET":
-                self.modify_channel_settings(channel=cmd.channel, command_code=cmd.command_code,
-                                                  **cmd.desired_setting)
-            elif cmd.command_code == "OUTMODE":
-                self.configure_heater_settings(channel=cmd.channel, command_code=cmd.command_code,
-                                                    **cmd.desired_setting)
-            elif cmd.command_code == "SETP":
-                self.change_temperature_setpoint(channel=cmd.channel, command_code=cmd.command_code,
-                                                      setpoint=cmd.command_value)
-            elif cmd.command_code == "PID":
-                self.modify_pid_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
-            elif cmd.command_code == "RANGE":
-                self.modify_heater_output_range(channel=cmd.channel, command_code=cmd.command_code,
-                                                     range=cmd.command_value)
-            elif cmd.command_code == "CRVHDR":
-                self.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
-            else:
-                log.info(f"Command code '{cmd.command_code}' not recognized! No change will be made")
-                pass
-        except IOError as e:
-            log.error(f"Comm error: {e}")
-            raise e
-
-    @property
-    def setpoint(self):
-        """
-        Returns the setpoint for the sample heater in Kelvin
-        """
-        return self.get_setpoint_kelvin(0)
-
-    def output_voltage(self):
-        """
-        Returns the current output to the sample heater in percent of total output
-        Range runs from 0 to 100%
-        """
-        return self.get_heater_output(0)
-
-    def configure_input_sensor(self, channel, command_code, **desired_settings):
-        """
-        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
-        modify in order to configure the input sensor for the given channel.
-        """
-        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
-
-        if channel.upper() == "A":
-            new_settings['excitation_range'] = Model372ControlInputCurrentRange(new_settings['excitation_range'])
-        else:
-            if new_settings['mode'] == 0:
-                new_settings['excitation_range'] = Model372MeasurementInputVoltageRange(new_settings['excitation_range'])
-            elif new_settings['mode'] == 1:
-                new_settings['excitation_range'] = Model372MeasurementInputCurrentRange(new_settings['excitation_range'])
-            else:
-                raise ValueError(f"{new_settings['mode']} is not an allowed value!")
-
-        settings = Model372InputSetupSettings(mode=Model372SensorExcitationMode(new_settings['mode']),
-                                              excitation_range=new_settings['excitation_range'],
-                                              auto_range=Model372AutoRangeMode(new_settings['auto_range']),
-                                              current_source_shunted=new_settings['current_source_shunted'],
-                                              units=Model372InputSensorUnits(new_settings['units']),
-                                              resistance_range=Model372MeasurementInputResistance(new_settings['resistance_range']))
-
-        try:
-            log.info(f"Configuring input sensor on channel {channel}: {settings}")
-            self.configure_input(input_channel=channel, settings=settings)
-        except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
-            raise e
-
-    def modify_channel_settings(self, channel, command_code, **desired_settings):
-        """
-        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
-        modify in order to modify the settings of how the channel reads out the sensor and how it is reported.
-        This is the command for the LakeShore 372 where the calibration curve can be changed
-        """
-        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
-
-        settings = Model372InputChannelSettings(enable=new_settings['enable'],
-                                                dwell_time=new_settings['dwell_time'],
-                                                pause_time=new_settings['pause_time'],
-                                                curve_number=new_settings['curve_number'],
-                                                temperature_coefficient=Model372CurveTemperatureCoefficient(new_settings['temperature_coefficient']))
-
-        try:
-            log.info(f"Configuring input channel {channel} parameters: {settings}")
-            self.set_input_channel_parameters(channel, settings)
-        except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
-            raise e
-
-    def configure_heater_settings(self, channel, command_code, **desired_settings):
-        """
-        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
-        modify in order to configure the settings for the output heater from the LakeShore 372.
-        """
-        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
-
-        settings = Model372HeaterOutputSettings(output_mode=Model372OutputMode(new_settings['output_mode']),
-                                                input_channel=Model372InputChannel(new_settings['input_channel']),
-                                                powerup_enable=new_settings['powerup_enable'],
-                                                reading_filter=new_settings['reading_filter'],
-                                                delay=new_settings['delay'],
-                                                polarity=Model372Polarity(new_settings['polarity']))
-
-        try:
-            log.info(f"Configuring heater for output channel {channel}: {settings}")
-            self.configure_heater(output_channel=channel, settings=settings)
-        except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
-            raise e
-
-    def change_temperature_setpoint(self, channel, command_code, setpoint=None):
-        """
-        Takes in an allowable channel number, command code (to query the current settings), and the new setpoint the
-        user would like to control the device at. Setpointwill always be in units of Kelvin.
-        """
-        current_setpoint = self.query_settings(command_code, channel=channel)
-        if current_setpoint != setpoint and setpoint is not None:
-            log.info(f"Changing temperature regulation value for output channel {channel} to {setpoint} from "
-                     f"{current_setpoint}")
-            try:
-                log.info(f"Changing the setpoint for output channel {channel} to {setpoint}")
-                self.set_setpoint_kelvin(output_channel=channel, setpoint=setpoint)
-            except (SerialException, IOError) as e:
-                log.error(f"...failed: {e}")
-                raise e
-        else:
-            log.info(f"Requested to set temperature setpoint from {current_setpoint} to {setpoint}, no change"
-                        f"sent to Lake Shore 372.")
-
-    def modify_pid_settings(self, channel, command_code, **desired_settings):
-        """
-        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
-        modify in order to update the PID loop. Desired settings can be 'gain', 'integral', or 'derivative', for the
-        P, I, and D parameters, respectively (a value of 0 means the term is unused).
-        """
-        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
-
-        try:
-            log.info(f"Configuring PID for output channel {channel}: {new_settings}")
-            self.set_heater_pid(channel, gain=new_settings['gain'], integral=new_settings['integral'],
-                                derivative=new_settings['ramp_rate'])
-        except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
-            raise e
-
-    def modify_heater_output_range(self, channel, command_code, range=None):
-        """
-        Takes in an allowable channel number, command code (to query the current settings), and the desired heater range
-        from the allowed values, which step from 31.6 uA to 100 mA stepping up by a factor of 3 each step.
-        """
-        current_range = self.query_settings(command_code, channel=channel)
-
-        if channel == 0:
-            if current_range.value == range or range is None:
-                log.info(f"Attempting to set the output range for the output heater from {current_range.name} to the "
-                         f"same value. No change requested to the instrument.")
-            else:
-                try:
-                    log.info(f"Setting the output range of channel {channel} from {current_range} to {range}")
-                    self.set_heater_output_range(channel, Model372SampleHeaterOutputRange(range))
-                except (SerialException, IOError) as e:
-                    log.error(f"...failed: {e}")
-                    raise e
-        else:
-            # For a channel that is not the sample heater, this value must be on or off
-            if current_range == range or range is None:
-                log.info(f"Attempting to set the output range for the output heater from {current_range} to the "
-                         f"same value. No change requested to the instrument.")
-            else:
-                try:
-                    log.info(f"Setting the output range of channel {channel} from {current_range} to {range}")
-                    self.set_heater_output_range(channel, range)
-                except (SerialException, IOError) as e:
-                    log.error(f"...failed: {e}")
-                    raise e
-
-
 if __name__ == "__main__":
 
-    util.setup_logging('lakeshore372Agent')  # TODO: Add to logging yaml
-    redis.setup_redis(create_ts_keys=TS_KEYS)
+    util.setup_logging('lakeshore372Agent')
+    redis.setup_redis(ts_keys=TS_KEYS)
 
     try:
-        lakeshore = LakeShore372('LakeShore372', 57600, '/dev/ls372', initializer=initializer)
+        lakeshore = LakeShore372('LakeShore372', baudrate=57600, port='/dev/ls372',
+                                 enabled_input_channels=ENABLED_INPUT_CHANNELS, initializer=initializer)
     except:
-        lakeshore = LakeShore372('LakeShore372', 57600, initializer=initializer)
+        lakeshore = LakeShore372('LakeShore372', baudrate=57600,
+                                 enabled_input_channels=ENABLED_INPUT_CHANNELS, initializer=initializer)
 
     def callback(temp, res, ex, ov):
-        d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY), (temp, res, ex, ov)) if x}
+        d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY), (temp, res, ex, ov))}
         redis.store(d, timeseries=True)
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals, lakeshore.excitation_power, lakeshore.output_voltage), value_callback=callback)

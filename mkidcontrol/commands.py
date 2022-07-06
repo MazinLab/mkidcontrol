@@ -164,6 +164,154 @@ class LakeShoreCommand:
             return f"{self.command}?"
 
 
+class LakeShore336Command:
+    def __init__(self, schema_key, value=None):
+        """
+        Initializes a LakeShore336Command. Takes in a redis device-setting:* key and desired value an evaluates it for
+        its type, the mapping of the command, and appropriately sets the mapping|range for the command. If the setting
+        is not supported, raise a ValueError.
+        """
+
+        if schema_key not in COMMANDS336.keys():
+            raise ValueError(f'Unknown command: {schema_key}')
+
+        self.range = None
+        self.mapping = None
+        self.value = value
+        self.setting = schema_key
+
+        self.command = COMMANDS336[self.setting]['command']
+        setting_vals = COMMANDS336[self.setting]['vals']
+
+        if isinstance(setting_vals, dict):
+            self.mapping = setting_vals
+        else:
+            self.range = setting_vals
+        self._vet()
+
+    def _vet(self):
+        value = self.value
+
+        if self.mapping is not None:
+            if value not in self.mapping:
+                raise ValueError(f"Invalid value: {value} Options are: {list(self.mapping.keys())}.")
+        elif self.range is not None:
+            try:
+                self.value = float(value)
+            except ValueError:
+                raise ValueError(f'Invalid value {value}, must be castable to float.')
+            if not self.range[0] <= self.value <= self.range[1]:
+                raise ValueError(f'Invalid value {value}, must in {self.range}.')
+        else:
+            self.value = str(value)
+
+    def __str__(self):
+        return f"{self.setting_field}->{self.command_value}"
+
+    @property
+    def command_code(self):
+        return self.command
+
+    @property
+    def setting_field(self):
+        return self.setting.split(":")[-1].replace('-', '_')
+
+    @property
+    def command_value(self):
+        if self.mapping is not None:
+            return self.mapping[self.value]
+        else:
+            return self.value
+
+    @property
+    def desired_setting(self):
+        return {self.setting_field: self.command_value}
+
+    @property
+    def channel(self):
+        id_str = self.setting.split(":")[2]
+        return id_str[-1] if 'channel' in id_str else None
+
+    @property
+    def curve(self):
+        id_str = self.setting.split(":")[2]
+        return id_str[-1] if 'curve' in id_str else None
+
+
+class LakeShore372Command:
+    def __init__(self, schema_key, value=None):
+        """
+        Initializes a LakeShore372Command. Takes in a redis device-setting:* key and desired value an evaluates it for
+        its type, the mapping of the command, and appropriately sets the mapping|range for the command. If the setting
+        is not supported, raise a ValueError.
+        """
+
+        if schema_key not in COMMANDS372.keys():
+            raise ValueError(f'Unknown command: {schema_key}')
+
+        self.range = None
+        self.mapping = None
+        self.value = value
+        self.setting = schema_key
+
+        self.command = COMMANDS372[self.setting]['command']
+        setting_vals = COMMANDS372[self.setting]['vals']
+
+        if isinstance(setting_vals, dict):
+            self.mapping = setting_vals
+        else:
+            self.range = setting_vals
+        self._vet()
+
+    def _vet(self):
+        value = self.value
+
+        if self.mapping is not None:
+            if value not in self.mapping:
+                raise ValueError(f"Invalid value: {value} Options are: {list(self.mapping.keys())}.")
+        elif self.range is not None:
+            try:
+                self.value = float(value)
+            except ValueError:
+                raise ValueError(f'Invalid value {value}, must be castable to float.')
+            if not self.range[0] <= self.value <= self.range[1]:
+                raise ValueError(f'Invalid value {value}, must in {self.range}.')
+        else:
+            self.value = str(value)
+
+    def __str__(self):
+        return f"{self.setting_field}->{self.command_value}"
+
+    @property
+    def command_code(self):
+        return self.command
+
+    @property
+    def setting_field(self):
+        return self.setting.split(":")[-1].replace('-', '_')
+
+    @property
+    def command_value(self):
+        if self.mapping is not None:
+            return self.mapping[self.value]
+        else:
+            return self.value
+
+    @property
+    def desired_setting(self):
+        return {self.setting_field: self.command_value}
+
+    @property
+    def channel(self):
+        id_str = self.setting.split(":")[2]
+        return id_str[-1] if 'channel' in id_str else None
+
+    @property
+    def curve(self):
+        id_str = self.setting.split(":")[2]
+        return id_str[-1] if 'curve' in id_str else None
+
+
 def load_tvals(curve):
     if curve == 1:
         file = '/home/mazinlab/picturec/docs/hardware_reference_documentation/thermometry/RX-102A/RX-102A_Mean_Curve.tbl'

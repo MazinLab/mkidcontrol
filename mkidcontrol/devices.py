@@ -12,11 +12,17 @@ import time
 import threading
 import serial
 from serial import SerialException
+from mkidcontrol.mkidredis import RedisError
 
-from mkidcontrol.commands import SimCommand, LakeShoreCommand
+from mkidcontrol.commands import SimCommand, LakeShoreCommand, LakeShore336Command, LakeShore372Command
 
-from lakeshore import Model372CurveHeader, Model372CurveFormat, Model372CurveTemperatureCoefficient,\
-                      Model336CurveHeader, Model336CurveFormat, Model336CurveTemperatureCoefficients
+from lakeshore import Model372CurveHeader, Model372CurveFormat, Model372CurveTemperatureCoefficient,Model336CurveHeader, \
+    Model336CurveFormat, Model336CurveTemperatureCoefficients, Model372, Model372CurveTemperatureCoefficient, \
+    Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, Model372AutoRangeMode, Model372InputSensorUnits, \
+    Model372MeasurementInputResistance, Model372HeaterOutputSettings, Model372OutputMode, Model372InputChannel, \
+    Model372InputSetupSettings, Model372ControlInputCurrentRange, Model372MeasurementInputVoltageRange, \
+    Model372InputChannelSettings, Model372Polarity, Model372SampleHeaterOutputRange, Model336, Model336InputSensorUnits, \
+    Model336InputSensorSettings, Model336InputSensorType, Model336RTDRange, Model336DiodeRange, Model336ThermocoupleRange
 
 
 log = logging.getLogger(__name__)
@@ -47,6 +53,58 @@ def load_persisted_state(statefile):
     except Exception:
         persisted_state_time, persisted_state = None, None
     return persisted_state_time, persisted_state
+
+
+def firmware_pull(device, redis, firmware_key, model_key, sn_key):
+    # Grab and store device info
+    try:
+        info = device.device_info
+        d = {firmware_key: info['firmware'], model_key: info['model'], sn_key: info['sn']}
+    except IOError as e:
+        log.error(f"When checking device info: {e}")
+        d = {firmware_key: '', model_key: '', sn_key: ''}
+
+    try:
+        redis.store(d)
+    except RedisError:
+        log.warning('Storing device info to redis failed')
+
+
+def initializer(device, setting_keys, redis, firmware_key, model_key, sn_key):
+    """
+    Callback run on connection to the sim whenever it is not initialized. This will only happen if the sim loses all
+    of its settings, which should never every happen. Any settings applied take immediate effect
+    """
+    firmware_pull(device, redis, firmware_key, model_key, sn_key)
+    try:
+        settings_to_load = redis.read(setting_keys, error_missing=True)
+        initialized_settings = device.apply_schema_settings(settings_to_load)
+        time.sleep(1)
+    except RedisError as e:
+        log.critical('Unable to pull settings from redis to initialize LS372')
+        raise IOError(e)
+    except KeyError as e:
+        log.critical('Unable to pull setting {e} from redis to initialize LS372')
+        raise IOError(e)
+
+    try:
+        redis.store(initialized_settings)
+    except RedisError:
+        log.warning('Storing device settings to redis failed')
+
+
+class MagnetState(enum.Enum):
+    PID = enum.auto()
+    MANUAL = enum.auto()
+
+
+class HeatswitchPosition:
+    OPEN = 'open'
+    CLOSE = 'close'
+    OPENED = 'opened'
+    CLOSED = 'closed'
+    OPENING = 'opening'
+    CLOSING = 'closing'
 
 
 class SerialDevice:
@@ -231,7 +289,6 @@ class SerialDevice:
         self._monitor_thread = threading.Thread(target=f, name='Monitor Thread')
         self._monitor_thread.daemon = True
         self._monitor_thread.start()
-
 
 
 class SimDevice(SerialDevice):
@@ -462,6 +519,328 @@ class LakeShoreDevice(SerialDevice):
         return ret
 
 
+class LakeShoreMixin:
+    """
+    Mixin class for functionality that is shared between the MKIDControl wrappers for LakeShore336 and LakeShore372
+    devices. Currently, LakeShore has a python package which can be used for communicating with them. We are writing an
+    agent for each which uses the Model336/372 as the superclass, while it also uses this Mixin for error handling,
+    querying, and parsing of desired setting changes.
+    """
+
+    # TODO: Determine protocol for disconnection/connection/reconnection upon erroring out, querying the device, etc.
+    def disconnect(self):
+        try:
+            self.device_serial.close()
+        except Exception as e:
+            log.info(f"Exception during disconnect: {e}")
+
+    def connect(self):
+        try:
+            if self.device_serial.isOpen():
+                return
+        except Exception:
+            pass
+
+        try:
+            self.device_serial.open()
+        except (IOError, AttributeError) as e:
+            log.warning(f"Unable to open serial port: {e}")
+            raise Exception(f"Unable to open serial port: {e}")
+
+    def _postconnect(self):
+        if self.initializer and not self._initialized:
+            self.initializer(self)
+            self._initialized = True
+
+    @property
+    def device_info(self):
+        return dict(model=self.model_number, firmware=self.firmware_version, sn=self.serial_number)
+
+    def temp(self):
+        """
+        Returns the temperature for all enabled input channels of the lakeshore temperature controller.
+        If there is only 1 channel enabled, returns a float, otherwise returns a list.
+        Raises an IOError if there is a problem communicating with the opened serial port
+        """
+        temp_vals = []
+        for channel in self.enabled_input_channels:
+            try:
+                temp_rdg = float(self.get_kelvin_reading(channel))
+                log.info(f"Measured a temperature of {temp_rdg} K from channel {channel}")
+                if temp_rdg == 0:
+                    log.debug(f"Temperature from channel {channel} was read to be 0. This usually means that temperature"
+                              f" is above the calibration limit. Setting to 40K (RX-102A max calibrated temp).")
+                    temp_rdg = 40.0
+                temp_vals.append(temp_rdg)
+            except (SerialException, IOError) as e:
+                log.error(f"Serial error: {e}")
+                raise IOError(f"Serial error: {e}")
+
+        if len(self.enabled_input_channels) == 1:
+            temp_vals = temp_vals[0]
+
+        return temp_vals
+
+    def sensor_vals(self):
+        """
+        Returns the sensor values for all enabled input channels of the lakeshore temperature controller.
+        - For the LakeShore 372, all readings will be resistances
+        - For the LakeShore 336, readings can be EITHER resistance or voltage depending on the type of sensor being
+          used. The reporting of the proper unit will be handled by the agent itself.
+        If there is only 1 channel enabled, returns a float, otherwise returns a list.
+        Raises an IOError if there is a problem communicating with the opened serial port
+        """
+        readings = []
+        for channel in self.enabled_input_channels:
+            try:
+                if self.model_number == "MODEL372":
+                    res = float(self.get_resistance_reading(channel))
+                    log.info(f"Measured a resistance of {res} Ohms from channel {channel}")
+                    readings.append(res)
+                elif self.model_number == "MODEL336":
+                    sens = float(self.get_sensor_reading(channel))
+                    log.info(f"Measured a value of {sens} from channel {channel}")
+                    readings.append(sens)
+            except (SerialException, IOError) as e:
+                log.error(f"Serial error: {e}")
+                raise IOError(f"Serial error: {e}")
+
+        if len(self.enabled_input_channels) == 1:
+            readings = readings[0]
+
+        return readings
+
+    def excitation_power(self):
+        """
+        Returns the excitation power for all enabled input channels of the lakeshore 372. Not implemented in the
+        lakeshore 336.
+        If there is only 1 channel enabled, returns a float, otherwise returns a list.
+        Raises an IOError if there is a problem communicating with the opened serial port
+        """
+        readings = []
+        for channel in self.enabled_input_channels:
+            try:
+                pwr = float(self.get_excitation_power(channel))
+                log.info(f"Measured an excitation power of {pwr} W from channel {channel}")
+                readings.append(pwr)
+            except (SerialException, IOError) as e:
+                log.error(f"Serial error: {e}")
+                raise IOError(f"Serial error: {e}")
+
+        if len(self.enabled_input_channels) == 1:
+            readings = readings[0]
+
+        return readings
+
+    def query_single_setting(self, schema_key, command_code):
+        _, inst, c, key = schema_key.split(":")
+        key = key.replace("-", "_")
+        c = c.split("-")
+
+        if c[-2] == "channel":
+            channel = c[-1]
+            curve = None
+        elif c[-2] == "curve":
+            curve = c[-1]
+            channel = None
+
+        settings = self.query_settings(command_code, channel, curve)
+        try:
+            return settings[key]
+        except (AttributeError, TypeError):
+            return settings
+
+    def query_settings(self, command_code, channel=None, curve=None):
+        """
+        Using a command code (from either the COMMANDS336 or COMMANDS372 dict) and either a channel or curve number,
+        sends the appropriate query to the lakeshore device. If the result that gets returned is a class instance,
+        parses it using the vars() function to turn it into a dict where each key is the property name and each value is
+        its corresponding value.
+        This is used by the 'modification' functions to query the current configuration of a channel or curve, which can
+        then be modified and have any subset of those settings changed (if allowable).
+        Raises an IOError in case of a serial hiccup.
+
+        TODO: Consider pulling from redis as opposed to querying the device itself
+        """
+        model = self.model_number
+
+        if channel is None and curve is None:
+            raise ValueError(f"Insufficient information to query a channel or a curve!")
+
+        try:
+            if command_code == "INTYPE":
+                if model == "MODEL336":
+                    data = vars(self.get_input_sensor(str(channel)))
+                elif model == "MODEL372":
+                    data = vars(self.get_input_setup_parameters(str(channel)))
+                log.debug(f"Read input sensor data for channel {channel}: {data}")
+            elif command_code == "INCRV":
+                data = self.get_input_curve(channel)
+                log.debug(f"Read input curve number for channel {channel}: {data}")
+            elif command_code == "INSET":
+                data = vars(self.get_input_channel_parameters(channel))
+                log.debug(f"Reading parameters for input channel {channel}: {data}")
+            elif command_code == "OUTMODE":
+                data = vars(self.get_heater_output_settings(channel))
+                log.debug(f"Read heater settings for heater channel {channel}: {data}")
+            elif command_code == "SETP":
+                data = self.get_setpoint_kelvin(channel)
+                log.debug(f"Read setpoint for heater channel {channel}: {data} Kelvin")
+            elif command_code == "PID":
+                data = self.get_heater_pid(channel)
+                log.debug(f"Read PID settings for channel {channel}: {data}")
+            elif command_code == "RANGE":
+                data = self.get_heater_output_range(channel)
+                log.debug(f"Read the current heater output range for channel {channel}: {data}")
+            elif command_code == "CRVHDR":
+                data = vars(self.get_curve_header(curve))
+                log.debug(f"Read the curve header from curve {curve}: {data}")
+            return data
+        except (IOError, SerialException) as e:
+            raise IOError(f"Serial error communicating with Lake Shore {self.model_number[-3:]}: {e}")
+        except ValueError as e:
+            log.critical(f"{channel} is not an allowed channel for the Lake Shore {self.model_number[-3:]}: {e}."
+                         f"Ignoring request")
+
+    def _generate_new_settings(self, channel=None, curve=None, command_code=None, **desired_settings):
+        """
+        Uses the command code (string from the 'COMMAND' key in the LAKESHORE_COMMANDS dict) along with a curve/channel
+        number to first query the current settings for whatever setting is desired to be changed.
+        Next, takes the dictionary that is returned by the query_settings() function and iterates through the
+        **desired_settings. The new_settings dictionary will be populated with the same keys as returned by the query_settings
+        call. If any of the keys are present as keys in the **desired_settings, those will be added as the values in the
+        new_settings dict, otherwise they will remain the same as in the query. The new_settings dict is then returned
+        to be used by one of the 'modify_...' functions.
+        """
+        if command_code is None:
+            raise IOError(f"Insufficient information to query {self.model_num[-3:]}, no command code given.")
+
+        try:
+            if channel is not None:
+                settings = self.query_settings(command_code, channel=channel)
+            elif curve is not None:
+                settings = self.query_settings(command_code, curve=curve)
+            else:
+                log.error(f"Insufficient values given for curve or channel to query! Cannot generate up-to-date settings."
+                          f"Ignoring request to modify settings.")
+                raise IOError(f"Insufficient value given to query channel/curve")
+        except (SerialException, IOError) as e:
+            raise e
+
+        new_settings = {}
+        for k in settings.keys():
+            try:
+                new_settings[k] = desired_settings[k]
+            except KeyError:
+                new_settings[k] = settings[k]
+
+        return new_settings
+
+    def modify_curve_header(self, curve_num, command_code, **desired_settings):
+        """
+        Follows the standard modify_<setting>() pattern. Updates a user-specifiable curve header. This command will not
+        work if the user attempts to modify a preset curve on either the LakeShore 336 or 372. Primarily useful for
+        when a user is loading in a new curve and wants to name it, set its serial number, etc. (see kwargs in the
+        function below).
+        Will raise an IOError in the case of a serial error
+        """
+        new_settings = self._generate_new_settings(curve=curve_num, command_code=command_code, **desired_settings)
+
+        if self.model_number == "MODEL372":
+            header = Model372CurveHeader(curve_name=new_settings['curve_name'],
+                                         serial_number=new_settings['serial_number'],
+                                         curve_data_format=Model372CurveFormat(new_settings['curve_data_format']),
+                                         temperature_limit=new_settings['temperature_limit'],
+                                         coefficient=Model372CurveTemperatureCoefficient(new_settings['coefficient']))
+        elif self.model_number == "MODEL336":
+            header = Model336CurveHeader(curve_name=new_settings['curve_name'],
+                                         serial_number=new_settings['serial_number'],
+                                         curve_data_format=Model336CurveFormat(new_settings['curve_data_format']),
+                                         temperature_limit=new_settings['temperature_limit'],
+                                         coefficient=Model336CurveTemperatureCoefficients(new_settings['coefficient']))
+        else:
+            raise ValueError(f"Attempting to modify an curve to an unsupported device!")
+
+        try:
+            log.info(f"Applying new curve header to curve {curve_num}: {header}")
+            self.set_curve_header(curve_number=curve_num, curve_header=header)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise IOError(f"{e}")
+
+    def load_curve_data(self, curve_num, data=None, data_file=None):
+        """
+        Curve_num is the desired curve to load data into. Valid options are 21-59.
+
+        If data_file is not none, loads the data from the given .txt file on the system (there is not current support
+        for files of other formats such as .npz) . The expected format is 2 columns, column 0 is the sensor values and
+        column 1 is the associated calibrated temperature values. The temeprature values should always run high to low.
+        If data is not none, it is understood that the user is passing the data directly to the function. The format for
+        the data should be the same as in the description for the data_file.
+        data_file will take priority over data.
+
+        # TODO: Format checking
+        """
+        if data:
+            curve_data = data
+        elif data_file:
+            curve_data = np.loadtxt(data_file)
+        else:
+            raise ValueError(f"No data supplied to load to the curve")
+
+        self.set_curve(curve_num, curve_data)
+
+    def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
+        """
+        Given a monitoring function (or is of the same) and either one or the same number of optional callback
+        functions call the monitors every interval. If one callback it will get all the values in the order of the
+        monitor funcs, if a list of the same number as of monitorables each will get a single value.
+
+        Monitor functions may not return None.
+
+        When there is a 1-1 correspondence the callback is not called in the event of a monitoring error.
+        If a single callback is present for multiple monitor functions values that had errors will be sent as None.
+        Function must accept as many arguments as monitor functions.
+        """
+        if not isinstance(monitor_func, (list, tuple)):
+            monitor_func = (monitor_func,)
+        if value_callback is not None and not isinstance(value_callback, (list, tuple)):
+            value_callback = (value_callback,)
+        if not (value_callback is None or len(monitor_func) == len(value_callback) or len(value_callback) == 1):
+            raise ValueError('When specified, the number of callbacks must be one or the number of monitor functions')
+
+        def f():
+            while True:
+                vals = []
+                for func in monitor_func:
+                    try:
+                        vals.append(func())
+                    except IOError as e:
+                        log.error(f"Failed to poll {func}: {e}")
+                        vals.append(None)
+
+                if value_callback is not None:
+                    if len(value_callback) > 1 or len(monitor_func) == 1:
+                        for v, cb in zip(vals, value_callback):
+                            if v is not None:
+                                try:
+                                    cb(v)
+                                except Exception as e:
+                                    log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
+                    else:
+                        cb = value_callback[0]
+                        try:
+                            cb(*vals)
+                        except Exception as e:
+                            log.error(f"Callback {cb} error. args={vals}.", exc_info=True)
+
+                time.sleep(interval)
+
+        self._monitor_thread = threading.Thread(target=f, name='Monitor Thread')
+        self._monitor_thread.daemon = True
+        self._monitor_thread.start()
+
+
 class LakeShore240(LakeShoreDevice):
     def __init__(self, name, port, baudrate=115200, timeout=0.1, connect=True, valid_models=None, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS):
         super().__init__(name, port, baudrate, timeout, connect=connect, valid_models=valid_models, parity=parity, bytesize=bytesize)
@@ -515,9 +894,337 @@ class LakeShore240(LakeShoreDevice):
                       f"Check to make sure the LakeShore USB is connected!")
 
 
-class MagnetState(enum.Enum):
-    PID = enum.auto()
-    MANUAL = enum.auto()
+class LakeShore336(LakeShoreMixin, Model336):
+    def __init__(self, name, port=None, timeout=0.1, enabled_channels=(), initializer=None):
+        """
+        Initialize the LakeShore336 unit. Requires a name, typically something like 'LakeShore336' or '336'.
+        The port and timeout parameters are optional. If port is none, the __init__() function from the Model 336 super
+        class will search the device tree for units which have the correct PID/VID combination. If timeout is none, it
+        will default to 0.1 seconds, which is lower than the default of 2 seconds in the superclass.
+        """
+        self.device_serial = None
+        self.enabled_input_channels = enabled_channels
+        self.initializer = initializer
+        self._initialized = False
+
+        if port is None:
+            super().__init__(timeout=timeout)
+        else:
+            super().__init__(com_port=port, timeout=timeout)
+        self.name = name
+        self._postconnect()
+
+    def change_curve(self, channel, command_code, curve_num=None):
+        """
+        Takes in an input channel and the relevant command code from the LAKESHORE_COMMANDS dict to query what the
+        current calibration curve is in use. If the curve_num given is not none or the same as the one which is already
+        loaded in, it will attempt to change to a new calibration curve for that input channel
+        If no curve number is given or the user tries to change to the current curve (i.e. Channel A uses Curve 2, try
+        switching to curve 2), no change will be made.
+        """
+        current_curve = self.query_settings(command_code, channel=channel)
+
+        if current_curve != curve_num and curve_num is not None:
+            try:
+                log.info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
+                self.set_input_curve(channel, curve_num)
+            except (SerialException, IOError) as e:
+                log.error(f"...failed: {e}")
+                raise e
+
+        else:
+            log.warning(f"Requested to set channel {channel}'s curve from {current_curve} to {curve_num}, no change"
+                     f"sent to Lake Shore {self.model_number}.")
+
+    def modify_input_sensor(self, channel: (str, int), command_code, **desired_settings):
+        """
+        Reads in the current settings of the input sensor at channel <channel>, changes any setting passed as an
+        argument that is not 'None', and stores the modified dict of settings in dict(new_settings). Then reads the
+        new_settings dict into a Model336InputSettings object and sends the appropriate command to update the input
+        settings for that channel
+        """
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
+
+        if new_settings['sensor_type'] == 0:
+            new_settings['input_range'] = None
+        elif new_settings['sensor_type'] == 1:
+            new_settings['input_range'] = Model336DiodeRange(new_settings['input_range'])
+        elif new_settings['sensor_type'] in (2, 3):
+            new_settings['input_range'] = Model336RTDRange(new_settings['input_range'])
+        elif new_settings['sensor_type'] == 4:
+            new_settings['input_range'] = Model336ThermocoupleRange(new_settings['input_range'])
+        else:
+            raise ValueError(f"{new_settings['sensor_type']} is not an allowed value!")
+
+        settings = Model336InputSensorSettings(sensor_type=Model336InputSensorType(new_settings['sensor_type']),
+                                               autorange_enable=new_settings['autorange_enable'],
+                                               compensation=new_settings['compensation'],
+                                               units=Model336InputSensorUnits(new_settings['units']),
+                                               input_range=new_settings['input_range'])
+
+        try:
+            log.info(f"Applying new settings to channel {channel}: {settings}")
+            self.set_input_sensor(channel=channel, sensor_parameters=settings)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
+
+    def apply_schema_settings(self, settings_to_load):
+        """
+        Configure the sim device with a dict of redis settings via SimCommand translation
+
+        In the event of an IO error configuration is aborted and the IOError raised. Partial configuration is possible
+        In the even that a setting is not valid it is skipped
+
+        Returns the sim settings and the values per the schema
+        """
+        ret = {}
+        for setting, value in settings_to_load.items():
+            try:
+                cmd = LakeShore336Command(setting, value)
+                log.debug(f"Setting LakeShore 336 {cmd.setting} to {cmd.value}")
+                self.handle_command(cmd)
+                ret[setting] = value
+            except ValueError as e:
+                log.warning(f"Skipping bad setting: {e}")
+                ret[setting] = self.query_single_setting(cmd.setting, cmd.command_code)
+            time.sleep(0.1)
+        return ret
+
+    def handle_command(self, cmd):
+        try:
+            log.info(f"Processing command {cmd.setting} -> {cmd.value}")
+            if cmd.command_code == "INTYPE":
+                self.modify_input_sensor(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+            elif cmd.command_code == "INCRV":
+                self.change_curve(channel=cmd.channel, command_code=cmd.command_code, curve_num=cmd.command_value)
+            elif cmd.command_code == "CRVHDR":
+                self.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+            else:
+                pass
+        except IOError as e:
+            log.error(f"Comm error: {e}")
+            raise e
+
+
+class LakeShore372(LakeShoreMixin, Model372):
+    def __init__(self, name, baudrate=57600, port=None, timeout=0.1, enabled_input_channels=(), initializer=None):
+
+        self.device_serial = None
+        self.enabled_input_channels = enabled_input_channels
+        self.initializer = initializer
+        self._initialized = False
+
+        if port is None:
+            super().__init__(baud_rate=baudrate, timeout=timeout)
+        else:
+            super().__init__(baud_rate=baudrate, com_port=port, timeout=timeout)
+        self.name = name
+        self._postconnect()
+
+    def apply_schema_settings(self, settings_to_load):
+        """
+        Configure the sim device with a dict of redis settings via SimCommand translation
+
+        In the event of an IO error configuration is aborted and the IOError raised. Partial configuration is possible
+        In the even that a setting is not valid it is skipped
+
+        Returns the sim settings and the values per the schema
+        """
+        ret = {}
+        for setting, value in settings_to_load.items():
+            try:
+                cmd = LakeShore372Command(setting, value)
+                log.debug(f"Setting LakeShore 372 {cmd.setting} to {cmd.value}")
+                self.handle_command(cmd)
+                ret[setting] = value
+            except ValueError as e:
+                log.warning(f"Skipping bad setting: {e}")
+                ret[setting] = self.query_single_setting(cmd.setting, cmd.command_code)
+            time.sleep(0.1)
+        return ret
+
+    def handle_command(self, cmd):
+        try:
+            log.info(f"Processing command {cmd.setting} -> {cmd.value}")
+            if cmd.command_code == "INTYPE":
+                self.configure_input_sensor(channel=cmd.channel, command_code=cmd.command_code,
+                                                 **cmd.desired_setting)
+            elif cmd.command_code == "INSET":
+                self.modify_channel_settings(channel=cmd.channel, command_code=cmd.command_code,
+                                                  **cmd.desired_setting)
+            elif cmd.command_code == "OUTMODE":
+                self.configure_heater_settings(channel=cmd.channel, command_code=cmd.command_code,
+                                                    **cmd.desired_setting)
+            elif cmd.command_code == "SETP":
+                self.change_temperature_setpoint(channel=cmd.channel, command_code=cmd.command_code,
+                                                      setpoint=cmd.command_value)
+            elif cmd.command_code == "PID":
+                self.modify_pid_settings(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
+            elif cmd.command_code == "RANGE":
+                self.modify_heater_output_range(channel=cmd.channel, command_code=cmd.command_code,
+                                                     range=cmd.command_value)
+            elif cmd.command_code == "CRVHDR":
+                self.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+            else:
+                log.info(f"Command code '{cmd.command_code}' not recognized! No change will be made")
+                pass
+        except IOError as e:
+            log.error(f"Comm error: {e}")
+            raise e
+
+    @property
+    def setpoint(self):
+        """
+        Returns the setpoint for the sample heater in Kelvin
+        """
+        return self.get_setpoint_kelvin(0)
+
+    def output_voltage(self):
+        """
+        Returns the current output to the sample heater in percent of total output
+        Range runs from 0 to 100%
+        """
+        return self.get_heater_output(0)
+
+    def configure_input_sensor(self, channel, command_code, **desired_settings):
+        """
+        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
+        modify in order to configure the input sensor for the given channel.
+        """
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
+
+        if channel.upper() == "A":
+            new_settings['excitation_range'] = Model372ControlInputCurrentRange(new_settings['excitation_range'])
+        else:
+            if new_settings['mode'] == 0:
+                new_settings['excitation_range'] = Model372MeasurementInputVoltageRange(new_settings['excitation_range'])
+            elif new_settings['mode'] == 1:
+                new_settings['excitation_range'] = Model372MeasurementInputCurrentRange(new_settings['excitation_range'])
+            else:
+                raise ValueError(f"{new_settings['mode']} is not an allowed value!")
+
+        settings = Model372InputSetupSettings(mode=Model372SensorExcitationMode(new_settings['mode']),
+                                              excitation_range=new_settings['excitation_range'],
+                                              auto_range=Model372AutoRangeMode(new_settings['auto_range']),
+                                              current_source_shunted=new_settings['current_source_shunted'],
+                                              units=Model372InputSensorUnits(new_settings['units']),
+                                              resistance_range=Model372MeasurementInputResistance(new_settings['resistance_range']))
+
+        try:
+            log.info(f"Configuring input sensor on channel {channel}: {settings}")
+            self.configure_input(input_channel=channel, settings=settings)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
+
+    def modify_channel_settings(self, channel, command_code, **desired_settings):
+        """
+        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
+        modify in order to modify the settings of how the channel reads out the sensor and how it is reported.
+        This is the command for the LakeShore 372 where the calibration curve can be changed
+        """
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
+
+        settings = Model372InputChannelSettings(enable=new_settings['enable'],
+                                                dwell_time=new_settings['dwell_time'],
+                                                pause_time=new_settings['pause_time'],
+                                                curve_number=new_settings['curve_number'],
+                                                temperature_coefficient=Model372CurveTemperatureCoefficient(new_settings['temperature_coefficient']))
+
+        try:
+            log.info(f"Configuring input channel {channel} parameters: {settings}")
+            self.set_input_channel_parameters(channel, settings)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
+
+    def configure_heater_settings(self, channel, command_code, **desired_settings):
+        """
+        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
+        modify in order to configure the settings for the output heater from the LakeShore 372.
+        """
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
+
+        settings = Model372HeaterOutputSettings(output_mode=Model372OutputMode(new_settings['output_mode']),
+                                                input_channel=Model372InputChannel(new_settings['input_channel']),
+                                                powerup_enable=new_settings['powerup_enable'],
+                                                reading_filter=new_settings['reading_filter'],
+                                                delay=new_settings['delay'],
+                                                polarity=Model372Polarity(new_settings['polarity']))
+
+        try:
+            log.info(f"Configuring heater for output channel {channel}: {settings}")
+            self.configure_heater(output_channel=channel, settings=settings)
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
+
+    def change_temperature_setpoint(self, channel, command_code, setpoint=None):
+        """
+        Takes in an allowable channel number, command code (to query the current settings), and the new setpoint the
+        user would like to control the device at. Setpointwill always be in units of Kelvin.
+        """
+        current_setpoint = self.query_settings(command_code, channel=channel)
+        if current_setpoint != setpoint and setpoint is not None:
+            log.info(f"Changing temperature regulation value for output channel {channel} to {setpoint} from "
+                     f"{current_setpoint}")
+            try:
+                log.info(f"Changing the setpoint for output channel {channel} to {setpoint}")
+                self.set_setpoint_kelvin(output_channel=channel, setpoint=setpoint)
+            except (SerialException, IOError) as e:
+                log.error(f"...failed: {e}")
+                raise e
+        else:
+            log.info(f"Requested to set temperature setpoint from {current_setpoint} to {setpoint}, no change"
+                        f"sent to Lake Shore 372.")
+
+    def modify_pid_settings(self, channel, command_code, **desired_settings):
+        """
+        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
+        modify in order to update the PID loop. Desired settings can be 'gain', 'integral', or 'derivative', for the
+        P, I, and D parameters, respectively (a value of 0 means the term is unused).
+        """
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
+
+        try:
+            log.info(f"Configuring PID for output channel {channel}: {new_settings}")
+            self.set_heater_pid(channel, gain=new_settings['gain'], integral=new_settings['integral'],
+                                derivative=new_settings['ramp_rate'])
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
+
+    def modify_heater_output_range(self, channel, command_code, range=None):
+        """
+        Takes in an allowable channel number, command code (to query the current settings), and the desired heater range
+        from the allowed values, which step from 31.6 uA to 100 mA stepping up by a factor of 3 each step.
+        """
+        current_range = self.query_settings(command_code, channel=channel)
+
+        if channel == 0:
+            if current_range.value == range or range is None:
+                log.info(f"Attempting to set the output range for the output heater from {current_range.name} to the "
+                         f"same value. No change requested to the instrument.")
+            else:
+                try:
+                    log.info(f"Setting the output range of channel {channel} from {current_range} to {range}")
+                    self.set_heater_output_range(channel, Model372SampleHeaterOutputRange(range))
+                except (SerialException, IOError) as e:
+                    log.error(f"...failed: {e}")
+                    raise e
+        else:
+            # For a channel that is not the sample heater, this value must be on or off
+            if current_range == range or range is None:
+                log.info(f"Attempting to set the output range for the output heater from {current_range} to the "
+                         f"same value. No change requested to the instrument.")
+            else:
+                try:
+                    log.info(f"Setting the output range of channel {channel} from {current_range} to {range}")
+                    self.set_heater_output_range(channel, range)
+                except (SerialException, IOError) as e:
+                    log.error(f"...failed: {e}")
+                    raise e
 
 
 class LakeShore625(LakeShoreDevice):
@@ -873,15 +1580,6 @@ class SIM921(SimDevice):
         log.info(f"Successfully loaded curve {curve_num} - '{curve_name}'!")
 
 
-class HeatswitchPosition:
-    OPEN = 'open'
-    CLOSE = 'close'
-    OPENED = 'opened'
-    CLOSED = 'closed'
-    OPENING = 'opening'
-    CLOSING = 'closing'
-
-
 class Currentduino(SerialDevice):
     VALID_FIRMWARES = (0.0, 0.1, 0.2)
     R1 = 11760  # Values for R1 resistor in magnet current measuring voltage divider
@@ -1095,325 +1793,3 @@ class Hemtduino(SerialDevice):
                 raise ValueError(f"Nonsense was returned: {response}")
         except Exception as e:
             raise ValueError(f"Error parsing response data: {response}. Exception {e}")
-
-
-class LakeShoreMixin:
-    """
-    Mixin class for functionality that is shared between the MKIDControl wrappers for LakeShore336 and LakeShore372
-    devices. Currently, LakeShore has a python package which can be used for communicating with them. We are writing an
-    agent for each which uses the Model336/372 as the superclass, while it also uses this Mixin for error handling,
-    querying, and parsing of desired setting changes.
-    """
-
-    # TODO: Determine protocol for disconnection/connection/reconnection upon erroring out, querying the device, etc.
-    def disconnect(self):
-        try:
-            self.device_serial.close()
-        except Exception as e:
-            log.info(f"Exception during disconnect: {e}")
-
-    def connect(self):
-        try:
-            if self.device_serial.isOpen():
-                return
-        except Exception:
-            pass
-
-        try:
-            self.device_serial.open()
-        except (IOError, AttributeError) as e:
-            log.warning(f"Unable to open serial port: {e}")
-            raise Exception(f"Unable to open serial port: {e}")
-
-    def _postconnect(self):
-        if self.initializer and not self._initialized:
-            self.initializer(self)
-            self._initialized = True
-
-    @property
-    def device_info(self):
-        return dict(model=self.model_number, firmware=self.firmware_version, sn=self.serial_number)
-
-    def temp(self):
-        """
-        Returns the temperature for all enabled input channels of the lakeshore temperature controller.
-        If there is only 1 channel enabled, returns a float, otherwise returns a list.
-        Raises an IOError if there is a problem communicating with the opened serial port
-        """
-        temp_vals = []
-        for channel in self.enabled_input_channels:
-            try:
-                temp_rdg = float(self.get_kelvin_reading(channel))
-                log.info(f"Measured a temperature of {temp_rdg} K from channel {channel}")
-                if temp_rdg == 0:
-                    log.debug(f"Temperature from channel {channel} was read to be 0. This usually means that temperature"
-                              f" is above the calibration limit. Setting to 40K (RX-102A max calibrated temp).")
-                    temp_rdg = 40.0
-                temp_vals.append(temp_rdg)
-            except (SerialException, IOError) as e:
-                log.error(f"Serial error: {e}")
-                raise IOError(f"Serial error: {e}")
-
-        if len(self.enabled_input_channels) == 1:
-            temp_vals = temp_vals[0]
-
-        return temp_vals
-
-    def sensor_vals(self):
-        """
-        Returns the sensor values for all enabled input channels of the lakeshore temperature controller.
-        - For the LakeShore 372, all readings will be resistances
-        - For the LakeShore 336, readings can be EITHER resistance or voltage depending on the type of sensor being
-          used. The reporting of the proper unit will be handled by the agent itself.
-        If there is only 1 channel enabled, returns a float, otherwise returns a list.
-        Raises an IOError if there is a problem communicating with the opened serial port
-        """
-        readings = []
-        for channel in self.enabled_input_channels:
-            try:
-                if self.model_number == "MODEL372":
-                    res = float(self.get_resistance_reading(channel))
-                    log.info(f"Measured a resistance of {res} Ohms from channel {channel}")
-                    readings.append(res)
-                elif self.model_number == "MODEL336":
-                    sens = float(self.get_sensor_reading(channel))
-                    log.info(f"Measured a value of {sens} from channel {channel}")
-                    readings.append(sens)
-            except (SerialException, IOError) as e:
-                log.error(f"Serial error: {e}")
-                raise IOError(f"Serial error: {e}")
-
-        if len(self.enabled_input_channels) == 1:
-            readings = readings[0]
-
-        return readings
-
-    def excitation_power(self):
-        """
-        Returns the excitation power for all enabled input channels of the lakeshore 372. Not implemented in the
-        lakeshore 336.
-        If there is only 1 channel enabled, returns a float, otherwise returns a list.
-        Raises an IOError if there is a problem communicating with the opened serial port
-        """
-        readings = []
-        for channel in self.enabled_input_channels:
-            try:
-                pwr = float(self.get_excitation_power(channel))
-                log.info(f"Measured an excitation power of {pwr} W from channel {channel}")
-                readings.append(pwr)
-            except (SerialException, IOError) as e:
-                log.error(f"Serial error: {e}")
-                raise IOError(f"Serial error: {e}")
-
-        if len(self.enabled_input_channels) == 1:
-            readings = readings[0]
-
-        return readings
-
-    def query_single_setting(self, schema_key, command_code):
-        _, inst, c, key = schema_key.split(":")
-        key = key.replace("-", "_")
-        c = c.split("-")
-
-        if c[-2] == "channel":
-            channel = c[-1]
-            curve = None
-        elif c[-2] == "curve":
-            curve = c[-1]
-            channel = None
-
-        settings = self.query_settings(command_code, channel, curve)
-        try:
-            return settings[key]
-        except (AttributeError, TypeError):
-            return settings
-
-    def query_settings(self, command_code, channel=None, curve=None):
-        """
-        Using a command code (from either the COMMANDS336 or COMMANDS372 dict) and either a channel or curve number,
-        sends the appropriate query to the lakeshore device. If the result that gets returned is a class instance,
-        parses it using the vars() function to turn it into a dict where each key is the property name and each value is
-        its corresponding value.
-        This is used by the 'modification' functions to query the current configuration of a channel or curve, which can
-        then be modified and have any subset of those settings changed (if allowable).
-        Raises an IOError in case of a serial hiccup.
-
-        TODO: Consider pulling from redis as opposed to querying the device itself
-        """
-        model = self.model_number
-
-        if channel is None and curve is None:
-            raise ValueError(f"Insufficient information to query a channel or a curve!")
-
-        try:
-            if command_code == "INTYPE":
-                if model == "MODEL336":
-                    data = vars(self.get_input_sensor(str(channel)))
-                elif model == "MODEL372":
-                    data = vars(self.get_input_setup_parameters(str(channel)))
-                log.debug(f"Read input sensor data for channel {channel}: {data}")
-            elif command_code == "INCRV":
-                data = self.get_input_curve(channel)
-                log.debug(f"Read input curve number for channel {channel}: {data}")
-            elif command_code == "INSET":
-                data = vars(self.get_input_channel_parameters(channel))
-                log.debug(f"Reading parameters for input channel {channel}: {data}")
-            elif command_code == "OUTMODE":
-                data = vars(self.get_heater_output_settings(channel))
-                log.debug(f"Read heater settings for heater channel {channel}: {data}")
-            elif command_code == "SETP":
-                data = self.get_setpoint_kelvin(channel)
-                log.debug(f"Read setpoint for heater channel {channel}: {data} Kelvin")
-            elif command_code == "PID":
-                data = self.get_heater_pid(channel)
-                log.debug(f"Read PID settings for channel {channel}: {data}")
-            elif command_code == "RANGE":
-                data = self.get_heater_output_range(channel)
-                log.debug(f"Read the current heater output range for channel {channel}: {data}")
-            elif command_code == "CRVHDR":
-                data = vars(self.get_curve_header(curve))
-                log.debug(f"Read the curve header from curve {curve}: {data}")
-            return data
-        except (IOError, SerialException) as e:
-            raise IOError(f"Serial error communicating with Lake Shore {self.model_number[-3:]}: {e}")
-        except ValueError as e:
-            log.critical(f"{channel} is not an allowed channel for the Lake Shore {self.model_number[-3:]}: {e}."
-                         f"Ignoring request")
-
-    def _generate_new_settings(self, channel=None, curve=None, command_code=None, **desired_settings):
-        """
-        Uses the command code (string from the 'COMMAND' key in the LAKESHORE_COMMANDS dict) along with a curve/channel
-        number to first query the current settings for whatever setting is desired to be changed.
-        Next, takes the dictionary that is returned by the query_settings() function and iterates through the
-        **desired_settings. The new_settings dictionary will be populated with the same keys as returned by the query_settings
-        call. If any of the keys are present as keys in the **desired_settings, those will be added as the values in the
-        new_settings dict, otherwise they will remain the same as in the query. The new_settings dict is then returned
-        to be used by one of the 'modify_...' functions.
-        """
-        if command_code is None:
-            raise IOError(f"Insufficient information to query {self.model_num[-3:]}, no command code given.")
-
-        try:
-            if channel is not None:
-                settings = self.query_settings(command_code, channel=channel)
-            elif curve is not None:
-                settings = self.query_settings(command_code, curve=curve)
-            else:
-                log.error(f"Insufficient values given for curve or channel to query! Cannot generate up-to-date settings."
-                          f"Ignoring request to modify settings.")
-                raise IOError(f"Insufficient value given to query channel/curve")
-        except (SerialException, IOError) as e:
-            raise e
-
-        new_settings = {}
-        for k in settings.keys():
-            try:
-                new_settings[k] = desired_settings[k]
-            except KeyError:
-                new_settings[k] = settings[k]
-
-        return new_settings
-
-    def modify_curve_header(self, curve_num, command_code, **desired_settings):
-        """
-        Follows the standard modify_<setting>() pattern. Updates a user-specifiable curve header. This command will not
-        work if the user attempts to modify a preset curve on either the LakeShore 336 or 372. Primarily useful for
-        when a user is loading in a new curve and wants to name it, set its serial number, etc. (see kwargs in the
-        function below).
-        Will raise an IOError in the case of a serial error
-        """
-        new_settings = self._generate_new_settings(curve=curve_num, command_code=command_code, **desired_settings)
-
-        if self.model_number == "MODEL372":
-            header = Model372CurveHeader(curve_name=new_settings['curve_name'],
-                                         serial_number=new_settings['serial_number'],
-                                         curve_data_format=Model372CurveFormat(new_settings['curve_data_format']),
-                                         temperature_limit=new_settings['temperature_limit'],
-                                         coefficient=Model372CurveTemperatureCoefficient(new_settings['coefficient']))
-        elif self.model_number == "MODEL336":
-            header = Model336CurveHeader(curve_name=new_settings['curve_name'],
-                                         serial_number=new_settings['serial_number'],
-                                         curve_data_format=Model336CurveFormat(new_settings['curve_data_format']),
-                                         temperature_limit=new_settings['temperature_limit'],
-                                         coefficient=Model336CurveTemperatureCoefficients(new_settings['coefficient']))
-        else:
-            raise ValueError(f"Attempting to modify an curve to an unsupported device!")
-
-        try:
-            log.info(f"Applying new curve header to curve {curve_num}: {header}")
-            self.set_curve_header(curve_number=curve_num, curve_header=header)
-        except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
-            raise IOError(f"{e}")
-
-    def load_curve_data(self, curve_num, data=None, data_file=None):
-        """
-        Curve_num is the desired curve to load data into. Valid options are 21-59.
-
-        If data_file is not none, loads the data from the given .txt file on the system (there is not current support
-        for files of other formats such as .npz) . The expected format is 2 columns, column 0 is the sensor values and
-        column 1 is the associated calibrated temperature values. The temeprature values should always run high to low.
-        If data is not none, it is understood that the user is passing the data directly to the function. The format for
-        the data should be the same as in the description for the data_file.
-        data_file will take priority over data.
-
-        # TODO: Format checking
-        """
-        if data:
-            curve_data = data
-        elif data_file:
-            curve_data = np.loadtxt(data_file)
-        else:
-            raise ValueError(f"No data supplied to load to the curve")
-
-        self.set_curve(curve_num, curve_data)
-
-    def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
-        """
-        Given a monitoring function (or is of the same) and either one or the same number of optional callback
-        functions call the monitors every interval. If one callback it will get all the values in the order of the
-        monitor funcs, if a list of the same number as of monitorables each will get a single value.
-
-        Monitor functions may not return None.
-
-        When there is a 1-1 correspondence the callback is not called in the event of a monitoring error.
-        If a single callback is present for multiple monitor functions values that had errors will be sent as None.
-        Function must accept as many arguments as monitor functions.
-        """
-        if not isinstance(monitor_func, (list, tuple)):
-            monitor_func = (monitor_func,)
-        if value_callback is not None and not isinstance(value_callback, (list, tuple)):
-            value_callback = (value_callback,)
-        if not (value_callback is None or len(monitor_func) == len(value_callback) or len(value_callback) == 1):
-            raise ValueError('When specified, the number of callbacks must be one or the number of monitor functions')
-
-        def f():
-            while True:
-                vals = []
-                for func in monitor_func:
-                    try:
-                        vals.append(func())
-                    except IOError as e:
-                        log.error(f"Failed to poll {func}: {e}")
-                        vals.append(None)
-
-                if value_callback is not None:
-                    if len(value_callback) > 1 or len(monitor_func) == 1:
-                        for v, cb in zip(vals, value_callback):
-                            if v is not None:
-                                try:
-                                    cb(v)
-                                except Exception as e:
-                                    log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
-                    else:
-                        cb = value_callback[0]
-                        try:
-                            cb(*vals)
-                        except Exception as e:
-                            log.error(f"Callback {cb} error. args={vals}.", exc_info=True)
-
-                time.sleep(interval)
-
-        self._monitor_thread = threading.Thread(target=f, name='Monitor Thread')
-        self._monitor_thread.daemon = True
-        self._monitor_thread.start()
