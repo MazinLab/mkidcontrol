@@ -8,7 +8,15 @@
 #https://oss.redislabs.com/redistimeseries/
 #https://github.com/redis/redis
 
+git clone --recursive https://github.com/RedisTimeSeries/RedisTimeSeries.git
+cd RedisTimeSeries
+#make setup #as of 3/21 the setup script fails on rpi but build works
+make build
+sudo cp bin/redistimeseries.so /usr/local/lib/redistimeseries.so
 
+#insert loadmodule /usr/local/lib/redistimeseries.so into /etc/redis/redis.conf
+sudo systemctl restart redis-server.service
+pip3 install redistimeseries redis
 
 sudo apt install zsh vim nodejs
 sudo npm install -g redis-commander
@@ -16,7 +24,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 touch ~/.Xauthority
 
 #Clone this repo
-# git clone https://github.com/MazinLab/picturec.git ~/picturec
+# git clone https://github.com/MazinLab/mkidcontrol.git ~/mkidcontrol
 
 # Install anaconda and create the operating environment by running
 # wget https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
@@ -37,7 +45,7 @@ conda env create -f conda.yml
 #pip install -e ~/src/mkidgen3
 
 # Install the different configuration necessities for picturec
-cd /home/mazinlab/picturec
+cd /home/mazinlab/mkidcontrol
 sudo cp etc/redis/redis.conf /etc/redis/
 sudo cp etc/systemd/system/* /etc/systemd/system/
 sudo cp etc/udev/rules.d/* /etc/udev/rules.d/
