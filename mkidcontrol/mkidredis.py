@@ -13,8 +13,9 @@ from redis import RedisError, ConnectionError, TimeoutError, AuthenticationError
 from redistimeseries.client import Client as _RTSClient
 import logging
 import datetime
-from mkidcontrol.config import REDIS_DB
-
+# from .config import REDIS_DB
+#
+REDIS_DB = 0
 
 class MKIDRedis(object):
     """
@@ -241,9 +242,8 @@ publish = None
 mkr_range = None  # This breaks the naming mold since range is already a python special function
 redis_ts = None
 
-
 def setup_redis(host='localhost', port=6379, db=REDIS_DB, ts_keys=tuple()):
-    global mkidredis, store, read, listen, publish, mkr_range, redis_ts
+    global mkidredis, store, read, listen, publish, mkr_range, redis_ts, ps
     mkidredis = MKIDRedis(host=host, port=port, db=db, ts_keys=ts_keys)
     store = mkidredis.store
     read = mkidredis.read
