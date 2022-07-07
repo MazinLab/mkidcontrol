@@ -2,7 +2,6 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, SubmitField, StringField
 from mkidcontrol.commands import COMMAND_DICT
 
-
 SIM921_SETTING_KEYS = {'resistancerange': {'key':'device-settings:sim921:resistance-range', 'type': 'sim921', 'prefix': True, 'field_type':'select', 'label':'\u26A0 Resistance Range (\u03A9)'},
               'excitationvalue': {'key':'device-settings:sim921:excitation-value', 'type': 'sim921', 'prefix': True, 'field_type':'select', 'label':'\u26A0 Excitation Value (V)'},
               'excitationmode': {'key':'device-settings:sim921:excitation-mode', 'type': 'sim921', 'prefix': True, 'field_type':'select', 'label':'\u26A0 Excitation Mode'},
