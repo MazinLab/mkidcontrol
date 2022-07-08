@@ -110,6 +110,12 @@ class MKIDRedis(object):
         if isinstance(keys, str):
             keys = [keys]
 
+        for k in range(len(keys)):
+            try:
+                keys[k] = keys[k].decode('utf-8')
+            except AttributeError:
+                pass
+
         if len(keys) > 1:
             vals = []
 
