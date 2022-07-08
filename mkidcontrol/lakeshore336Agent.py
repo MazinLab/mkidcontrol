@@ -17,12 +17,21 @@ TODO: Initialization of settings on startup
 import sys
 import logging
 import time
+import numpy as np
 
 from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.devices import LakeShore336
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS336, LakeShore336Command
 import mkidcontrol.mkidredis as redis
+
+import wtforms
+from wtforms.fields import *
+from wtforms.widgets import HiddenInput
+from wtforms.fields.html5 import *
+from wtforms.validators import *
+from wtforms import Form
+from flask_wtf import FlaskForm
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +53,53 @@ QUERY_INTERVAL = 1
 SETTING_KEYS = tuple(COMMANDS336.keys())
 
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
+
+
+class LS336Form(FlaskForm):
+    title = "Lake Shore 336 Settings"
+    set = SubmitField("Set Lake Shore")
+
+
+class InputSensorForm(FlaskForm):
+    from .commands import LS336_SENSOR_TYPES, LS336_SENSOR_UNITS
+    type = SelectField("Sensor Type", choices=list(LS336_SENSOR_TYPES.keys()))
+    units = SelectField("Units", choices=list(LS336_SENSOR_UNITS.keys()))
+    curve = SelectField("Curve", choices=np.arange(1, 60))
+    autorange = BooleanField(label="Autorange Enable")
+    compensation = BooleanField(label="Compensation")
+
+
+class DiodeForm(InputSensorForm):
+    from .commands import LS336_DIODE_RANGE
+    input_range = SelectField("Input Range", choices=list(LS336_DIODE_RANGE.keys()))
+    update = SubmitField("Update")
+
+
+class RTDForm(InputSensorForm):
+    from .commands import LS336_RTD_RANGE
+    input_range = SelectField("Input Range", choices=list(LS336_RTD_RANGE.keys()))
+    update = SubmitField("Update")
+
+
+class DisabledForm(FlaskForm):
+    from .commands import LS336_SENSOR_TYPES, LS336_SENSOR_UNITS, LS336_INPUT_SENSOR_RANGE
+    type = SelectField("Sensor Type", choices=list(LS336_SENSOR_TYPES.keys()), render_kw={'disabled':True})
+    units = SelectField("Units", choices=list(LS336_SENSOR_UNITS.keys()), render_kw={'disabled':True})
+    curve = SelectField("Curve", choices=np.arange(1, 60), render_kw={'disabled':True})
+    autorange = BooleanField(label="Autorange Enable", render_kw={'disabled':True})
+    compensation = BooleanField(label="Compensation", render_kw={'disabled':True})
+    input_range = SelectField("Input Range", choices=list(LS336_INPUT_SENSOR_RANGE.keys()), render_kw={'disabled':True})
+    enable = SubmitField("Enable")
+
+
+class Schedule(FlaskForm):
+    at = DateTimeLocalField('Activate at', format='%m/%d/%Y %I:%M %p')
+    # at = wtforms.DateTimeField('Activate at', format='%m/%d/%Y %I:%M %p')
+    # date = wtforms.fields.html5.DateField('Date')
+    # time = wtforms.fields.html5.TimeField('Time')
+    repeat = BooleanField(label='Every Day?', default=True)
+    clear = SubmitField("Clear")
+    schedule = SubmitField("Set")
 
 
 def firmware_pull(device):

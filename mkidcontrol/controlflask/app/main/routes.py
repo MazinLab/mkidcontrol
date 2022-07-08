@@ -85,24 +85,25 @@ redis.setup_redis(ts_keys=TS_KEYS)
 
 log = setup_logging('controlDirector')
 
+
 def guess_language(x):
     return 'en'
 
 
-@bp.before_app_request
-def before_request():
-    if current_user.is_authenticated:
-        current_user.last_seen = datetime.datetime.utcnow()
-        db.session.commit()
-    g.locale = str(get_locale())
-    redis = current_app.redis
-    # redis = cloudlight.cloudredis.setup_redis(use_schema=False, module=False)
-    g.redis = redis
-
-@bp.after_request
-def add_header(response):
-    response.headers['Cache-Control'] = 'no-cache, no-store'
-    return response
+# @bp.before_app_request
+# def before_request():
+#     if current_user.is_authenticated:
+#         current_user.last_seen = datetime.datetime.utcnow()
+#         db.session.commit()
+#     g.locale = str(get_locale())
+#     redis = current_app.redis
+#     # redis = cloudlight.cloudredis.setup_redis(use_schema=False, module=False)
+#     g.redis = redis
+#
+# @bp.after_request
+# def add_header(response):
+#     response.headers['Cache-Control'] = 'no-cache, no-store'
+#     return response
 
 
 @bp.route('/', methods=['GET', 'POST'])
@@ -186,13 +187,30 @@ def log_viewer():
 
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
+    from mkidcontrol.lakeshore336Agent import Schedule, LS336Form, RTDForm, DiodeForm, \
+        DisabledForm, ALLOWED_CHANNELS, ENABLED_CHANNELS
+    from mkidcontrol.commands import LS336_Input_Sensor
     """
     Test area for trying out things before implementing them on a page
     """
-    tform = TestForm()
+    # schedule = Schedule()
+    forms = []
+    for ch in ALLOWED_CHANNELS:
+        sensor = LS336_Input_Sensor(channel=ch, redis=redis)
+        if sensor.sensor_type == "NTC RTD":
+            forms.append(RTDForm(type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
+                                 autorange=bool(sensor.autorange_enabled), compensation=bool(sensor.compensation),
+                                 input_range=sensor.input_range))
+        elif sensor.sensor_type == "Diode":
+            forms.append(DiodeForm(type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
+                                   autorange=bool(sensor.autorange_enabled), compensation=bool(sensor.compensation),
+                                   input_range=sensor.input_range))
+        elif sensor.sensor_type == "Disabled":
+            forms.append(DisabledForm())
     if request.method == 'POST':
-        print(request.form.get('x'), request.form.get('y'))
-    return render_template('test_page.html', title='Test Page', form=tform)
+        for key in request.form.keys():
+            print(f"{key}: {request.form.get(key)}")
+    return render_template('test_page.html', title='Test Page', forms=forms)
 
 
 # ----------------------------------- Helper Functions Below -----------------------------------

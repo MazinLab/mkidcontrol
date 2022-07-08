@@ -1,15 +1,17 @@
 {% extends 'base.html' %}
 
-{% block scripts %}
+
+{% block content %}
     {{ super() }}
-
-{% endblock %}
-
-{% block body %}
-    {{ super() }}
-    <div class="container" style="float:left; margin-left: 10%; max-width: 78%; padding: 0px">
-
+    <div class="container-fluid">
+        <div class="row">
+            <main role="main" class="col-12">
+                {% for f in forms %}
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom" style="margin-left:20%; margin-right:20%; margin-top:5%">
+                        {{ render_form(f) }}
+                    </div>
+                {% endfor %}
+            </main>
+        </div>
     </div>
-
-
 {% endblock %}
