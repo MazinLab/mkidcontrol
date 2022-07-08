@@ -16,13 +16,14 @@ from mkidcontrol.mkidredis import RedisError
 
 from mkidcontrol.commands import SimCommand, LakeShoreCommand, LakeShore336Command, LakeShore372Command
 
-from lakeshore import Model372CurveHeader, Model372CurveFormat, Model372CurveTemperatureCoefficient,Model336CurveHeader, \
-    Model336CurveFormat, Model336CurveTemperatureCoefficients, Model372, Model372CurveTemperatureCoefficient, \
-    Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, Model372AutoRangeMode, Model372InputSensorUnits, \
+from lakeshore import Model372CurveHeader, Model372CurveFormat, Model336CurveHeader, Model336CurveFormat, \
+    Model336CurveTemperatureCoefficients, Model372, Model372CurveTemperatureCoefficient, Model372SensorExcitationMode, \
+    Model372MeasurementInputCurrentRange, Model372AutoRangeMode, Model372InputSensorUnits, \
     Model372MeasurementInputResistance, Model372HeaterOutputSettings, Model372OutputMode, Model372InputChannel, \
     Model372InputSetupSettings, Model372ControlInputCurrentRange, Model372MeasurementInputVoltageRange, \
-    Model372InputChannelSettings, Model372Polarity, Model372SampleHeaterOutputRange, Model336, Model336InputSensorUnits, \
-    Model336InputSensorSettings, Model336InputSensorType, Model336RTDRange, Model336DiodeRange, Model336ThermocoupleRange
+    Model372InputChannelSettings, Model372Polarity, Model372SampleHeaterOutputRange, Model336, \
+    Model336InputSensorUnits, Model336InputSensorSettings, Model336InputSensorType, Model336RTDRange, \
+    Model336DiodeRange, Model336ThermocoupleRange
 
 
 log = logging.getLogger(__name__)
