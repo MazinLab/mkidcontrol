@@ -243,7 +243,7 @@ mkr_range = None  # This breaks the naming mold since range is already a python 
 redis_ts = None
 
 def setup_redis(host='localhost', port=6379, db=REDIS_DB, ts_keys=tuple()):
-    global mkidredis, store, read, listen, publish, mkr_range, redis_ts, ps
+    global mkidredis, store, read, listen, publish, mkr_range, redis_ts, redis_keys
     mkidredis = MKIDRedis(host=host, port=port, db=db, ts_keys=ts_keys)
     store = mkidredis.store
     read = mkidredis.read
@@ -251,3 +251,4 @@ def setup_redis(host='localhost', port=6379, db=REDIS_DB, ts_keys=tuple()):
     publish = mkidredis.publish
     mkr_range = mkidredis.range
     redis_ts = mkidredis.redis_ts
+    redis_keys = mkidredis.redis.keys
