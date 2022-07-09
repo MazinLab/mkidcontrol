@@ -29,11 +29,6 @@ import mkidcontrol.mkidredis as redis
 
 log = logging.getLogger()
 
-ENABLED_INPUT_CHANNELS = ("A")
-ALLOWED_INPUT_CHANNELS = ("A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16")
-ENABLED_OUTPUT_CHANNELS = (0, )
-ALLOWED_OUTPUT_CHANNELS = (0, 1, 2)
-
 TEMPERATURE_KEY = 'status:temps:device-stage:temp'
 RESISTANCE_KEY = 'status:temps:device-stage:resistance'
 EXCITATION_POWER_KEY = 'status:temps:device-stage:excitation-power'

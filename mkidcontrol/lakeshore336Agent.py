@@ -22,7 +22,7 @@ import numpy as np
 from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.devices import LakeShore336
 import mkidcontrol.util as util
-from mkidcontrol.commands import COMMANDS336, LakeShore336Command
+from mkidcontrol.commands import COMMANDS336, LakeShore336Command, ENABLED_336_CHANNELS
 import mkidcontrol.mkidredis as redis
 
 import wtforms
@@ -34,9 +34,6 @@ from wtforms import Form
 from flask_wtf import FlaskForm
 
 log = logging.getLogger(__name__)
-
-ENABLED_CHANNELS = ('B', 'C', 'D')
-ALLOWED_CHANNELS = ("A", "B", "C", "D")
 
 TEMP_KEYS = ['status:temps:1k-stage:temp', 'status:temps:4k-stage:temp', 'status:temps:77k-stage:temp']
 SENSOR_VALUE_KEYS = ['status:temps:1k-stage:resistance', 'status:temps:4k-stage:voltage', 'status:temps:77k-stage:voltage']
@@ -146,10 +143,10 @@ if __name__ == "__main__":
     redis.setup_redis(ts_keys=TS_KEYS)
 
     try:
-        lakeshore = LakeShore336('LakeShore336', port='/dev/ls336', enabled_channels=ENABLED_CHANNELS,
+        lakeshore = LakeShore336('LakeShore336', port='/dev/ls336', enabled_channels=ENABLED_336_CHANNELS,
                                  initializer=initializer)
     except:
-        lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_CHANNELS,
+        lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS,
                                  initializer=initializer)
 
     def callback(tvals, svals):

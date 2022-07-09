@@ -333,12 +333,15 @@ def load_tvals(curve):
 
 
 # ---- Lake Shore 336 Commands ----
+ENABLED_336_CHANNELS = ('B', 'C', 'D')
+ALLOWED_336_CHANNELS = ("A", "B", "C", "D")
+
 from lakeshore import Model336InputSensorType, Model336InputSensorUnits, \
     Model336DiodeRange, Model336RTDRange, Model336ThermocoupleRange, Model336CurveFormat, \
     Model336CurveTemperatureCoefficients
 
-LS336_SENSOR_TYPES = {key: val.value for key, val in zip(['Disabled', 'Diode', 'Platinum RTD', 'NTC RTD', 'Thermocouple', 'Capacitance'], Model336InputSensorType)}
-LS336_SENSOR_UNITS = {key: val.value for key, val in zip(['Kelvin', 'Celsius', 'Sensor'], Model336InputSensorUnits)}
+LS336_INPUT_SENSOR_TYPES = {key: val.value for key, val in zip(['Disabled', 'Diode', 'Platinum RTD', 'NTC RTD', 'Thermocouple', 'Capacitance'], Model336InputSensorType)}
+LS336_INPUT_SENSOR_UNITS = {key: val.value for key, val in zip(['Kelvin', 'Celsius', 'Sensor'], Model336InputSensorUnits)}
 LS336_DIODE_RANGE = {key: val.value for key, val in zip(["2.5 V", "10 V"], Model336DiodeRange)}
 LS336_RTD_RANGE = {key: val.value for key, val in zip([f"{res} \u03A9" for res in [10, 30, 100, 300, 1e3, 3e3, 10e3, 30e3, 100e3]], Model336RTDRange)}
 LS336_THERMOCOUPLE_RANGE = {key: val.value for key, val in zip(['50 mV'], Model336ThermocoupleRange)}
@@ -353,9 +356,8 @@ LS336_INPUT_SENSOR_RANGE.update(LS336_RTD_RANGE)
 LS336_INPUT_SENSOR_RANGE.update(LS336_THERMOCOUPLE_RANGE)
 
 
-class LS336_Input_Sensor:
+class LS336InputSensor:
     def __init__(self, channel, redis):
-
         values = redis.read(redis.redis_keys(f'device-settings*ls336:input-channel-{channel.lower()}*'))
         self.channel = channel.upper()
 
@@ -367,20 +369,17 @@ class LS336_Input_Sensor:
         self.units = values[f'device-settings:ls336:input-channel-{channel.lower()}:units']
 
 
-ENABLED_336_CHANNELS = ('B', 'C', 'D')
-ALLOWED_336_CHANNELS = ("A", "B", "C", "D")
-
 COMMANDS336 = {}
-COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE', 'vals': LS336_SENSOR_TYPES} for ch in ALLOWED_336_CHANNELS})
+COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE', 'vals': LS336_INPUT_SENSOR_TYPES} for ch in ALLOWED_336_CHANNELS})
 COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:autorange-enable': {'command': 'INTYPE', 'vals': LS336_AUTORANGE_VALUES} for ch in ALLOWED_336_CHANNELS})
 COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:compensation': {'command': 'INTYPE', 'vals': LS336_COMPENSATION_VALUES} for ch in ALLOWED_336_CHANNELS})
-COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:units': {'command': 'INTYPE', 'vals': LS336_SENSOR_UNITS} for ch in ALLOWED_336_CHANNELS})
+COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:units': {'command': 'INTYPE', 'vals': LS336_INPUT_SENSOR_UNITS} for ch in ALLOWED_336_CHANNELS})
 COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:input-range': {'command': 'INTYPE', 'vals': LS336_INPUT_SENSOR_RANGE} for ch in ALLOWED_336_CHANNELS})
 COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:curve': {'command': 'INCRV', 'vals': {str(cn): cn for cn in np.arange(1, 60)}} for ch in ALLOWED_336_CHANNELS})
 COMMANDS336.update({f'device-settings:ls336:curve-{cu}:curve-name': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
 COMMANDS336.update({f'device-settings:ls336:curve-{cu}:serial-number': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
 COMMANDS336.update({f'device-settings:ls336:curve-{cu}:curve-data-format': {'command': 'CRVHDR', 'vals': LS336_CURVE_DATA_FORMAT} for cu in np.arange(21, 60)})
-COMMANDS336.update({f'device-settings:ls336:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(21, 60)})
+COMMANDS336.update({f'device-settings:ls336:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(1, 60)})
 COMMANDS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': LS336_CURVE_COEFFICIENTS} for cu in np.arange(21, 60)})
 
 
@@ -390,123 +389,73 @@ ALLOWED_372_INPUT_CHANNELS = ("A", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
 ENABLED_372_OUTPUT_CHANNELS = (0, )
 ALLOWED_372_OUTPUT_CHANNELS = (0, 1, 2)
 
+from lakeshore import Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, \
+    Model372MeasurementInputVoltageRange, Model372CurveFormat, Model372CurveTemperatureCoefficient, \
+    Model372AutoRangeMode, Model372InputSensorUnits, Model372MeasurementInputResistance, Model372OutputMode, \
+    Model372InputChannel, Model372ControlInputCurrentRange, Model372Polarity, Model372SampleHeaterOutputRange
+
+LS372_SENSOR_MODE = {key: val.value for key, val in zip(['Voltage', 'Current'], Model372SensorExcitationMode)}
+LS372_AUTORANGE_VALUES = {key: val.value for key, val in zip(['Off', 'Current', 'ROX102B'], Model372AutoRangeMode)}
+LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE = {key: val.value for key, val in zip(['2 \u00B5V', '6.32 \u00B5V', '20 \u00B5V', '63.2 \u00B5V', '200 \u00B5V', '632 \u00B5V',
+                                                                 '2 mV', '6.32 mV', '20 mV', '63.2 mV', '200 mV', '632 mV'], Model372MeasurementInputVoltageRange)}
+LS372_MEASUREMENT_INPUT_CURRENT_RANGE = {key: val.value for key, val in zip(['1 pA', '3.16 pA', '10 pA', '31.6 pA', '100 pA', '316 pA',
+                                                                 '1 nA', '3.16 nA', '10 nA', '31.6 nA', '100 nA', '316 nA',
+                                                                 '1 \u00B5A', '3.16 \u00B5A', '10 \u00B5A', '31.6 \u00B5A', '100 \u00B5A', '316 \u00B5A',
+                                                                 '1 mA', '3.16 mA', '10 mA', '31.6 mA'], Model372MeasurementInputCurrentRange)}
+LS372_CONTROL_INPUT_CURRENT_RANGE = {key: val.value for key, val in zip(['316 pA', '1 nA', '3.16 nA', '10 nA', '31.6 nA', '100 nA'], Model372ControlInputCurrentRange)}
+LS372_CURRENT_SOURCE_SHUNTED_VALUES = {"False": False, "True": True}
+LS372_INPUT_SENSOR_UNITS = {key: val.value for key, val in zip(['Kelvin', 'Ohms'], Model372InputSensorUnits)}
+LS372_RESISTANCE_RANGE = {key: val.value for key, val in zip([f"{res}\u03A9" for res in ['2 m', '6.32 m', '20 m', '63.2 m', '200 m', '632 m',
+                                                                                         '2 ', '6.32 ', '20 ', '63.2 ', '200 ', '632 ',
+                                                                                         '2 k', '6.32 k', '20 k', '63.2 k', '200 k', '632 k',
+                                                                                         '2 M', '6.32 M', '20 M', '63.2 M']], Model372MeasurementInputResistance)}
+LS372_ENABLED_VALUES = {'False': False, 'True': True}
+LS372_HEATER_OUTPUT_MODE = {key: val.value for key, val in zip(['Off', 'Monitor Out', 'Open Loop', 'Zone', 'Still', 'Closed Loop', 'Warmup'], Model372OutputMode)}
+LS372_HEATER_INPUT_CHANNEL = {key: val.value for key, val in zip(['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
+                                                                  'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen',
+                                                                  'Fourteen', 'Fifteen', 'Sixteen', 'Control'], Model372InputChannel)}
+LS372_HEATER_POWERUP_ENABLE = {'False': False, 'True': True}
+LS372_HEATER_READING_FILTER = {'False': False, 'True': True}
+LS372_OUTPUT_POLARITY = {key: val.value for key, val in zip(['Unipolar', 'Bipolar'], Model372Polarity)}
+LS372_HEATER_CURRENT_RANGE = {key: val.value for key, val in zip(['Off', '31.6 \u00B5A', '100 \u00B5A', '316 \u00B5A', '1 mA',
+                                                             '3.16 mA', '10 mA', '31.6 mA', '100 mA'], Model372SampleHeaterOutputRange)}
+LS372_CURVE_DATA_FORMAT = {key: val.value for key, val in zip(['\u03A9/K', 'log(\u03A9)/K', '\u03A9/K Cubic Spine'], Model372CurveFormat)}
+LS372_CURVE_COEFFICIENTS = {key: val.value for key, val in zip(['Negative', 'Positive'], Model372CurveTemperatureCoefficient)}
+
+LS372_INPUT_SENSOR_RANGE = {}
+LS372_INPUT_SENSOR_RANGE.update(LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE)
+LS372_INPUT_SENSOR_RANGE.update(LS372_MEASUREMENT_INPUT_CURRENT_RANGE)
+LS372_INPUT_SENSOR_RANGE.update(LS372_CONTROL_INPUT_CURRENT_RANGE)
+
 COMMANDS372 = {}
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:mode': {'command': 'INTYPE', 'vals': {'VOLTAGE': 0, 'CURRENT': 1}} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:excitation-range': {'command': 'INTYPE', 'vals': {'RANGE_2_MICRO_VOLTS': 1,
-                                                                                                                         'RANGE_6_POINT_32_MICRO_VOLTS': 2,
-                                                                                                                         'RANGE_20_MICRO_VOLTS': 3,
-                                                                                                                         'RANGE_63_POINT_2_MICRO_VOLTS': 4,
-                                                                                                                         'RANGE_200_MICRO_VOLTS': 5,
-                                                                                                                         'RANGE_632_MICRO_VOLTS': 6,
-                                                                                                                         'RANGE_2_MILLI_VOLTS': 7,
-                                                                                                                         'RANGE_6_POINT_32_MILLI_VOLTS': 8,
-                                                                                                                         'RANGE_20_MILLI_VOLTS': 9,
-                                                                                                                         'RANGE_63_POINT_2_MILLI_VOLTS': 10,
-                                                                                                                         'RANGE_200_MILLI_VOLTS': 11,
-                                                                                                                         'RANGE_632_MILLI_VOLTS': 12,
-                                                                                                                         'RANGE_1_PICO_AMP': 1,
-                                                                                                                         'RANGE_3_POINT_16_PICO_AMPS': 2,
-                                                                                                                         'RANGE_10_PICO_AMPS': 3,
-                                                                                                                         'RANGE_31_POINT_6_PICO_AMPS': 4,
-                                                                                                                         'RANGE_100_PICO_AMPS': 5,
-                                                                                                                         'RANGE_316_PICO_AMPS': 6,
-                                                                                                                         'RANGE_1_NANO_AMP': 7,
-                                                                                                                         'RANGE_3_POINT_16_NANO_AMPS': 8,
-                                                                                                                         'RANGE_10_NANO_AMPS': 9,
-                                                                                                                         'RANGE_31_POINT_6_NANO_AMPS': 10,
-                                                                                                                         'RANGE_100_NANO_AMPS': 11,
-                                                                                                                         'RANGE_316_NANO_AMPS': 12,
-                                                                                                                         'RANGE_1_MICRO_AMP': 13,
-                                                                                                                         'RANGE_3_POINT_16_MICRO_AMPS': 14,
-                                                                                                                         'RANGE_10_MICRO_AMPS': 15,
-                                                                                                                         'RANGE_31_POINT_6_MICRO_AMPS': 16,
-                                                                                                                         'RANGE_100_MICRO_AMPS': 17,
-                                                                                                                         'RANGE_316_MICRO_AMPS': 18,
-                                                                                                                         'RANGE_1_MILLI_AMP': 19,
-                                                                                                                         'RANGE_3_POINT_16_MILLI_AMPS': 20,
-                                                                                                                         'RANGE_10_MILLI_AMPS': 21,
-                                                                                                                         'RANGE_31_POINT_6_MILLI_AMPS': 22}} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:auto-range': {'command': 'INTYPE', 'vals': {'OFF': 0, 'CURRENT': 1, 'ROX102B': 2}} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:current-source-shunted': {'command': 'INTYPE', 'vals': {"FALSE": False, "TRUE": True}} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:units': {'command': 'INTYPE', 'vals': {'KELVIN': 1, 'OHMS': 2}} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:resistance-range': {'command': 'INTYPE', 'vals': {'RANGE_2_MILLI_OHMS': 1,
-                                                                                                                         'RANGE_6_POINT_32_MILLI_OHMS': 2,
-                                                                                                                         'RANGE_20_MILLI_OHMS': 3,
-                                                                                                                         'RANGE_63_POINT_2_MILLI_OHMS': 4,
-                                                                                                                         'RANGE_200_MILLI_OHMS': 5,
-                                                                                                                         'RANGE_632_MILLI_OHMS': 6,
-                                                                                                                         'RANGE_2_OHMS': 7,
-                                                                                                                         'RANGE_6_POINT_32_OHMS': 8,
-                                                                                                                         'RANGE_20_OHMS': 9,
-                                                                                                                         'RANGE_63_POINT_2_OHMS': 10,
-                                                                                                                         'RANGE_200_OHMS': 11,
-                                                                                                                         'RANGE_632_OHMS': 12,
-                                                                                                                         'RANGE_2_KIL_OHMS': 13,
-                                                                                                                         'RANGE_6_POINT_32_KIL_OHMS': 14,
-                                                                                                                         'RANGE_20_KIL_OHMS': 15,
-                                                                                                                         'RANGE_63_POINT_2_KIL_OHMS': 16,
-                                                                                                                         'RANGE_200_KIL_OHMS': 17,
-                                                                                                                         'RANGE_632_KIL_OHMS': 18,
-                                                                                                                         'RANGE_2_MEGA_OHMS': 19,
-                                                                                                                         'RANGE_6_POINT_32_MEGA_OHMS': 20,
-                                                                                                                         'RANGE_20_MEGA_OHMS': 21,
-                                                                                                                         'RANGE_63_POINT_2_MEGA_OHMS': 22}} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:enable': {'command': 'INSET', 'vals': {"TRUE": True, "FALSE": False}} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:mode': {'command': 'INTYPE', 'vals': LS372_SENSOR_MODE} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:excitation-range': {'command': 'INTYPE', 'vals': LS372_INPUT_SENSOR_RANGE} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:auto-range': {'command': 'INTYPE', 'vals': LS372_AUTORANGE_VALUES} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:current-source-shunted': {'command': 'INTYPE', 'vals': LS372_CURRENT_SOURCE_SHUNTED_VALUES} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:units': {'command': 'INTYPE', 'vals': LS372_INPUT_SENSOR_UNITS} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:resistance-range': {'command': 'INTYPE', 'vals': LS372_RESISTANCE_RANGE} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:enable': {'command': 'INSET', 'vals': LS372_ENABLED_VALUES} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:dwell-time': {'command': 'INSET', 'vals': [0, 200]} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:pause-time': {'command': 'INSET', 'vals': [3, 200]} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:curve-number': {'command': 'INSET', 'vals': {str(cn): cn for cn in np.arange(1,60)}} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:temperature-coefficient': {'command': 'INSET', 'vals': {'NEGATIVE': 1, 'POSITIVE': 2}} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:output-mode': {'command': 'OUTMODE', 'vals': {'OFF': 0,
-                                                                                                              'MONITOR_OUT': 1,
-                                                                                                              'OPEN_LOOP': 2,
-                                                                                                              'ZONE': 3,
-                                                                                                              'STILL': 4,
-                                                                                                              'CLOSED_LOOP': 5,
-                                                                                                              'WARMUP': 6}} for ch in ALLOWED_372_OUTPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:input-channel': {'command': 'OUTMODE', 'vals': {'NONE': 0,
-                                                                                                                'ONE': 1,
-                                                                                                                'TWO': 2,
-                                                                                                                'THREE': 3,
-                                                                                                                'FOUR': 4,
-                                                                                                                'FIVE': 5,
-                                                                                                                'SIX': 6,
-                                                                                                                'SEVEN': 7,
-                                                                                                                'EIGHT': 8,
-                                                                                                                'NINE': 9,
-                                                                                                                'TEN': 10,
-                                                                                                                'ELEVEN': 11,
-                                                                                                                'TWELVE': 12,
-                                                                                                                'THIRTEEN': 13,
-                                                                                                                'FOURTEEN': 14,
-                                                                                                                'FIFTEEN': 15,
-                                                                                                                'SIXTEEN': 16,
-                                                                                                                'CONTROL': 'A'}} for ch in ALLOWED_372_OUTPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:powerup-enable': {'command': 'OUTMODE', 'vals': {"TRUE": True, "FALSE": False}} for ch in ALLOWED_372_OUTPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:reading-filter': {'command': 'OUTMODE', 'vals': {"TRUE": True, "FALSE": False}} for ch in ALLOWED_372_OUTPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:temperature-coefficient': {'command': 'INSET', 'vals': LS372_CURVE_COEFFICIENTS} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:output-mode': {'command': 'OUTMODE', 'vals': LS372_HEATER_OUTPUT_MODE} for ch in ALLOWED_372_OUTPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:input-channel': {'command': 'OUTMODE', 'vals': LS372_HEATER_INPUT_CHANNEL} for ch in ALLOWED_372_OUTPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:powerup-enable': {'command': 'OUTMODE', 'vals': LS372_HEATER_POWERUP_ENABLE} for ch in ALLOWED_372_OUTPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:reading-filter': {'command': 'OUTMODE', 'vals': LS372_HEATER_READING_FILTER} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:delay': {'command': 'OUTMODE', 'vals': [1, 255]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:polarity': {'command': 'OUTMODE', 'vals': {'UNIPOLAR': 0, 'BIPOLAR': 1}} for ch in ALLOWED_372_OUTPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:polarity': {'command': 'OUTMODE', 'vals': LS372_OUTPUT_POLARITY} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:setpoint': {'command': 'SETP', 'vals': [0, 4]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:gain': {'command': 'PID', 'vals': [0, 1000]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:integral': {'command': 'PID', 'vals': [0, 10000]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:ramp_rate': {'command': 'PID', 'vals': [0, 2500]} for ch in ALLOWED_372_OUTPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:range': {'command': 'RANGE', 'vals': {'OFF': 0, 'ON': True,
-                                                                                                      'RANGE_31_POINT_6_MICRO_AMPS': 1,
-                                                                                                      'RANGE_100_MICRO_AMPS': 2,
-                                                                                                      'RANGE_316_MICRO_AMPS': 3,
-                                                                                                      'RANGE_1_MILLI_AMP': 4,
-                                                                                                      'RANGE_3_POINT_16_MILLI_AMPS': 5,
-                                                                                                      'RANGE_10_MILLI_AMPS': 6,
-                                                                                                      'RANGE_31_POINT_6_MILLI_AMPS': 7,
-                                                                                                      'RANGE_100_MILLI_AMPS': 8}} for ch in ALLOWED_372_OUTPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:range': {'command': 'RANGE', 'vals': LS372_HEATER_CURRENT_RANGE} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:curve-{cu}:curve-name': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
 COMMANDS372.update({f'device-settings:ls372:curve-{cu}:serial-number': {'command': 'CRVHDR', 'vals': None} for cu in np.arange(21, 60)})
-COMMANDS372.update({f'device-settings:ls372:curve-{cu}:curve-data-format': {'command': 'CRVHDR', 'vals': {'MILLIVOLT_PER_KELVIN': 1,
-                                                                                                            'VOLTS_PER_KELVIN': 2,
-                                                                                                            'OHMS_PER_KELVIN': 3,
-                                                                                                            'LOG_OHMS_PER_KELVIN': 4}} for cu in np.arange(21, 60)})
+COMMANDS372.update({f'device-settings:ls372:curve-{cu}:curve-data-format': {'command': 'CRVHDR', 'vals': LS372_CURVE_DATA_FORMAT} for cu in np.arange(21, 60)})
 COMMANDS372.update({f'device-settings:ls372:curve-{cu}:temperature-limit': {'command': 'CRVHDR', 'vals': [0, 400]} for cu in np.arange(21, 60)})
-COMMANDS372.update({f'device-settings:ls372:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': {'NEGATIVE': 1,
-                                                                                                      'POSITIVE': 2}} for cu in np.arange(21, 60)})
+COMMANDS372.update({f'device-settings:ls372:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': LS372_CURVE_COEFFICIENTS} for cu in np.arange(21, 60)})
+
 
 # ---- Lake Shore 625 Commands ----
 COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'9600': '0', '19200': '1',
