@@ -16,6 +16,7 @@
         {% block styles %}
 <!--        <link rel="sytlesheet" href="{{ url_for('static', filename='css/favicon.css') }}">-->
         <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
         {% endblock %}
 
         <title>MKID Control</title>
@@ -29,59 +30,153 @@
         {% block navbar %}{% endblock %}
 
         {% block content %}
-        <div class="sidenav" style="height:100%; width: 10%; position:fixed; z-index: 1; top: 0; left: 0; overflow-x: hidden; padding-top: 50px; background-color: #111">
-            <a href="{{ url_for('main.index') }}" style="padding: 6px 8px 100px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">MKID Control</a>
-            <a href="{{ url_for('main.index') }}" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">Home</a>
-            <a href="{{ url_for('main.settings') }}" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">Settings</a>
-            <a href="{{ url_for('main.test_page') }}" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">Test Page</a>
-            <a style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">Detector</a>
-            <a href="http://localhost:8081" target="_blank" rel="noopener noreferrer" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">Redis</a>
-            <a href="{{ url_for('main.log_viewer') }}" target="_blank" rel="noopener noreferrer" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">Log Viewer</a>
-            <a href="{{ url_for('main.other_plots') }}" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">Other Plots</a>
-            {% if current_user.is_anonymous %}
-            <a href="{{ url_for('auth.login') }}" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">Login</a>
-            {% else %}
-            <a href="{{ url_for('auth.logout') }}" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 20px; color: #818181; display: block">Logout</a>
-            {% endif %}
+        <nav class="navbar navbar-expand-lg navbar-light bg-secondary"; style="position: sticky; top: 0; z-index: 100">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
+<!--                <img src="{{ url_for('static', filename='mazinlab_logo.png') }}" width="30" height="30" class="d-inline-block align-top" alt="">-->
+                MKID Control
+            </a>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{{ url_for('main.index') }}">Home <span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Thermometry
+                        </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="#">Device Thermometer</a>
+                        <a class="dropdown-item" href="#">1K Thermometer</a>
+                        <a class="dropdown-item" href="#">3K Thermometer</a>
+                        <a class="dropdown-item" href="#">50K Thermometer</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#">Something else here</a>
+                    </div>
+                    </li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="#">Heater Setup</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Logs
+                        </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="{{ url_for('main.log_viewer') }}">Log Viewer</a>
+                        <a class="dropdown-item" href="http://localhost:8081" target="_blank" rel="noopener noreferrer">Redis</a>
+                        <a class="dropdown-item" href="#">Services</a>
+                    </div>
+                    </li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{{ url_for('main.other_plots') }}">Other Plots</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.test_page') }}">Test Page</a>
+                    </li>
+                </ul>
+                 <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
+                 <li class="nav-item dropdown">
+                    {% if current_user.is_anonymous %}
+                      <a class="nav-item nav-link dropdown-toggle mr-md-2" href="#" id="bd-versions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Log In
+                      </a>
+                      <div class="dropdown-menu dropdown-menu-right" aria-labelledby="bd-versions">
+                        <a class="dropdown-item" href="{{ url_for('auth.login') }}">Log In</a>
+                          <div class="dropdown-divider"></div>
+                        <a class="dropdown-item disabled" href="">Help</a>
+                      </div>
+                    {% else %}
+                      <a class="nav-item nav-link dropdown-toggle mr-md-2" href="#" id="bd-versions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Log Out
+                      </a>
+                      <div class="dropdown-menu dropdown-menu-right" aria-labelledby="bd-versions">
+                        <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Log Out</a>
+                          <div class="dropdown-divider"></div>
+                        <a class="dropdown-item disabled" href="">Help</a>
+                      </div>
+                    {% endif %}
+
+                </li>
+             </ul>
+            </div>
+        </nav>
+
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-3 col-md-2 justify-content-center sidebar">
+                    <div class="d-flex flex-row justify-content-center align-items-center p-6" style="text-decoration: underline; font-size: 25px; color: white; display: block">
+                        <div class="column" style="float: left; margin-left: 8%; width: 92%">Sensors</div>
+                    </div>
+                    <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
+                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Device T:</div>
+                        <div class="column" style="float: left; width: 50%"><div id="Temp_Report" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>
+                    </div>
+
+                    <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
+                        <div class="column" style="float: left; margin-left: 8%; width: 40%">1K T:</div>
+                        <div class="column" style="float: left; width: 50%"><div id="1K_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>
+                    </div>
+
+                    <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
+                        <div class="column" style="float: left; margin-left: 8%; width: 40%">3K T:</div>
+                        <div class="column" style="float: left; width: 50%"><div id="3K_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>
+                    </div>
+
+                    <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
+                        <div class="column" style="float: left; margin-left: 8%; width: 40%">50K T:</div>
+                        <div class="column" style="float: left; width: 50%"><div id="50K_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>
+                    </div>
+
+                    <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
+                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Current:</div>
+                        <div class="column" style="float: left; width: 50%"><div id="Meas_Current" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">A</div></div>
+                    </div>
+
+                    <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
+                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Heat switch: </div>
+                        <div class="column" style="float: left; width: 50%"><div id="heatswitch" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left"></div></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="sidenav" style="height:100%; width: 12%; position:fixed; z-index: 1; top: 0; right: 0; overflow-x: hidden; padding-top: 10px; background-color: #111">
-            <!--    TODO: Add Status for different agents too.-->
-            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">
-                <div class="column" style="float: left; margin-left: 8%; width: 40%">Device T:</div>
-                <div class="column" style="float: left; width: 50%"><div id="Temp_Report" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">K</div></div>
-            </div>
 
-            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">
-                <div class="column" style="float: left; margin-left: 8%; width: 40%">1K T:</div>
-                <div class="column" style="float: left; width: 50%"><div id="1K_Temp" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">K</div></div>
-            </div>
+<!--        <div class="sidenav" style="height:100%; width: 12%; position:fixed; z-index: 1; top: 0; right: 0; overflow-x: hidden; padding-top: 10px; background-color: #111">-->
+<!--            &lt;!&ndash;    TODO: Add Status for different agents too.&ndash;&gt;-->
+<!--            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">-->
+<!--                <div class="column" style="float: left; margin-left: 8%; width: 40%">Device T:</div>-->
+<!--                <div class="column" style="float: left; width: 50%"><div id="Temp_Report" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">K</div></div>-->
+<!--            </div>-->
 
-            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">
-                <div class="column" style="float: left; margin-left: 8%; width: 40%">3K T:</div>
-                <div class="column" style="float: left; width: 50%"><div id="3K_Temp" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">K</div></div>
-            </div>
+<!--            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">-->
+<!--                <div class="column" style="float: left; margin-left: 8%; width: 40%">1K T:</div>-->
+<!--                <div class="column" style="float: left; width: 50%"><div id="1K_Temp" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">K</div></div>-->
+<!--            </div>-->
 
-            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">
-                <div class="column" style="float: left; margin-left: 8%; width: 40%">50K T:</div>
-                <div class="column" style="float: left; width: 50%"><div id="50K_Temp" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">K</div></div>
-            </div>
+<!--            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">-->
+<!--                <div class="column" style="float: left; margin-left: 8%; width: 40%">3K T:</div>-->
+<!--                <div class="column" style="float: left; width: 50%"><div id="3K_Temp" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">K</div></div>-->
+<!--            </div>-->
 
-            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">
-                <div class="column" style="float: left; margin-left: 8%; width: 40%">Current:</div>
-                <div class="column" style="float: left; width: 50%"><div id="Meas_Current" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">A</div></div>
-            </div>
+<!--            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">-->
+<!--                <div class="column" style="float: left; margin-left: 8%; width: 40%">50K T:</div>-->
+<!--                <div class="column" style="float: left; width: 50%"><div id="50K_Temp" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">K</div></div>-->
+<!--            </div>-->
 
-            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">
-                <div class="column" style="float: left; margin-left: 8%; width: 40%">Heat switch:</div>
-                <div class="column" style="float: left; width: 50%"><div id="heatswitch" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left"></div></div>
-            </div>
+<!--            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">-->
+<!--                <div class="column" style="float: left; margin-left: 8%; width: 40%">Current:</div>-->
+<!--                <div class="column" style="float: left; width: 50%"><div id="Meas_Current" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left">A</div></div>-->
+<!--            </div>-->
 
-            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">
-                <div class="column" style="float: left; margin-left: 8%; width: 40%">Magnet Status:</div>
-                <div class="column" style="float: left; width: 50%"><div id="Magnet_Status" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left"></div></div>
-            </div>
-        </div>
+<!--            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">-->
+<!--                <div class="column" style="float: left; margin-left: 8%; width: 40%">Heat switch:</div>-->
+<!--                <div class="column" style="float: left; width: 50%"><div id="heatswitch" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left"></div></div>-->
+<!--            </div>-->
+
+<!--            <div class="row" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: #818181; display: block">-->
+<!--                <div class="column" style="float: left; margin-left: 8%; width: 40%">Magnet Status:</div>-->
+<!--                <div class="column" style="float: left; width: 50%"><div id="Magnet_Status" style="display: inline; float: left; padding-right: 3px"></div><div style="display: inline; float: left"></div></div>-->
+<!--            </div>-->
+<!--        </div>-->
         {% endblock %}
 
         {% block scripts %}{% endblock %}

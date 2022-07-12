@@ -11,3 +11,23 @@
 /*    height: 300px;*/
 /*    padding: 0 5px;*/
 /*}*/
+
+.sidebar {
+position: fixed;
+top: 55px;
+bottom: 0;
+right: 0;
+z-index: 1;
+display: block;
+padding: 20px;
+overflow-x: hidden;
+overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+background-color: #808080;
+border-right: 1px solid #808080;
+}
+@media (min-width: 768px) {
+.main {
+padding-right: 40px;
+padding-left: 220px; /* 180 + 40 */
+}
+}
