@@ -427,6 +427,7 @@ LS372_INPUT_SENSOR_RANGE.update(LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE)
 LS372_INPUT_SENSOR_RANGE.update(LS372_MEASUREMENT_INPUT_CURRENT_RANGE)
 LS372_INPUT_SENSOR_RANGE.update(LS372_CONTROL_INPUT_CURRENT_RANGE)
 
+
 COMMANDS372 = {}
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:mode': {'command': 'INTYPE', 'vals': LS372_SENSOR_MODE} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:excitation-range': {'command': 'INTYPE', 'vals': LS372_INPUT_SENSOR_RANGE} for ch in ALLOWED_372_INPUT_CHANNELS})
