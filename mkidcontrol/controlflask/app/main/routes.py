@@ -188,15 +188,15 @@ def log_viewer():
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
     from mkidcontrol.lakeshore336Agent import Schedule, LS336Form, RTDForm, DiodeForm, \
-        DisabledForm, ALLOWED_CHANNELS, ENABLED_CHANNELS
-    from mkidcontrol.commands import LS336_Input_Sensor
+        DisabledForm
+    from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS
     """
     Test area for trying out things before implementing them on a page
     """
     # schedule = Schedule()
     forms = []
-    for ch in ALLOWED_CHANNELS:
-        sensor = LS336_Input_Sensor(channel=ch, redis=redis)
+    for ch in ALLOWED_336_CHANNELS:
+        sensor = LS336InputSensor(channel=ch, redis=redis)
         if sensor.sensor_type == "NTC RTD":
             forms.append(RTDForm(type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
                                  autorange=bool(sensor.autorange_enabled), compensation=bool(sensor.compensation),

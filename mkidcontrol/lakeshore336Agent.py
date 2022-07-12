@@ -58,9 +58,9 @@ class LS336Form(FlaskForm):
 
 
 class InputSensorForm(FlaskForm):
-    from .commands import LS336_SENSOR_TYPES, LS336_SENSOR_UNITS
-    type = SelectField("Sensor Type", choices=list(LS336_SENSOR_TYPES.keys()))
-    units = SelectField("Units", choices=list(LS336_SENSOR_UNITS.keys()))
+    from .commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS
+    type = SelectField("Sensor Type", choices=list(LS336_INPUT_SENSOR_TYPES.keys()))
+    units = SelectField("Units", choices=list(LS336_INPUT_SENSOR_UNITS.keys()))
     curve = SelectField("Curve", choices=np.arange(1, 60))
     autorange = BooleanField(label="Autorange Enable")
     compensation = BooleanField(label="Compensation")
@@ -79,9 +79,9 @@ class RTDForm(InputSensorForm):
 
 
 class DisabledForm(FlaskForm):
-    from .commands import LS336_SENSOR_TYPES, LS336_SENSOR_UNITS, LS336_INPUT_SENSOR_RANGE
-    type = SelectField("Sensor Type", choices=list(LS336_SENSOR_TYPES.keys()), render_kw={'disabled':True})
-    units = SelectField("Units", choices=list(LS336_SENSOR_UNITS.keys()), render_kw={'disabled':True})
+    from .commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_INPUT_SENSOR_RANGE
+    type = SelectField("Sensor Type", choices=list(LS336_INPUT_SENSOR_TYPES.keys()))
+    units = SelectField("Units", choices=list(LS336_INPUT_SENSOR_UNITS.keys()), render_kw={'disabled':True})
     curve = SelectField("Curve", choices=np.arange(1, 60), render_kw={'disabled':True})
     autorange = BooleanField(label="Autorange Enable", render_kw={'disabled':True})
     compensation = BooleanField(label="Compensation", render_kw={'disabled':True})
