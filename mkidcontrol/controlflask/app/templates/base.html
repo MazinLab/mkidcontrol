@@ -33,21 +33,6 @@
                 update_div("Meas_Current", "status:magnet:current", newdata, true);
                 update_div("Magnet_Status", "status:magnet:state", newdata);
                 update_div("heatswitch", "device-settings:currentduino:heatswitch", newdata);
-                update_div("Hemt1Vd", "status:feedline1:hemt:drain-voltage-bias", newdata, true);
-                update_div("Hemt2Vd", "status:feedline2:hemt:drain-voltage-bias", newdata, true);
-                update_div("Hemt3Vd", "status:feedline3:hemt:drain-voltage-bias", newdata, true);
-                update_div("Hemt4Vd", "status:feedline4:hemt:drain-voltage-bias", newdata, true);
-                update_div("Hemt5Vd", "status:feedline5:hemt:drain-voltage-bias", newdata, true);
-                update_div("Hemt1Vg", "status:feedline1:hemt:gate-voltage-bias", newdata, true);
-                update_div("Hemt2Vg", "status:feedline2:hemt:gate-voltage-bias", newdata, true);
-                update_div("Hemt3Vg", "status:feedline3:hemt:gate-voltage-bias", newdata, true);
-                update_div("Hemt4Vg", "status:feedline4:hemt:gate-voltage-bias", newdata, true);
-                update_div("Hemt5Vg", "status:feedline5:hemt:gate-voltage-bias", newdata, true);
-                update_div("Hemt1Id", "status:feedline1:hemt:drain-current-bias", newdata, true);
-                update_div("Hemt2Id", "status:feedline2:hemt:drain-current-bias", newdata, true);
-                update_div("Hemt3Id", "status:feedline3:hemt:drain-current-bias", newdata, true);
-                update_div("Hemt4Id", "status:feedline4:hemt:drain-current-bias", newdata, true);
-                update_div("Hemt5Id", "status:feedline5:hemt:drain-current-bias", newdata, true);
             }, false);
             source.addEventListener("open", function (e) {
                 console.log('Connection was opened: ', e);
