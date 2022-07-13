@@ -19,7 +19,15 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
         {% endblock %}
 
-        <title>MKID Control</title>
+        {% if title %}
+        <title>
+            {{ title }} - MagAO-X KID Camera
+        </title>
+        {% else %}
+        <title>
+            MKID Camera Control
+        </title>
+        {% endif %}
         {% endblock %}
     </head>
     <body>
@@ -45,10 +53,10 @@
                             Thermometry
                         </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="#">Device Thermometer</a>
-                        <a class="dropdown-item" href="#">1K Thermometer</a>
-                        <a class="dropdown-item" href="#">3K Thermometer</a>
-                        <a class="dropdown-item" href="#">50K Thermometer</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls372', channel='A') }}">Device Thermometer</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls336', channel='B') }}">1K Thermometer</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls336', channel='C') }}">3K Thermometer</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls336', channel='D') }}">50K Thermometer</a>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#">Something else here</a>
                     </div>
