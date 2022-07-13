@@ -250,6 +250,7 @@ class LS336InputSensor:
         values = redis.read(redis.redis_keys(f'device-settings*ls336:input-channel-{channel.lower()}*'))
         self.channel = channel.upper()
 
+        self.name = values[f'device-settings:ls336:input-channel-{channel.lower()}:name']
         self.sensor_type = values[f'device-settings:ls336:input-channel-{channel.lower()}:sensor-type']
         self.input_range = values[f'device-settings:ls336:input-channel-{channel.lower()}:input-range']
         self.autorange_enabled = False if values[f'device-settings:ls336:input-channel-{channel.lower()}:autorange-enable'].lower() == 'false' else True
@@ -426,7 +427,3 @@ COMMAND_DICT.update(COMMANDS921)
 COMMAND_DICT.update(COMMANDSHS)
 COMMAND_DICT.update(COMMANDSMAGNET)
 COMMAND_DICT.update(COMMANDS625)
-
-LAKESHORE_COMMAND_DICT = {}
-LAKESHORE_COMMAND_DICT.update(COMMANDS336)
-LAKESHORE_COMMAND_DICT.update(COMMANDS372)

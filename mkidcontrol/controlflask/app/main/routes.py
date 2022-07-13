@@ -179,21 +179,26 @@ def log_viewer():
 
 @bp.route('/thermometry/<device>/<channel>', methods=['GET', 'POST'])
 def thermometry(device, channel):
-    TITLE_DICT = {'ls336':{'a':'',
-                           'b':'1K Thermometer',
-                           'c':'3K Thermometer',
-                           'd':'50K Thermometer'},
-                  'ls372':{'a':'Device Thermometer'}}
+    title = redis.read(f'device-settings:{device}:input-channel-{channel.lower()}:name')
 
     if device == 'ls336':
-        from mkidcontrol.lakeshore336Agent import Schedule, LS336Form, RTDForm, DiodeForm, \
-            DisabledInputForm
+        from mkidcontrol.lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
         from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, \
-            LakeShore336Command
-        form = None
+            LakeShoreCommand
+        sensor = LS336InputSensor(channel=channel, redis=redis)
+        if sensor.sensor_type == "NTC RTD":
+            form = RTDForm(channel=f"{channel}", name=sensor.name, sensor_type=sensor.sensor_type, units=sensor.units,
+                           curve=sensor.curve, autorange=bool(sensor.autorange_enabled),
+                           compensation=bool(sensor.compensation), input_range=sensor.input_range)
+        elif sensor.sensor_type == "Diode":
+            form = DiodeForm(channel=f"{channel}", name=sensor.name, sensor_type=sensor.sensor_type, units=sensor.units,
+                              curve=sensor.curve, autorange=bool(sensor.autorange_enabled),
+                              compensation=bool(sensor.compensation), input_range=sensor.input_range)
+        elif sensor.sensor_type == "Disabled":
+            form = DisabledInputForm(channel=f"{channel}", name=sensor.name)
     elif device == 'ls372':
-        redirect(url_for("/errors/404.html"))
-    return render_template('thermometry.html', title=f"{TITLE_DICT[device][channel]} Setup", form=form)
+        return redirect(url_for('main.page_not_found'))
+    return render_template('thermometry.html', title=f"Thermometer: {title} Setup", form=form)
 
 
 @bp.route('/test_page', methods=['GET', 'POST'])
@@ -218,17 +223,21 @@ def test_page():
     for ch in ALLOWED_336_CHANNELS:
         sensor = LS336InputSensor(channel=ch, redis=redis)
         if sensor.sensor_type == "NTC RTD":
-            forms.append([ch, RTDForm(channel=f"{ch}", sensor_type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
+            forms.append([ch, RTDForm(channel=f"{ch}", name="NTC RTD", sensor_type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
                                  autorange=bool(sensor.autorange_enabled), compensation=bool(sensor.compensation),
                                  input_range=sensor.input_range)])
         elif sensor.sensor_type == "Diode":
-            forms.append([ch, DiodeForm(channel=f"{ch}", sensor_type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
+            forms.append([ch, DiodeForm(channel=f"{ch}", name="Diode", sensor_type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
                                    autorange=bool(sensor.autorange_enabled), compensation=bool(sensor.compensation),
                                    input_range=sensor.input_range)])
         elif sensor.sensor_type == "Disabled":
-            forms.append([ch, DisabledInputForm(channel=f"{ch}")])
+            forms.append([ch, DisabledInputForm(channel=f"{ch}", name="Disabled Input")])
     return render_template('test_page.html', title='Test Page', forms=forms) #, schedule=schedule)
 
+
+@bp.route('/404', methods=['GET', 'POST'])
+def page_not_found():
+    return render_template('/errors/404.html'), 404
 
 # ----------------------------------- Helper Functions Below -----------------------------------
 @bp.route('/dashlistener', methods=["GET"])
