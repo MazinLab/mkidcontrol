@@ -163,9 +163,9 @@ class SystemdService:
 
 def get_services():
     system_services = list(
-        map(os.path.basename, glob(pkg_resources.resource_filename('cloudlight', '../etc/systemd/*'))))
+        map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../etc/systemd/*'))))
     user_services = list(
-        map(os.path.basename, glob(pkg_resources.resource_filename('cloudlight', '../systemd-user/*'))))
+        map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../systemd-user/*'))))
     l = [SystemdService(s, user=False) for s in system_services] + [SystemdService(s, user=True) for s in user_services]
     return {x.name: x for x in l}
 
@@ -232,9 +232,9 @@ def get_system_status(adapter='wlan1'):
 
 def get_service(name):
     system_services = list(
-        map(os.path.basename, glob(pkg_resources.resource_filename('cloudlight', '../etc/systemd/*'))))
+        map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../etc/systemd/*'))))
     user_services = list(
-        map(os.path.basename, glob(pkg_resources.resource_filename('cloudlight', '../systemd-user/*'))))
+        map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../systemd-user/*'))))
     if name not in system_services + user_services:
         raise ValueError('Unknown service')
     return SystemdService(name, user=name in user_services)
