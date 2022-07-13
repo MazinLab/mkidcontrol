@@ -200,7 +200,7 @@ def thermometry(device, channel):
 def test_page():
     from mkidcontrol.lakeshore336Agent import Schedule, LS336Form, RTDForm, DiodeForm, \
         DisabledInputForm
-    from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, LakeShore336Command
+    from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, LakeShoreCommand
     """
     Test area for trying out things before implementing them on a page
     """
@@ -209,7 +209,7 @@ def test_page():
         for key in request.form.keys():
             print(f"{key} : {request.form.get(key)}")
             try:
-                x = LakeShore336Command(f"device-settings:ls336:input-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
+                x = LakeShoreCommand(f"device-settings:ls336:input-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
                 print(x)
             except ValueError as e:
                 print(e)
