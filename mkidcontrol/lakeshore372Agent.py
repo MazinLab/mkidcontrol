@@ -24,7 +24,7 @@ import time
 from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.devices import LakeShore372
 import mkidcontrol.util as util
-from mkidcontrol.commands import COMMANDS372, LakeShore372Command
+from mkidcontrol.commands import COMMANDS372, LakeShoreDeviceCommand, ENABLED_372_INPUT_CHANNELS
 import mkidcontrol.mkidredis as redis
 
 log = logging.getLogger()
@@ -115,10 +115,10 @@ if __name__ == "__main__":
 
     try:
         lakeshore = LakeShore372('LakeShore372', baudrate=57600, port='/dev/ls372',
-                                 enabled_input_channels=ENABLED_INPUT_CHANNELS, initializer=initializer)
+                                 enabled_input_channels=ENABLED_372_INPUT_CHANNELS, initializer=initializer)
     except:
         lakeshore = LakeShore372('LakeShore372', baudrate=57600,
-                                 enabled_input_channels=ENABLED_INPUT_CHANNELS, initializer=initializer)
+                                 enabled_input_channels=ENABLED_372_INPUT_CHANNELS, initializer=initializer)
 
     def callback(temp, res, ex, ov):
         d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY), (temp, res, ex, ov))}
@@ -131,7 +131,7 @@ if __name__ == "__main__":
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"heard {key} -> {val}!")
                 try:
-                    cmd = LakeShore372Command(key.removeprefix('command:'), val)
+                    cmd = LakeShoreDeviceCommand(key.removeprefix('command:'), val)
                 except ValueError as e:
                     log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
                     continue

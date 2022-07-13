@@ -76,7 +76,7 @@ class SimCommand:
 class LakeShoreCommand:
     def __init__(self, schema_key, value=None, limit_vals:dict=None):
         """
-        Initializes a SimCommand. Takes in a redis device-setting:* key and desired value an evaluates it for its type,
+        Initializes a LakeShoreCommand. Takes in a redis device-setting:* key and desired value an evaluates it for its type,
         the mapping of the command, and appropriately sets the mapping|range for the command. If the setting is not
         supported, raise a ValueError.
 
@@ -164,7 +164,7 @@ class LakeShoreCommand:
             return f"{self.command}?"
 
 
-class LakeShore336Command:
+class LakeShoreDeviceCommand:
     def __init__(self, schema_key, value=None):
         """
         Initializes a LakeShore336Command. Takes in a redis device-setting:* key and desired value an evaluates it for
@@ -172,19 +172,26 @@ class LakeShore336Command:
         is not supported, raise a ValueError.
         """
 
-        if schema_key not in COMMANDS336.keys():
+        COMMANDS = {}
+        COMMANDS.update(COMMANDS336)
+        COMMANDS.update(COMMANDS372)
+
+        if schema_key not in COMMANDS.keys():
             raise ValueError(f'Unknown command: {schema_key}')
 
         self.range = None
+        self.str_value = None
         self.mapping = None
         self.value = value
         self.setting = schema_key
 
-        self.command = COMMANDS336[self.setting]['command']
-        setting_vals = COMMANDS336[self.setting]['vals']
+        self.command = COMMANDS[self.setting]['command']
+        setting_vals = COMMANDS[self.setting]['vals']
 
         if isinstance(setting_vals, dict):
             self.mapping = setting_vals
+        elif isinstance(setting_vals, str):
+            self.str_value = setting_vals
         else:
             self.range = setting_vals
         self._vet()
@@ -202,80 +209,8 @@ class LakeShore336Command:
                 raise ValueError(f'Invalid value {value}, must be castable to float.')
             if not self.range[0] <= self.value <= self.range[1]:
                 raise ValueError(f'Invalid value {value}, must in {self.range}.')
-        else:
-            self.value = str(value)
-
-    def __str__(self):
-        return f"{self.setting_field}->{self.command_value}"
-
-    @property
-    def command_code(self):
-        return self.command
-
-    @property
-    def setting_field(self):
-        return self.setting.split(":")[-1].replace('-', '_')
-
-    @property
-    def command_value(self):
-        if self.mapping is not None:
-            return self.mapping[self.value]
-        else:
-            return self.value
-
-    @property
-    def desired_setting(self):
-        return {self.setting_field: self.command_value}
-
-    @property
-    def channel(self):
-        id_str = self.setting.split(":")[2]
-        return id_str[-1] if 'channel' in id_str else None
-
-    @property
-    def curve(self):
-        id_str = self.setting.split(":")[2]
-        return id_str[-1] if 'curve' in id_str else None
-
-
-class LakeShore372Command:
-    def __init__(self, schema_key, value=None):
-        """
-        Initializes a LakeShore372Command. Takes in a redis device-setting:* key and desired value an evaluates it for
-        its type, the mapping of the command, and appropriately sets the mapping|range for the command. If the setting
-        is not supported, raise a ValueError.
-        """
-
-        if schema_key not in COMMANDS372.keys():
-            raise ValueError(f'Unknown command: {schema_key}')
-
-        self.range = None
-        self.mapping = None
-        self.value = value
-        self.setting = schema_key
-
-        self.command = COMMANDS372[self.setting]['command']
-        setting_vals = COMMANDS372[self.setting]['vals']
-
-        if isinstance(setting_vals, dict):
-            self.mapping = setting_vals
-        else:
-            self.range = setting_vals
-        self._vet()
-
-    def _vet(self):
-        value = self.value
-
-        if self.mapping is not None:
-            if value not in self.mapping:
-                raise ValueError(f"Invalid value: {value} Options are: {list(self.mapping.keys())}.")
-        elif self.range is not None:
-            try:
-                self.value = float(value)
-            except ValueError:
-                raise ValueError(f'Invalid value {value}, must be castable to float.')
-            if not self.range[0] <= self.value <= self.range[1]:
-                raise ValueError(f'Invalid value {value}, must in {self.range}.')
+        elif self.str_value is not None:
+            self.value = self.str_value[:15]
         else:
             self.value = str(value)
 
@@ -370,6 +305,7 @@ class LS336InputSensor:
 
 
 COMMANDS336 = {}
+COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:name': {'command': f'INNAME {ch.upper()}', 'vals': ''} for ch in ALLOWED_336_CHANNELS})
 COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:sensor-type': {'command': 'INTYPE', 'vals': LS336_INPUT_SENSOR_TYPES} for ch in ALLOWED_336_CHANNELS})
 COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:autorange-enable': {'command': 'INTYPE', 'vals': LS336_AUTORANGE_VALUES} for ch in ALLOWED_336_CHANNELS})
 COMMANDS336.update({f'device-settings:ls336:input-channel-{ch.lower()}:compensation': {'command': 'INTYPE', 'vals': LS336_COMPENSATION_VALUES} for ch in ALLOWED_336_CHANNELS})
@@ -429,6 +365,7 @@ LS372_INPUT_SENSOR_RANGE.update(LS372_CONTROL_INPUT_CURRENT_RANGE)
 
 
 COMMANDS372 = {}
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:name': {'command': 'INNAME', 'vals': ''} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:mode': {'command': 'INTYPE', 'vals': LS372_SENSOR_MODE} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:excitation-range': {'command': 'INTYPE', 'vals': LS372_INPUT_SENSOR_RANGE} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:auto-range': {'command': 'INTYPE', 'vals': LS372_AUTORANGE_VALUES} for ch in ALLOWED_372_INPUT_CHANNELS})
@@ -469,7 +406,7 @@ COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'
                'device-settings:ls625:ramp-rate': {'command': 'RATE', 'vals': [0.0001, 99.999]},
                'device-settings:ls625:desired-current': {'command': 'SETI', 'vals': [0.0000, 60.1000]},
                'device-settings:ls625:compliance-voltage': {'command': 'SETV', 'vals': [0.1000, 5.0000]},
-               'device-settings:ls625:control-mode': {'command': 'XPGM', 'vals': {'internal': '0', 'external': '1', 'sum': '2'}}
+               'device-settings:ls625:control-mode': {'command': 'XPGM', 'vals': {'Internal': '0', 'External': '1', 'Sum': '2'}}
                }
 
 

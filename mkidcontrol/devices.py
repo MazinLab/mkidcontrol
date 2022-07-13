@@ -14,7 +14,7 @@ import serial
 from serial import SerialException
 from mkidcontrol.mkidredis import RedisError
 
-from mkidcontrol.commands import SimCommand, LakeShoreCommand, LakeShore336Command, LakeShore372Command
+from mkidcontrol.commands import SimCommand, LakeShoreCommand, LakeShoreDeviceCommand
 
 from lakeshore import Model372CurveHeader, Model372CurveFormat, Model336CurveHeader, Model336CurveFormat, \
     Model336CurveTemperatureCoefficients, Model372, Model372CurveTemperatureCoefficient, Model372SensorExcitationMode, \
@@ -557,6 +557,23 @@ class LakeShoreMixin:
     def device_info(self):
         return dict(model=self.model_number, firmware=self.firmware_version, sn=self.serial_number)
 
+    def change_input_sensor_name(self, channel: (str, int), name):
+        try:
+            log.info(f'Changing name for input sensor at channel {channel.upper()} to "{name}"')
+            self.command(f'INNAME {channel.upper}, "{name}"')
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
+
+    def get_input_sensor_name(self, channel: (str, int)):
+        try:
+            log.info(f'Querying name of input sensor at channel {channel.upper()}')
+            name = self.query(f'INNAME? {channel.upper}')
+            return name.decode('utf-8')
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
+
     def temp(self):
         """
         Returns the temperature for all enabled input channels of the lakeshore temperature controller.
@@ -982,14 +999,14 @@ class LakeShore336(LakeShoreMixin, Model336):
         ret = {}
         for setting, value in settings_to_load.items():
             try:
-                cmd = LakeShore336Command(setting, value)
+                cmd = LakeShoreDeviceCommand(setting, value)
                 log.debug(f"Setting LakeShore 336 {cmd.setting} to {cmd.value}")
                 self.handle_command(cmd)
                 ret[setting] = value
             except ValueError as e:
                 log.warning(f"Skipping bad setting: {e}")
                 ret[setting] = self.query_single_setting(cmd.setting, cmd.command_code)
-            time.sleep(0.1)
+            time.sleep(0.2)
         return ret
 
     def handle_command(self, cmd):
@@ -1001,6 +1018,8 @@ class LakeShore336(LakeShoreMixin, Model336):
                 self.change_curve(channel=cmd.channel, command_code=cmd.command_code, curve_num=cmd.command_value)
             elif cmd.command_code == "CRVHDR":
                 self.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+            elif cmd.command_code == "INNAME":
+                self.change_input_sensor_name(channel=cmd.channel, name=cmd.command_value)
             else:
                 pass
         except IOError as e:
@@ -1035,14 +1054,14 @@ class LakeShore372(LakeShoreMixin, Model372):
         ret = {}
         for setting, value in settings_to_load.items():
             try:
-                cmd = LakeShore372Command(setting, value)
+                cmd = LakeShoreDeviceCommand(setting, value)
                 log.debug(f"Setting LakeShore 372 {cmd.setting} to {cmd.value}")
                 self.handle_command(cmd)
                 ret[setting] = value
             except ValueError as e:
                 log.warning(f"Skipping bad setting: {e}")
                 ret[setting] = self.query_single_setting(cmd.setting, cmd.command_code)
-            time.sleep(0.1)
+            time.sleep(0.2)
         return ret
 
     def handle_command(self, cmd):
@@ -1067,6 +1086,8 @@ class LakeShore372(LakeShoreMixin, Model372):
                                                      range=cmd.command_value)
             elif cmd.command_code == "CRVHDR":
                 self.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
+            elif cmd.command_code == "INNAME":
+                self.change_input_sensor_name(channel=cmd.channel, name=cmd.command_value)
             else:
                 log.info(f"Command code '{cmd.command_code}' not recognized! No change will be made")
                 pass
