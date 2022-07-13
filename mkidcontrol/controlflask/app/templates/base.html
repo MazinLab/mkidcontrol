@@ -26,8 +26,8 @@
             source.addEventListener("message", function (e) {
                 var newdata = JSON.parse(e.data);
                 // console.log("Message: ", newdata);
-                update_div("50K_Temp", "status:temps:77k-stage:temp", newdata, true);
-                update_div("3K_Temp", "status:temps:4k-stage:temp", newdata, true);
+                update_div("50K_Temp", "status:temps:50k-stage:temp", newdata, true);
+                update_div("3K_Temp", "status:temps:3k-stage:temp", newdata, true);
                 update_div("1K_Temp", "status:temps:1k-stage:temp", newdata, true);
                 update_div("Temp_Report", "status:temps:device-stage:temp", newdata, true);
                 update_div("Meas_Current", "status:magnet:current", newdata, true);

@@ -51,14 +51,14 @@ TS_KEYS = ['status:temps:mkidarray:temp', 'status:temps:mkidarray:resistance', '
            'status:feedline4:hemt:drain-current-bias', 'status:feedline5:hemt:drain-current-bias',
            'status:device:sim960:hcfet-control-voltage', 'status:highcurrentboard:current',
            'status:device:sim960:current-setpoint', 'status:device:sim921:sim960-vout', 'status:device:sim960:vin',
-           'status:temps:77k-stage:temp', 'status:temps:77k-stage:voltage', 'status:temps:4k-stage:temp',
-           'status:temps:4k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
+           'status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
+           'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
            'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current']
 
 CHART_KEYS = {'Device T':'status:temps:device-stage:temp',
               '1K Stage':'status:temps:1k-stage:temp',
-              '3K Stage':'status:temps:4k-stage:temp',
-              '50K Stage':'status:temps:77k-stage:temp'}#,
+              '3K Stage':'status:temps:3k-stage:temp',
+              '50K Stage':'status:temps:50k-stage:temp'}#,
               # 'Magnet I':'status:magnet:current'}
 
 RAMP_SLOPE_KEY = 'device-settings:sim960:ramp-rate'
@@ -66,11 +66,11 @@ DERAMP_SLOPE_KEY = 'device-settings:sim960:deramp-rate'
 SOAK_TIME_KEY = 'device-settings:sim960:soak-time'
 SOAK_CURRENT_KEY = 'device-settings:sim960:soak-current'
 
-KEYS = SIM921_KEYS + SIM960_KEYS + LAKESHORE240_KEYS + CURRENTDUINO_KEYS + HEMTTEMP_KEYS + list(COMMAND_DICT.keys()) + \
-       ['status:temps:77k-stage:temp',
-        'status:temps:77k-stage:voltage',
-        'status:temps:4k-stage:temp',
-        'status:temps:4k-stage:voltage',
+KEYS = list(COMMAND_DICT.keys()) + \
+       ['status:temps:50k-stage:temp',
+        'status:temps:50k-stage:voltage',
+        'status:temps:3k-stage:temp',
+        'status:temps:3k-stage:voltage',
         'status:temps:1k-stage:temp',
         'status:temps:1k-stage:resistance',
         'status:temps:device-stage:temp',
@@ -90,16 +90,16 @@ def guess_language(x):
     return 'en'
 
 
-# @bp.before_app_request
-# def before_request():
-#     if current_user.is_authenticated:
-#         current_user.last_seen = datetime.datetime.utcnow()
-#         db.session.commit()
-#     g.locale = str(get_locale())
-#     redis = current_app.redis
-#     # redis = cloudlight.cloudredis.setup_redis(use_schema=False, module=False)
-#     g.redis = redis
-#
+@bp.before_app_request
+def before_request():
+    # if current_user.is_authenticated:
+    #     current_user.last_seen = datetime.datetime.utcnow()
+    #     db.session.commit()
+    g.locale = str(get_locale())
+    redis = current_app.redis
+    # redis = mkidcontrol.mkidredis.setup_redis(use_schema=False, module=False)
+    g.redis = redis
+
 # @bp.after_request
 # def add_header(response):
 #     response.headers['Cache-Control'] = 'no-cache, no-store'
@@ -164,16 +164,8 @@ def settings():
     if request.method == 'POST':
         return handle_validation(request, submission=True)
 
-    sim921form = SIM921SettingForm()
-    sim960form = SIM960SettingForm()
-    forms = [sim921form, sim960form]
-    hsbutton = HeatswitchToggle()
 
-    subkeys = [key for key in FIELD_KEYS.keys() if FIELD_KEYS[key]['type'] in ('sim921', 'sim960', 'heatswitch')]
-    rtvkeys = [key for key in subkeys if FIELD_KEYS[key]['field_type'] in ('string')]
-    updatingkeys = [[key, FIELD_KEYS[key]['key']] for key in FIELD_KEYS.keys() if FIELD_KEYS[key]['type'] in ('sim921', 'sim960')]
-    return render_template('settings.html', title='Settings', hs=hsbutton, forms=forms,
-                           subkeys=subkeys, rtvkeys=rtvkeys, updatingkeys=updatingkeys)
+    return render_template('settings.html', title='Settings')
 
 
 @bp.route('/log_viewer', methods=['GET', 'POST'])
@@ -185,32 +177,57 @@ def log_viewer():
     return render_template('log_viewer.html', title='Log Viewer', form=form)
 
 
+@bp.route('/thermometry/<device>/<channel>', methods=['GET', 'POST'])
+def thermometry(device, channel):
+    TITLE_DICT = {'ls336':{'a':'',
+                           'b':'1K Thermometer',
+                           'c':'3K Thermometer',
+                           'd':'50K Thermometer'},
+                  'ls372':{'a':'Device Thermometer'}}
+
+    if device == 'ls336':
+        from mkidcontrol.lakeshore336Agent import Schedule, LS336Form, RTDForm, DiodeForm, \
+            DisabledInputForm
+        from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, \
+            LakeShore336Command
+        form = None
+    elif device == 'ls372':
+        redirect(url_for("/errors/404.html"))
+    return render_template('thermometry.html', title=f"{TITLE_DICT[device][channel]} Setup", form=form)
+
+
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
     from mkidcontrol.lakeshore336Agent import Schedule, LS336Form, RTDForm, DiodeForm, \
-        DisabledForm
-    from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS
+        DisabledInputForm
+    from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, LakeShore336Command
     """
     Test area for trying out things before implementing them on a page
     """
+    if request.method == 'POST':
+        print(f"Form: {request.form}")
+        for key in request.form.keys():
+            print(f"{key} : {request.form.get(key)}")
+            try:
+                x = LakeShore336Command(f"device-settings:ls336:input-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
+                print(x)
+            except ValueError as e:
+                print(e)
     # schedule = Schedule()
     forms = []
     for ch in ALLOWED_336_CHANNELS:
         sensor = LS336InputSensor(channel=ch, redis=redis)
         if sensor.sensor_type == "NTC RTD":
-            forms.append(RTDForm(type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
+            forms.append([ch, RTDForm(channel=f"{ch}", sensor_type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
                                  autorange=bool(sensor.autorange_enabled), compensation=bool(sensor.compensation),
-                                 input_range=sensor.input_range))
+                                 input_range=sensor.input_range)])
         elif sensor.sensor_type == "Diode":
-            forms.append(DiodeForm(type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
+            forms.append([ch, DiodeForm(channel=f"{ch}", sensor_type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
                                    autorange=bool(sensor.autorange_enabled), compensation=bool(sensor.compensation),
-                                   input_range=sensor.input_range))
+                                   input_range=sensor.input_range)])
         elif sensor.sensor_type == "Disabled":
-            forms.append(DisabledForm())
-    if request.method == 'POST':
-        for key in request.form.keys():
-            print(f"{key}: {request.form.get(key)}")
-    return render_template('test_page.html', title='Test Page', forms=forms)
+            forms.append([ch, DisabledInputForm(channel=f"{ch}")])
+    return render_template('test_page.html', title='Test Page', forms=forms) #, schedule=schedule)
 
 
 # ----------------------------------- Helper Functions Below -----------------------------------
