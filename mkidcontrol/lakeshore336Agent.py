@@ -22,7 +22,7 @@ import numpy as np
 from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.devices import LakeShore336
 import mkidcontrol.util as util
-from mkidcontrol.commands import COMMANDS336, LakeShoreDeviceCommand, ENABLED_336_CHANNELS
+from mkidcontrol.commands import COMMANDS336, LakeShoreCommand, ENABLED_336_CHANNELS
 import mkidcontrol.mkidredis as redis
 
 import wtforms
@@ -164,7 +164,7 @@ if __name__ == "__main__":
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"heard {key} -> {val}!")
                 try:
-                    cmd = LakeShoreDeviceCommand(key.removeprefix('command:'), val)
+                    cmd = LakeShoreCommand(key.removeprefix('command:'), val)
                 except ValueError as e:
                     log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
                     continue

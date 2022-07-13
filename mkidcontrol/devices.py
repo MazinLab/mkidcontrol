@@ -14,7 +14,7 @@ import serial
 from serial import SerialException
 from mkidcontrol.mkidredis import RedisError
 
-from mkidcontrol.commands import SimCommand, LakeShoreCommand, LakeShoreDeviceCommand
+from mkidcontrol.commands import SimCommand, LakeShoreCommand
 
 from lakeshore import Model372CurveHeader, Model372CurveFormat, Model336CurveHeader, Model336CurveFormat, \
     Model336CurveTemperatureCoefficients, Model372, Model372CurveTemperatureCoefficient, Model372SensorExcitationMode, \
@@ -999,7 +999,7 @@ class LakeShore336(LakeShoreMixin, Model336):
         ret = {}
         for setting, value in settings_to_load.items():
             try:
-                cmd = LakeShoreDeviceCommand(setting, value)
+                cmd = LakeShoreCommand(setting, value)
                 log.debug(f"Setting LakeShore 336 {cmd.setting} to {cmd.value}")
                 self.handle_command(cmd)
                 ret[setting] = value
@@ -1054,7 +1054,7 @@ class LakeShore372(LakeShoreMixin, Model372):
         ret = {}
         for setting, value in settings_to_load.items():
             try:
-                cmd = LakeShoreDeviceCommand(setting, value)
+                cmd = LakeShoreCommand(setting, value)
                 log.debug(f"Setting LakeShore 372 {cmd.setting} to {cmd.value}")
                 self.handle_command(cmd)
                 ret[setting] = value

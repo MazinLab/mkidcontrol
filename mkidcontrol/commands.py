@@ -76,12 +76,11 @@ class SimCommand:
 class LakeShoreCommand:
     def __init__(self, schema_key, value=None, limit_vals:dict=None):
         """
-        Initializes a LakeShoreCommand. Takes in a redis device-setting:* key and desired value an evaluates it for its type,
-        the mapping of the command, and appropriately sets the mapping|range for the command. If the setting is not
-        supported, raise a ValueError.
-
-        If no value is specified it will create the command as a query
+        Initializes a LakeShore336Command. Takes in a redis device-setting:* key and desired value an evaluates it for
+        its type, the mapping of the command, and appropriately sets the mapping|range for the command. If the setting
+        is not supported, raise a ValueError.
         """
+
         if schema_key not in COMMAND_DICT.keys():
             raise ValueError(f'Unknown command: {schema_key}')
 
@@ -89,6 +88,7 @@ class LakeShoreCommand:
             raise ValueError(f"Cannot handle command for {schema_key} without the existing limit values")
 
         self.range = None
+        self.str_value = None
         self.mapping = None
         self.value = value
         self.setting = schema_key
@@ -99,9 +99,10 @@ class LakeShoreCommand:
 
         if isinstance(setting_vals, dict):
             self.mapping = setting_vals
+        elif isinstance(setting_vals, str):
+            self.str_value = setting_vals
         else:
             self.range = setting_vals
-
         self._vet()
 
     def _vet(self):
@@ -110,20 +111,56 @@ class LakeShoreCommand:
             return True
 
         value = self.value
+
         if self.mapping is not None:
             if value not in self.mapping:
-                raise ValueError(f'Invalid value {value}. Options are: {list(self.mapping.keys())}.')
-        else:
+                raise ValueError(f"Invalid value: {value} Options are: {list(self.mapping.keys())}.")
+        elif self.range is not None:
             try:
                 self.value = float(value)
             except ValueError:
                 raise ValueError(f'Invalid value {value}, must be castable to float.')
             if not self.range[0] <= self.value <= self.range[1]:
                 raise ValueError(f'Invalid value {value}, must in {self.range}.')
+        elif self.str_value is not None:
+            self.value = str(value)[:15]
 
     def __str__(self):
-        return f"{self.setting}->{self.value}: {self.ls_string}"
+        return f"{self.setting_field}->{self.command_value}"
 
+    ### Properties below are used with LakeShore 336 and 372, which have different command handling syntax than the 625
+    ### due to LakeShore providing robust wrappers for the former 2, but not the latter
+    @property
+    def command_code(self):
+        return self.command
+
+    @property
+    def setting_field(self):
+        return self.setting.split(":")[-1].replace('-', '_')
+
+    @property
+    def command_value(self):
+        if self.mapping is not None:
+            return self.mapping[self.value]
+        else:
+            return self.value
+
+    @property
+    def desired_setting(self):
+        return {self.setting_field: self.command_value}
+
+    @property
+    def channel(self):
+        id_str = self.setting.split(":")[2]
+        return id_str[-1] if 'channel' in id_str else None
+
+    @property
+    def curve(self):
+        id_str = self.setting.split(":")[2]
+        return id_str[-1] if 'curve' in id_str else None
+    ### End LS 336 and 372 properties
+
+    ### Properties below are used with LakeShore625
     @property
     def is_query(self):
         return self.value is None
@@ -162,89 +199,6 @@ class LakeShoreCommand:
             return f"{self.command[:-3]}?"
         else:
             return f"{self.command}?"
-
-
-class LakeShoreDeviceCommand:
-    def __init__(self, schema_key, value=None):
-        """
-        Initializes a LakeShore336Command. Takes in a redis device-setting:* key and desired value an evaluates it for
-        its type, the mapping of the command, and appropriately sets the mapping|range for the command. If the setting
-        is not supported, raise a ValueError.
-        """
-
-        COMMANDS = {}
-        COMMANDS.update(COMMANDS336)
-        COMMANDS.update(COMMANDS372)
-
-        if schema_key not in COMMANDS.keys():
-            raise ValueError(f'Unknown command: {schema_key}')
-
-        self.range = None
-        self.str_value = None
-        self.mapping = None
-        self.value = value
-        self.setting = schema_key
-
-        self.command = COMMANDS[self.setting]['command']
-        setting_vals = COMMANDS[self.setting]['vals']
-
-        if isinstance(setting_vals, dict):
-            self.mapping = setting_vals
-        elif isinstance(setting_vals, str):
-            self.str_value = setting_vals
-        else:
-            self.range = setting_vals
-        self._vet()
-
-    def _vet(self):
-        value = self.value
-
-        if self.mapping is not None:
-            if value not in self.mapping:
-                raise ValueError(f"Invalid value: {value} Options are: {list(self.mapping.keys())}.")
-        elif self.range is not None:
-            try:
-                self.value = float(value)
-            except ValueError:
-                raise ValueError(f'Invalid value {value}, must be castable to float.')
-            if not self.range[0] <= self.value <= self.range[1]:
-                raise ValueError(f'Invalid value {value}, must in {self.range}.')
-        elif self.str_value is not None:
-            self.value = self.str_value[:15]
-        else:
-            self.value = str(value)
-
-    def __str__(self):
-        return f"{self.setting_field}->{self.command_value}"
-
-    @property
-    def command_code(self):
-        return self.command
-
-    @property
-    def setting_field(self):
-        return self.setting.split(":")[-1].replace('-', '_')
-
-    @property
-    def command_value(self):
-        if self.mapping is not None:
-            return self.mapping[self.value]
-        else:
-            return self.value
-
-    @property
-    def desired_setting(self):
-        return {self.setting_field: self.command_value}
-
-    @property
-    def channel(self):
-        id_str = self.setting.split(":")[2]
-        return id_str[-1] if 'channel' in id_str else None
-
-    @property
-    def curve(self):
-        id_str = self.setting.split(":")[2]
-        return id_str[-1] if 'curve' in id_str else None
 
 
 def load_tvals(curve):
@@ -465,8 +419,8 @@ COMMANDSMAGNET = {'device-settings:sim960:ramp-rate': {'command': '', 'vals': [0
 
 # ---- Full command dict ----
 COMMAND_DICT = {}
-# COMMAND_DICT.update(COMMANDS336)
-# COMMAND_DICT.update(COMMANDS372)
+COMMAND_DICT.update(COMMANDS336)
+COMMAND_DICT.update(COMMANDS372)
 COMMAND_DICT.update(COMMANDS960)
 COMMAND_DICT.update(COMMANDS921)
 COMMAND_DICT.update(COMMANDSHS)

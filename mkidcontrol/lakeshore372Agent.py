@@ -24,7 +24,7 @@ import time
 from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.devices import LakeShore372
 import mkidcontrol.util as util
-from mkidcontrol.commands import COMMANDS372, LakeShoreDeviceCommand, ENABLED_372_INPUT_CHANNELS
+from mkidcontrol.commands import COMMANDS372, LakeShoreCommand, ENABLED_372_INPUT_CHANNELS
 import mkidcontrol.mkidredis as redis
 
 log = logging.getLogger()
@@ -131,7 +131,7 @@ if __name__ == "__main__":
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"heard {key} -> {val}!")
                 try:
-                    cmd = LakeShoreDeviceCommand(key.removeprefix('command:'), val)
+                    cmd = LakeShoreCommand(key.removeprefix('command:'), val)
                 except ValueError as e:
                     log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
                     continue
