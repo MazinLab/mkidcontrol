@@ -23,7 +23,7 @@ setuptools.setup(
              'mkidcontrol/lakeshore625Agent.py',
              'mkidcontrol/currentduinoAgent.py',
              'mkidcontrol/hemttempAgent.py',
-             'mkidcontrol/mkidDirector.py',
+             'mkidcontrol/controlflask/mkidDirector.py',
              'mkidcontrol/sim960Agent.py',
              'mkidcontrol/sim921Agent.py'],
     classifiers=[
