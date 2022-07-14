@@ -1,43 +1,69 @@
 #!/usr/bin/env bash
 
+# This script assumes you've set up your account as follows
+#sudo usermod -a -G adm,dialout,cdrom,sudo,dip,plugdev,lpadmin,lxd,sambashare <username>
+sudo usermod -a -G adm,dialout,cdrom,sudo,dip,plugdev,lpadmin,lxd,sambashare kids
+
 # First and foremost, set up firewall
+# One can add any other firewall rules if so desired
 sudo apt install ufw
-sudo ufw allow 22
+sudo ufw allow ssh  # ssh
+sudo ufw allow http  # http
+sudo ufw allow https  # https
+sudo ufw allow 5901:5910/tcp  # TCP ports
+sudo ufw allow 6379  # redis port
+sudo ufw allow
+
+sudo ufw enable & sudo ufw reload  # Enable and reload the firewall with its new rules
 
 # Install ssh
+sudo apt install openssh-server  # This should automatically start the ssh server, and now you can ssh into the computer
 
-# ------ EVERYTHING BELOW HERE IS LEGACY AND MUST BE VERIFIED ------
+# Install some necessary packages and set the default terminal to zsh
+sudo apt install zsh vim nodejs curl git-all npm
+sudo apt-get install -y make
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+touch ~/.Xauthority
 
-# This script assumes user accounts are setup as follows
-#sudo usermod -a -G adm,dialout,cdrom,sudo,dip,plugdev,lpadmin,lxd,sambashare mazinlab
+# Install anaconda so that it is usable.
+wget https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
+chmod +x Anaconda-latest-Linux-x86_64.sh
+bash Anaconda-latest-Linux-x86_64.sh
+source ~/.zshrc  # Put the conda command on your path
+conda config --add channels conda-forge
 
-#Install Redis
-#https://github.com/RedisTimeSeries/RedisTimeSeries
-#https://oss.redislabs.com/redistimeseries/
-#https://github.com/redis/redis
+# Install redis server (NOTE: This will install the redis server, but will not configure it. The configuration will be
+# done when installing the mkidcontrol repo and the custom redis config is moved to the proper location.)
+sudo apt install redis-server
 
+# Install redis (and a few useful links)
+# https://redis.io/docs/stack/timeseries/quickstart/
+# https://github.com/RedisTimeSeries/RedisTimeSeries
+# https://github.com/redis/redis
 git clone --recursive https://github.com/RedisTimeSeries/RedisTimeSeries.git
-cd RedisTimeSeries
-#make setup #as of 3/21 the setup script fails on rpi but build works
+sudo cp -r RedisTimeSeries /
+cd /RedisTimeSeries
+make setup
 make build
 sudo cp bin/redistimeseries.so /usr/local/lib/redistimeseries.so
 
-#insert loadmodule /usr/local/lib/redistimeseries.so into /etc/redis/redis.conf
-sudo systemctl restart redis-server.service
-pip3 install redistimeseries redis
-
-sudo apt install zsh vim nodejs
+# Install redis-commander
 sudo npm install -g redis-commander
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-touch ~/.Xauthority
+
+pip3 install redistimeseries redis
+# STOPPED HERE UPON INITIAL INSTALL
+
+# ------ EVERYTHING BELOW HERE IS LEGACY AND MUST BE VERIFIED ------
+
+# This is obsolete because we will manually set up the redis server using our redis.service file (which somewhat mirrors
+# the
+# insert loadmodule /usr/local/lib/redistimeseries.so into /etc/redis/redis.conf
+# sudo systemctl restart redis-server.service
 
 #Clone this repo
 git clone https://github.com/MazinLab/mkidcontrol.git ~/mkidcontrol
 
 # Install anaconda and create the operating environment by running
-wget https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
-chmod +x Anaconda-latest-Linux-x86_64.sh
-bash Anaconda-latest-Linux-x86_64.sh
 conda config --add channels conda-forge
 cd ~/mkidcontrol
 conda env create -f conda.yml
@@ -57,7 +83,7 @@ cd /home/mazinlab/mkidcontrol
 sudo cp etc/redis/redis.conf /etc/redis/
 sudo cp etc/systemd/system/* /etc/systemd/system/
 sudo cp etc/udev/rules.d/* /etc/udev/rules.d/
-sudo cp etc/modules /etc/ # For the lakeshore240 driver
+sudo cp etc/modules /etc/ # For the lakeshore240 and lakeshore372 driver
 
 # Load the udev rules and systemd services
 sudo udevadm control --reload-rules
