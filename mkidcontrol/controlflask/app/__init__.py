@@ -17,10 +17,11 @@ import rq_scheduler
 import queue
 import numpy as np
 # try:
-from ..config import Config
+from ...config import Config
 # from ...config import schema_keys
 # except ValueError:
 #     from config import Config
+
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -33,31 +34,9 @@ moment = Moment()
 babel = Babel()
 
 
-
 def event_stream():
     for _, v in current_app.redis.listen('chat'):
         yield f'data: {v}\n\n'
-
-
-def get_plot_data(redis, id, t0, t1):
-    import plotly
-    import plotly.express as px
-    import json
-    import numpy as np
-    # times, vals = redis.redis_ts.read(id, t0, t1)
-    times=np.arange(100)+132
-    vals=np.random.uniform(size=100)
-    # plot_data = [{'x': times,'y': vals,'name': title}]
-    # plot_layout = {'title': title}
-    # plot_config = {'responsive': True}
-    # d = json.dumps(plot_data, cls=plotly.utils.PlotlyJSONEncoder)
-    # l = json.dumps(plot_layout, cls=plotly.utils.PlotlyJSONEncoder)
-    # c = json.dumps(plot_config, cls=plotly.utils.PlotlyJSONEncoder)
-
-    fig = px.line(x=times, y=vals, title='Temps')
-    fig.layout.datarevision = t0
-    # set data_revision based on time interval
-    return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
 
 class MessageAnnouncer:
@@ -155,12 +134,16 @@ def create_app(config_class=Config):
 
         app.logger.info('MKID Control startup')
 
+    with app.app_context():
+        db.create_all()
+
     return app
 
 
 @babel.localeselector
 def get_locale():
     return request.accept_languages.best_match(current_app.config['LANGUAGES'])
+
 
 from . import models
 # try:
