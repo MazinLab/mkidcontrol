@@ -1,7 +1,4 @@
 # Still to do:
-- Order/configure switches to use them with the PICTURE-C electronics rack.
-    - Determine how we want to control the power.
-    - Figure out how we want to account for instruments being off in the software side of things.
 - For systemd unit files, decide how to most smartly run python scripts
 
 # Ceating ***udev*** rules for picturec devices
