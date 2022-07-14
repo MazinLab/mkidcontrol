@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# First and foremost, set up firewall
+sudo apt install ufw
+sudo ufw allow 22
+
+# Install ssh
+
+# ------ EVERYTHING BELOW HERE IS LEGACY AND MUST BE VERIFIED ------
+
 # This script assumes user accounts are setup as follows
 #sudo usermod -a -G adm,dialout,cdrom,sudo,dip,plugdev,lpadmin,lxd,sambashare mazinlab
 
@@ -24,12 +32,12 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 touch ~/.Xauthority
 
 #Clone this repo
-# git clone https://github.com/MazinLab/mkidcontrol.git ~/mkidcontrol
+git clone https://github.com/MazinLab/mkidcontrol.git ~/mkidcontrol
 
 # Install anaconda and create the operating environment by running
-# wget https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
-# chmod +x Anaconda-latest-Linux-x86_64.sh
-# bash Anaconda-latest-Linux-x86_64.sh
+wget https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
+chmod +x Anaconda-latest-Linux-x86_64.sh
+bash Anaconda-latest-Linux-x86_64.sh
 conda config --add channels conda-forge
 cd ~/mkidcontrol
 conda env create -f conda.yml
