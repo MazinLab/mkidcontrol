@@ -24,6 +24,7 @@
     { USB_DEVICE(0x1FB9, 0x0203) }, /* Lake Shore Model 235 Temperature Transmitter */
     { USB_DEVICE(0x1FB9, 0x0205) }, /* Lake Shore Model 240 Temperature Monitor <---Edit This line */ 
     { USB_DEVICE(0x1FB9, 0x0300) }, /* Lake Shore Model 335 Temperature Controller */
+  	{ USB_DEVICE(0x1FB9, 0x0305) }, /* Lake Shore Model 372 AC Bridge <--- Add this line as well */
     ```
 - After adding in the appropriate USB_DEVICE VID and PID, you need to recompile the kernel object file.
   - If there is already a cp210x.ko file, move it somewhere it will not be overwritten or modified 

@@ -1,1 +1,0 @@
-cmd_/picturec/hardware/drivers/linuxlakeshoredriver/cp210x.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /picturec/hardware/drivers/linuxlakeshoredriver/cp210x.ko /picturec/hardware/drivers/linuxlakeshoredriver/cp210x.o /picturec/hardware/drivers/linuxlakeshoredriver/cp210x.mod.o ;  true

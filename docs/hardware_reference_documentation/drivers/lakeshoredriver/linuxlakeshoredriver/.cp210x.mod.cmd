@@ -1,1 +1,0 @@
-cmd_/picturec/hardware/drivers/linuxlakeshoredriver/cp210x.mod := { echo  /picturec/hardware/drivers/linuxlakeshoredriver/cp210x.o; echo; } > /picturec/hardware/drivers/linuxlakeshoredriver/cp210x.mod

@@ -20,7 +20,7 @@ sudo ufw enable & sudo ufw reload  # Enable and reload the firewall with its new
 sudo apt install openssh-server  # This should automatically start the ssh server, and now you can ssh into the computer
 
 # Install some necessary packages and set the default terminal to zsh
-sudo apt install zsh vim nodejs curl git-all npm
+sudo apt install zsh vim nodejs curl git-all npm bison flex
 sudo apt-get install -y make
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 touch ~/.Xauthority
@@ -31,6 +31,8 @@ chmod +x Anaconda-latest-Linux-x86_64.sh
 bash Anaconda-latest-Linux-x86_64.sh
 source ~/.zshrc  # Put the conda command on your path
 conda config --add channels conda-forge
+conda install pip
+#conda install pip3
 
 # Install redis server (NOTE: This will install the redis server, but will not configure it. The configuration will be
 # done when installing the mkidcontrol repo and the custom redis config is moved to the proper location.)
@@ -51,24 +53,11 @@ sudo cp bin/redistimeseries.so /usr/local/lib/redistimeseries.so
 sudo npm install -g redis-commander
 
 pip3 install redistimeseries redis
-# STOPPED HERE UPON INITIAL INSTALL
 
-# ------ EVERYTHING BELOW HERE IS LEGACY AND MUST BE VERIFIED ------
-
-# This is obsolete because we will manually set up the redis server using our redis.service file (which somewhat mirrors
-# the
-# insert loadmodule /usr/local/lib/redistimeseries.so into /etc/redis/redis.conf
-# sudo systemctl restart redis-server.service
-
-#Clone this repo
+# Clone the MKID Control Repo and create the mkidcontrol environment
 git clone https://github.com/MazinLab/mkidcontrol.git ~/mkidcontrol
-
-# Install anaconda and create the operating environment by running
-conda config --add channels conda-forge
 cd ~/mkidcontrol
 conda env create -f conda.yml
-
-# Install dependencies and get computer ready for use
 
 # Make sure all necessary repositories are installed
 #git clone https://github.com/MazinLab/mkidcore.git ~/src/mkidcore
@@ -78,29 +67,59 @@ conda env create -f conda.yml
 #pip install -e ~/src/mkidpipeline
 #pip install -e ~/src/mkidgen3
 
-# Install the different configuration necessities for picturec
+# Install the different configuration necessities for mkidcontrol
 cd /home/mazinlab/mkidcontrol
 sudo cp etc/redis/redis.conf /etc/redis/
 sudo cp etc/systemd/system/* /etc/systemd/system/
 sudo cp etc/udev/rules.d/* /etc/udev/rules.d/
 sudo cp etc/modules /etc/ # For the lakeshore240 and lakeshore372 driver
 
-# Load the udev rules and systemd services
-sudo udevadm control --reload-rules
-sudo udevadm trigger
-sudo systemctl daemon-reload
-
-# Install the picturec repository
+# Now that repo is cloned and the environment is created and files are in place, activate env and install repo in it
 conda activate control
 pip install -e /home/mazinlab/mkidcontrol
 
+# Load the udev rules and systemd services
+# Prep all the systemd files that we loaded previously so they can be enabled/started
+sudo systemctl daemon-reload
+
 # Start redis server
-sudo systemctl enable redis.service
-sudo systemctl start redis.service
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+
+# Compile cp210x.ko so that one can use all necessary usb devices (https://community.silabs.com/s/question/0D51M00007xeNm8SAE/linux-cannot-identify-silab-serial-usb?language=en_US)
+# Currently this should be done manually following notes in mkidcontrol_notes.md
+# Ensure that the cp210x.c file in this directory is for the proper linux kernel
+cd ~/mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/linuxlakeshoredriver
+# NOTE: IF THE COMMAND BELOW DOES NOT WORK, LOOK AT THE COMMAND THAT IS FIRST PRINTED AND THEN JUST RUN THAT INSTEAD (there's some weird path stuff going on)
+sudo make all cp210x
+#insmod /lib/modules/$(uname -r)/kernel/drivers/usb/serial/usbserial.ko  # Will fail since this already exists
+#insmod /lib/modules/$(uname -r)/kernel/drivers/usb/serial/cp210x.ko # Will also fail since the file already exists (can also just do insmod cp210x.ko)
+modprobe -r cp210x # Unload old
+modprobe cp210x # Reload new
+
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+# STOPPED HERE UPON INITIAL INSTALL
+# STILL NEED TO VALIDATE THE REST BELOW
+
+# TODO: Get flask set up and running
 
 # Start instrument software
-# Start hemtduino
+sudo systemctl enable heatswitch
+sudo systemctl start heatswitch
+
+sudo systemctl enable lakeshore336
+sudo systemctl start lakeshore336
+
+sudo systemctl enable lakeshore372
+sudo systemctl start lakeshore372
+
+sudo systemctl enable lakeshore625
+sudo systemctl start lakeshore625
+
+# Start instrument control software
 sudo systemctl enable mkidcontrol
 sudo systemctl start mkidcontrol
 
+# Reboot for anything further that needs to take effect
 sudo reboot
