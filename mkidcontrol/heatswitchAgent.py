@@ -335,11 +335,11 @@ class HeatswitchController(LockedMachine):
         self.start_main()
 
     def open_heatswitch(self, event):
-        new_pos = self.hs.move_by(-100000)
+        new_pos = self.hs.move_by(-75000)
         return new_pos
 
     def close_heatswitch(self, event):
-        new_pos = self.hs.move_by(100000)
+        new_pos = self.hs.move_by(75000)
         return new_pos
 
     def hs_is_opened(self, event):
