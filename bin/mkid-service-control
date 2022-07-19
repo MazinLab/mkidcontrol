@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+#Note that this file must be added to vudoers file with no password for it to work
+import sys
+import subprocess
+from mkidcontrol.util import get_service
+
+SYSTEM_COMMANDS = ('reboot', 'shutdown')
+
+if __name__ == '__main__':
+
+    if len(sys.argv) < 2:
+        sys.exit(1)
+
+    if sys.argv[1] not in SYSTEM_COMMANDS and len(sys.argv) != 3:
+        sys.exit(1)
+
+    service = sys.argv[1].lower()
+
+    if service == 'reboot':
+        subprocess.Popen(['sudo', 'systemctl', 'reboot'])
+        sys.exit(0)
+
+    if service == 'shutdown':
+        subprocess.Popen(['sudo', 'shutdown'])
+        sys.exit(0)
+
+    action = sys.argv[2].lower()
+
+    if action not in ('enable', 'disable', 'stop', 'start', 'reenable', 'restart', 'toggle-run', 'toggle-enable'):
+        print('Invalid action')
+        sys.exit(1)
+
+    try:
+        service = get_service(service)
+    except KeyError:
+        sys.exit(1)
+
+    if action == 'toggle-enable':
+        action = 'disable' if service.enabled else 'enable'
+    elif action == 'toggle-run':
+        action = 'start' if not service.running else 'stop'
+
+    sys.exit(service.systemctl(action))
