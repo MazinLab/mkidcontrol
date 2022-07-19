@@ -12,7 +12,12 @@ sudo ufw allow http  # http
 sudo ufw allow https  # https
 sudo ufw allow 5901:5910/tcp  # TCP ports
 sudo ufw allow 6379  # redis port
-sudo ufw allow
+sudo ufw allow from 128.111.237.0/24  # Physics
+sudo ufw allow from 128.111.23.0/24  # Mazinlab
+sudo ufw allow from 128.111.1.1  # UCSB DNS Server
+sudo ufw allow from 128.111.1.2  # UCSB DNS Server
+sudo ufw allow from 128.111.16.39  # Physics DNS Server
+sudo ufw allow from 128.111.17.98  # Physics DNS Server
 
 sudo ufw enable & sudo ufw reload  # Enable and reload the firewall with its new rules
 
@@ -88,14 +93,16 @@ sudo systemctl start redis-server
 
 # Compile cp210x.ko so that one can use all necessary usb devices (https://community.silabs.com/s/question/0D51M00007xeNm8SAE/linux-cannot-identify-silab-serial-usb?language=en_US)
 # Currently this should be done manually following notes in mkidcontrol_notes.md
-# Ensure that the cp210x.c file in this directory is for the proper linux kernel
+# Ensure that the cp210x.c file in this directory is for the proper linux kernel (current is for linux kernel 5.15)
 cd ~/mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/linuxlakeshoredriver
-# NOTE: IF THE COMMAND BELOW DOES NOT WORK, LOOK AT THE COMMAND THAT IS FIRST PRINTED AND THEN JUST RUN THAT INSTEAD (there's some weird path stuff going on)
-sudo make all cp210x
+sudo make all cp210x # NOTE: IF THIS COMMAND FAILS, LOOK AT THE COMMAND THAT IS FIRST PRINTED AND THEN JUST RUN THAT
+# INSTEAD (there's some weird path stuff going on). The command that worked for the xkid computer is below
+#sudo make clean -C /lib/modules/`uname -r`/build M=/home/kids/mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/linuxlakeshoredriver modules
+
 #insmod /lib/modules/$(uname -r)/kernel/drivers/usb/serial/usbserial.ko  # Will fail since this already exists
 #insmod /lib/modules/$(uname -r)/kernel/drivers/usb/serial/cp210x.ko # Will also fail since the file already exists (can also just do insmod cp210x.ko)
-modprobe -r cp210x # Unload old
-modprobe cp210x # Reload new
+sudo modprobe -r cp210x # Unload old
+sudo modprobe cp210x # Reload new
 
 sudo udevadm control --reload-rules
 sudo udevadm trigger
