@@ -4,6 +4,8 @@ from datetime import datetime
 import plotly.graph_objects as go
 
 from mkidcontrol.util import setup_logging
+from mkidcontrol.util import get_service as mkidcontrol_service
+
 import numpy as np
 import flask
 from flask import render_template, flash, redirect, url_for, request, g, \
@@ -36,8 +38,7 @@ from mkidcontrol.sim921Agent import SIM921_KEYS
 from mkidcontrol.lakeshore240Agent import LAKESHORE240_KEYS
 from mkidcontrol.hemttempAgent import HEMTTEMP_KEYS
 from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
-from mkidcontrol.controlflask.app.main.customForms import CycleControlForm, MagnetControlForm, SIM921SettingForm, \
-    SIM960SettingForm, HeatswitchToggle, TestForm, FIELD_KEYS
+from .forms import *
 
 
 TS_KEYS = ['status:temps:mkidarray:temp', 'status:temps:mkidarray:resistance', 'status:temps:lhetank',
@@ -92,18 +93,18 @@ def guess_language(x):
 
 @bp.before_app_request
 def before_request():
-    # if current_user.is_authenticated:
-    #     current_user.last_seen = datetime.datetime.utcnow()
-    #     db.session.commit()
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.datetime.utcnow()
+        db.session.commit()
     g.locale = str(get_locale())
     redis = current_app.redis
     # redis = mkidcontrol.mkidredis.setup_redis(use_schema=False, module=False)
     g.redis = redis
 
-# @bp.after_request
-# def add_header(response):
-#     response.headers['Cache-Control'] = 'no-cache, no-store'
-#     return response
+@bp.after_request
+def add_header(response):
+    response.headers['Cache-Control'] = 'no-cache, no-store'
+    return response
 
 
 @bp.route('/', methods=['GET', 'POST'])
@@ -180,10 +181,20 @@ def log_viewer():
 @bp.route('/thermometry/<device>/<channel>', methods=['GET', 'POST'])
 def thermometry(device, channel):
     title = redis.read(f'device-settings:{device}:input-channel-{channel.lower()}:name')
+    from ....commands import LakeShoreCommand
+
+    if request.method == 'POST':
+        print(f"Form: {request.form}")
+        for key in request.form.keys():
+            print(f"{key} : {request.form.get(key)}")
+            try:
+                x = LakeShoreCommand(f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
+                print(x)
+            except ValueError as e:
+                print(e)
 
     if device == 'ls336':
-        from mkidcontrol.lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
-        from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, \
+        from ....commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, \
             LakeShoreCommand
         sensor = LS336InputSensor(channel=channel, redis=redis)
         if sensor.sensor_type == "NTC RTD":
@@ -191,20 +202,71 @@ def thermometry(device, channel):
                            curve=sensor.curve, autorange=bool(sensor.autorange_enabled),
                            compensation=bool(sensor.compensation), input_range=sensor.input_range)
         elif sensor.sensor_type == "Diode":
-            form = DiodeForm(channel=f"{channel}", name=sensor.name, sensor_type=sensor.sensor_type, units=sensor.units,
+            form = DiodeForm(channel=f"{channel}", name=sensor.name, sensor_type={sensor.sensor_type}, units=sensor.units,
                               curve=sensor.curve, autorange=bool(sensor.autorange_enabled),
                               compensation=bool(sensor.compensation), input_range=sensor.input_range)
         elif sensor.sensor_type == "Disabled":
             form = DisabledInputForm(channel=f"{channel}", name=sensor.name)
     elif device == 'ls372':
         return redirect(url_for('main.page_not_found'))
-    return render_template('thermometry.html', title=f"Thermometer: {title} Setup", form=form)
+    return render_template('thermometry.html', title=f"{title} Thermometer", form=form)
+
+
+@bp.route('/services')
+@login_required
+def services():
+    from mkidcontrol.util import get_services as mkidcontrol_services
+    services = mkidcontrol_services()
+    try:
+        job = Job.fetch('email-logs', connection=g.redis.redis)
+        exporting = job.get_status() in ('queued', 'started', 'deferred', 'scheduled')
+    except NoSuchJobError:
+        exporting = False
+    return render_template('services.html', title=_('Services'), services=services.values(), exporting=exporting)
+
+
+@bp.route('/service', methods=['POST', 'GET'])
+# @login_required
+def service():
+    """start, stop, enable, disable, restart"""
+    name = request.args.get('name', '')
+    try:
+        service = mkidcontrol_service(name)
+    except ValueError:
+        return bad_request(f'Service "{name}" does not exist.')
+    if request.method == 'POST':
+        service.control(request.form['data'])
+        # flash('Executing... updating in 5')
+        return jsonify({'success': True})
+    else:
+        return jsonify(service.status_dict())
+
+
+# NOTE (N.S.) 19 July 2022: I'm disinclined to include this as a route and leave it to only be allowable by a
+# responsible superuser
+@bp.route('/system', methods=['POST'])
+# @login_required
+def system():
+    """data: shutdown|reboot|reinit """
+    cmd = request.form.get('data', '')
+    if cmd in ('shutdown', 'reboot'):
+        # TODO: Shutdown/reboot command
+        return bad_request('Invalid shutdown command')
+        # subprocess.Popen(['/home/kids/.local/bin/mkid-service-control', cmd])
+        # flash(f'System going offline for {cmd}')
+        # return jsonify({'success': True})
+    elif cmd == 'reinit':
+        import mkidcontrol.redis as redis
+        redis.setup_redis(ts_keys=TS_KEYS)
+        return jsonify({'success': True})
+    else:
+        return bad_request('Invalid shutdown command')
+
 
 
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
-    from mkidcontrol.lakeshore336Agent import Schedule, LS336Form, RTDForm, DiodeForm, \
-        DisabledInputForm
+    from .forms import Schedule, LS336Form, RTDForm, DiodeForm, DisabledInputForm
     from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, LakeShoreCommand
     """
     Test area for trying out things before implementing them on a page

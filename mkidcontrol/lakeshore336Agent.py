@@ -25,15 +25,13 @@ import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS336, LakeShoreCommand, ENABLED_336_CHANNELS
 import mkidcontrol.mkidredis as redis
 
-import wtforms
-from wtforms.fields import *
-from wtforms.widgets import HiddenInput
-from wtforms.fields.html5 import *
-from wtforms.validators import *
-from wtforms import Form
-from flask_wtf import FlaskForm
-
 log = logging.getLogger(__name__)
+
+QUERY_INTERVAL = 1
+
+SETTING_KEYS = tuple(COMMANDS336.keys())
+
+DEVICE = '/dev/ls336'
 
 TEMP_KEYS = ['status:temps:1k-stage:temp', 'status:temps:3k-stage:temp', 'status:temps:50k-stage:temp']
 SENSOR_VALUE_KEYS = ['status:temps:1k-stage:resistance', 'status:temps:3k-stage:voltage', 'status:temps:50k-stage:voltage']
@@ -45,63 +43,7 @@ FIRMWARE_KEY = "status:device:ls336:firmware"
 MODEL_KEY = 'status:device:ls336:model'
 SN_KEY = 'status:device:ls336:sn'
 
-QUERY_INTERVAL = 1
-
-SETTING_KEYS = tuple(COMMANDS336.keys())
-
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
-
-
-class LS336Form(FlaskForm):
-    title = "Lake Shore 336 Settings"
-    set = SubmitField("Set Lake Shore")
-
-
-class InputSensorForm(FlaskForm):
-    from .commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS
-    channel = HiddenField("")
-    name = StringField("Name")
-    sensor_type = SelectField("Sensor Type", choices=list(LS336_INPUT_SENSOR_TYPES.keys()))
-    units = SelectField("Units", choices=list(LS336_INPUT_SENSOR_UNITS.keys()))
-    curve = SelectField("Curve", choices=np.arange(1, 60))
-    autorange = BooleanField(label="Autorange Enable")
-    compensation = BooleanField(label="Compensation")
-
-
-class DiodeForm(InputSensorForm):
-    from .commands import LS336_DIODE_RANGE
-    input_range = SelectField("Input Range", choices=list(LS336_DIODE_RANGE.keys()))
-    update = SubmitField("Update")
-
-
-class RTDForm(InputSensorForm):
-    from .commands import LS336_RTD_RANGE
-    input_range = SelectField("Input Range", choices=list(LS336_RTD_RANGE.keys()))
-    update = SubmitField("Update")
-
-
-class DisabledInputForm(FlaskForm):
-    from .commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_INPUT_SENSOR_RANGE
-    channel = HiddenField()
-    name = StringField("Name")
-    sensor_type = SelectField("Sensor Type", choices=list(LS336_INPUT_SENSOR_TYPES.keys()))
-    units = SelectField("Units", choices=list(LS336_INPUT_SENSOR_UNITS.keys()), render_kw={'disabled':True})
-    curve = SelectField("Curve", choices=np.arange(1, 60), render_kw={'disabled':True})
-    autorange = BooleanField(label="Autorange Enable", render_kw={'disabled':True})
-    compensation = BooleanField(label="Compensation", render_kw={'disabled':True})
-    input_range = SelectField("Input Range", choices=list(LS336_INPUT_SENSOR_RANGE.keys()), render_kw={'disabled':True})
-    enable = SubmitField("Enable")
-
-
-class Schedule(FlaskForm):
-    at = DateTimeLocalField('Activate at', format='%m/%d/%Y %I:%M %p')
-    # at = wtforms.DateTimeField('Activate at', format='%m/%d/%Y %I:%M %p')
-    # date = wtforms.fields.html5.DateField('Date')
-    # time = wtforms.fields.html5.TimeField('Time')
-    repeat = BooleanField(label='Every Day?', default=True)
-    clear = SubmitField("Clear")
-    schedule = SubmitField("Set")
-
 
 def firmware_pull(device):
     # Grab and store device info
@@ -146,18 +88,24 @@ if __name__ == "__main__":
     util.setup_logging('lakeshore336Agent')
     redis.setup_redis(ts_keys=TS_KEYS)
 
-    try:
-        lakeshore = LakeShore336('LakeShore336', port='/dev/ls336', enabled_channels=ENABLED_336_CHANNELS,
-                                 initializer=initializer)
-    except:
-        lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS,
-                                 initializer=initializer)
 
     def callback(tvals, svals):
         vals = tvals + svals
         keys = TEMP_KEYS + SENSOR_VALUE_KEYS
         d = {k: x for k, x in zip(keys, vals) if x}
         redis.store(d, timeseries=True)
+
+    # TODO: Have bad queries disconnect/turn off the device/error it and have that recorded so that systemd can handle it
+    connected = False
+
+    try:
+        lakeshore = LakeShore336('LakeShore336', port=DEVICE, enabled_channels=ENABLED_336_CHANNELS,
+                                 initializer=initializer)
+    except:
+        lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS,
+                                 initializer=initializer)
+
+    connected = lakeshore.device_serial.isOpen()
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals), value_callback=callback)
 
