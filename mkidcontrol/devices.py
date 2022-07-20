@@ -453,7 +453,7 @@ class LakeShoreDevice(SerialDevice):
 
     def format_msg(self, msg:str):
         """
-        Overrides agent.SerialDevice format_message() function. Commands to the LakeShore 240 are all upper-case.
+        Overrides agent.SerialDevice format_message() function. Commands to the LakeShore are all upper-case.
         *NOTE: By choice, using .upper(), if we manually store a name of a curve/module, it will be in all caps.
         """
         return super().format_msg(msg.strip().upper())
@@ -475,7 +475,7 @@ class LakeShoreDevice(SerialDevice):
             log.debug(f"Unable to parse IDN response: '{id_msg}'")
             manufacturer, model, self.sn, self.firmware = [None]*4
 
-        if not (manufacturer == "LSCI") and (model in self.valid_models):
+        if not (manufacturer == "LSCI") or not (model in self.valid_models):
             msg = f"Unsupported device: {manufacturer}/{model} (idn response = '{id_msg}')"
             log.critical(msg)
             raise IOError(msg)
