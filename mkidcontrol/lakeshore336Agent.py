@@ -20,7 +20,7 @@ import time
 import numpy as np
 
 from mkidcontrol.mkidredis import RedisError
-from mkidcontrol.devices import LakeShore336
+from mkidcontrol.devices import LakeShore336, InstrumentException
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS336, LakeShoreCommand, ENABLED_336_CHANNELS
 import mkidcontrol.mkidredis as redis
@@ -99,7 +99,7 @@ class LS336Form(FlaskForm):
 
 
 class InputSensorForm(FlaskForm):
-    from .commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_AUTORANGE_VALUES, \
+    from mkidcontrol.commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_AUTORANGE_VALUES, \
         LS336_COMPENSATION_VALUES
     channel = HiddenField("")
     name = StringField("Name")
@@ -111,19 +111,19 @@ class InputSensorForm(FlaskForm):
 
 
 class DiodeForm(InputSensorForm):
-    from .commands import LS336_DIODE_RANGE
+    from mkidcontrol.commands import LS336_DIODE_RANGE
     input_range = SelectField("Input Range", choices=list(LS336_DIODE_RANGE.keys()))
     update = SubmitField("Update")
 
 
 class RTDForm(InputSensorForm):
-    from .commands import LS336_RTD_RANGE
+    from mkidcontrol.commands import LS336_RTD_RANGE
     input_range = SelectField("Input Range", choices=list(LS336_RTD_RANGE.keys()))
     update = SubmitField("Update")
 
 
 class DisabledInputForm(FlaskForm):
-    from .commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_INPUT_SENSOR_RANGE
+    from mkidcontrol.commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_INPUT_SENSOR_RANGE
     channel = HiddenField()
     name = StringField("Name")
     sensor_type = SelectField("Sensor Type", choices=list(LS336_INPUT_SENSOR_TYPES.keys()))
@@ -143,6 +143,7 @@ class Schedule(FlaskForm):
     repeat = BooleanField(label='Every Day?', default=True)
     clear = SubmitField("Clear")
     schedule = SubmitField("Set")
+
 
 if __name__ == "__main__":
 
