@@ -111,7 +111,7 @@ if __name__ == "__main__":
         d = {k: x for k, x in zip((MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY), (cur, field, ov)) if x}
         redis.store(d, timeseries=True)
 
-
+    # Handle a non-connect / disconnection during operation
     lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=initializer)
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.current, lakeshore.field, lakeshore.output_voltage),
@@ -124,7 +124,7 @@ if __name__ == "__main__":
                 key = key.removeprefix('command:')
                 if key in SETTING_KEYS:
                     try:
-                        # TODO: Make sure that handling limits
+                        # TODO: Make sure that handling limits works
                         if key[-5:] == 'limit':
                             limits = lakeshore.limits
                         else:
