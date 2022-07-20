@@ -11,7 +11,7 @@ N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/mod
 
 TODO: Figure out how to 'block' settings if other settings are in place (e.g. Input range cannot be in V if sensor type is RTD)
 
-TODO: Initialization of settings on startup
+TODO: Long term -> support adding curves
 """
 
 import sys
@@ -156,8 +156,6 @@ if __name__ == "__main__":
         d = {k: x for k, x in zip(keys, vals) if x}
         redis.store(d, timeseries=True)
 
-    # TODO: Have bad queries disconnect/turn off the device/error it and have that recorded so that systemd can handle it
-    connected = False
 
     try:
         lakeshore = LakeShore336('LakeShore336', port=DEVICE, enabled_channels=ENABLED_336_CHANNELS,
@@ -166,8 +164,7 @@ if __name__ == "__main__":
         lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS,
                                  initializer=initializer)
 
-    connected = lakeshore.device_serial.isOpen()
-
+    # TODO: Allow monitor to gracefully fail if it is querying garbage
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals), value_callback=callback)
 
     try:
