@@ -15,7 +15,7 @@ from flask_babel import _, get_locale
 from flask_wtf import FlaskForm
 
 from .. import db
-from .forms import EmptyForm
+# from .forms import *
 from ..models import User, Post, Message, Notification
 from . import bp
 from .helpers import *
@@ -194,8 +194,9 @@ def thermometry(device, channel):
                 print(e)
 
     if device == 'ls336':
-        from ....commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, \
-            LakeShoreCommand
+        from ....lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
+        from ....commands import LS336InputSensor, ALLOWED_336_CHANNELS, LakeShoreCommand
+
         sensor = LS336InputSensor(channel=channel, redis=redis)
         if sensor.sensor_type == "NTC RTD":
             form = RTDForm(channel=f"{channel}", name=sensor.name, sensor_type=sensor.sensor_type, units=sensor.units,
@@ -263,10 +264,9 @@ def system():
         return bad_request('Invalid shutdown command')
 
 
-
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
-    from .forms import Schedule, LS336Form, RTDForm, DiodeForm, DisabledInputForm
+    from ....lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
     from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, LakeShoreCommand
     """
     Test area for trying out things before implementing them on a page
