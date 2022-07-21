@@ -12,6 +12,10 @@ N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/mod
 TODO: Figure out how to 'block' settings if other settings are in place (e.g. Input range cannot be in V if sensor type is RTD)
 
 TODO: Long term -> support adding curves
+
+TODO: We will need 2 statuses in the flask app, the FIRST will be 'LS336 Status' which will either be good/bad/error/off/etc.
+ The SECOND will be 'lakeshore336.service Status' which will be on/off/etc. To *ever* restart, one will need to restart
+ the service, not anything within the program
 """
 
 import sys
@@ -20,7 +24,7 @@ import time
 import numpy as np
 
 from mkidcontrol.mkidredis import RedisError
-from mkidcontrol.devices import LakeShore336, InstrumentException
+from mkidcontrol.devices import LakeShore336
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS336, LakeShoreCommand, ENABLED_336_CHANNELS
 import mkidcontrol.mkidredis as redis
