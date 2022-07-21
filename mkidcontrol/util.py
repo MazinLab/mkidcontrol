@@ -163,7 +163,7 @@ class SystemdService:
 
 def get_services():
     system_services = list(
-        map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../etc/systemd/*'))))
+        map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../etc/systemd/system/*'))))
     user_services = list(
         map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../systemd-user/*'))))
     l = [SystemdService(s, user=False) for s in system_services] + [SystemdService(s, user=True) for s in user_services]
