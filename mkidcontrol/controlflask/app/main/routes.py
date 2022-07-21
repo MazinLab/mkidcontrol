@@ -3,6 +3,7 @@ import subprocess
 from datetime import datetime
 import plotly.graph_objects as go
 
+import mkidcontrol.mkidredis
 from mkidcontrol.util import setup_logging
 from mkidcontrol.util import get_service as mkidcontrol_service
 
@@ -90,16 +91,17 @@ log = setup_logging('controlDirector')
 def guess_language(x):
     return 'en'
 
-
+# TODO: Figure out best how to set the global redis instance from current_app. Currently (20 July 2022) it is not working
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
         current_user.last_seen = datetime.datetime.utcnow()
         db.session.commit()
     g.locale = str(get_locale())
-    redis = current_app.redis
-    # redis = mkidcontrol.mkidredis.setup_redis(use_schema=False, module=False)
-    g.redis = redis
+    if current_app.redis:
+        g.redis = current_app.redis
+    else:
+        g.redis = mkidcontrol.mkidredis.setup_redis(ts_keys=TS_KEYS)
 
 @bp.after_request
 def add_header(response):
@@ -214,15 +216,17 @@ def thermometry(device, channel):
 
 
 @bp.route('/services')
-@login_required
 def services():
     from mkidcontrol.util import get_services as mkidcontrol_services
     services = mkidcontrol_services()
-    try:
-        job = Job.fetch('email-logs', connection=g.redis.redis)
-        exporting = job.get_status() in ('queued', 'started', 'deferred', 'scheduled')
-    except NoSuchJobError:
-        exporting = False
+    # TODO: Figure this block out with g.redis.
+    #  Until then, exporting = False
+    # try:
+    #     job = Job.fetch('email-logs', connection=g.redis)
+    #     exporting = job.get_status() in ('queued', 'started', 'deferred', 'scheduled')
+    # except NoSuchJobError:
+    #     exporting = False
+    exporting = False
     return render_template('services.html', title=_('Services'), services=services.values(), exporting=exporting)
 
 
@@ -241,6 +245,42 @@ def service():
         return jsonify({'success': True})
     else:
         return jsonify(service.status_dict())
+
+
+
+@bp.route('/task', methods=['GET', 'POST'])
+# @login_required
+def task():
+    if request.method == 'POST':
+        id = request.form.get('id')
+        if id != 'email-logs':
+            return bad_request('Unknown task')
+        try:
+            job = Job.fetch(id, connection=g.redis.redis)
+            if job.is_failed or job.is_finished:
+                job.delete()
+                job = None
+        except NoSuchJobError:
+            job = None
+        if job:
+            flash(_(f'Task "{id} is currently pending'))
+            return bad_request(f'Task "{id}" in progress')
+        else:
+            current_app.task_queue.enqueue(f"mkidcontrol.controlflask.app.tasks.{id.replace('-', '_')}", job_id=id)
+            return jsonify({'success': True})
+
+    else:
+        id = request.args.get('id', '')
+        if not id:
+            return bad_request('Task id required')
+        try:
+            job = Job.fetch(id, connection=g.redis.redis)
+        except NoSuchJobError:
+            return bad_request('Unknown task')
+        status = job.get_status()
+        return jsonify({'done': status == 'finished', 'error': status != 'finished',
+                        'progress': job.meta.get('progress', 0)})
+
 
 
 # NOTE (N.S.) 19 July 2022: I'm disinclined to include this as a route and leave it to only be allowable by a
