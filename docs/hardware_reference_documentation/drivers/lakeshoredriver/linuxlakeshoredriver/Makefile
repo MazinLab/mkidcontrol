@@ -1,20 +1,20 @@
-obj-m = cp210x.o
-KDIR = /lib/modules/`uname -r`/build
-SRCDIR = $(PWD)
-# try this instead if you don't have PWD defined
-# SRCDIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-all:
-	$(MAKE) -C $(KDIR) M=$(SRCDIR) modules
-clean:
-	$(MAKE) -C $(KDIR) M=$(SRCDIR) clean
+# obj-m = cp210x.o
+# KDIR = /lib/modules/`uname -r`/build
+# SRCDIR = $(PWD)
+# # try this instead if you don't have PWD defined
+# # SRCDIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+# all:
+# 	$(MAKE) -C $(KDIR) M=$(SRCDIR) modules
+# clean:
+# 	$(MAKE) -C $(KDIR) M=$(SRCDIR) clean
 
-# # SPDX-License-Identifier: GPL-2.0
-# #
-# # Makefile for the USB serial device drivers.
-# #
+# SPDX-License-Identifier: GPL-2.0
 #
-# # Object file lists.
+# Makefile for the USB serial device drivers.
 #
+
+# Object file lists.
+
 # obj-$(CONFIG_USB_SERIAL)			+= usbserial.o
 #
 # usbserial-y := usb-serial.o generic.o bus.o
@@ -25,7 +25,7 @@ clean:
 # obj-$(CONFIG_USB_SERIAL_ARK3116)		+= ark3116.o
 # obj-$(CONFIG_USB_SERIAL_BELKIN)			+= belkin_sa.o
 # obj-$(CONFIG_USB_SERIAL_CH341)			+= ch341.o
-# obj-$(CONFIG_USB_SERIAL_CP210X)			+= cp210x.o
+obj-$(CONFIG_USB_SERIAL_CP210X)			+= cp210x.o
 # obj-$(CONFIG_USB_SERIAL_CYBERJACK)		+= cyberjack.o
 # obj-$(CONFIG_USB_SERIAL_CYPRESS_M8)		+= cypress_m8.o
 # obj-$(CONFIG_USB_SERIAL_DEBUG)			+= usb_debug.o
