@@ -8,13 +8,13 @@ all:
 clean:
 	$(MAKE) -C $(KDIR) M=$(SRCDIR) clean
 
-# SPDX-License-Identifier: GPL-2.0
+# # SPDX-License-Identifier: GPL-2.0
+# #
+# # Makefile for the USB serial device drivers.
+# #
 #
-# Makefile for the USB serial device drivers.
+# # Object file lists.
 #
-
-# Object file lists.
-
 # obj-$(CONFIG_USB_SERIAL)			+= usbserial.o
 #
 # usbserial-y := usb-serial.o generic.o bus.o
