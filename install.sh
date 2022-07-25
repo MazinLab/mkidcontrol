@@ -98,7 +98,7 @@ cd ~/mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/l
 sudo make all cp210x # NOTE: IF THIS COMMAND FAILS, LOOK AT THE COMMAND THAT IS FIRST PRINTED AND THEN JUST RUN THAT
 # INSTEAD (there's some weird path stuff going on). The command that worked for the xkid computer is below
 #sudo make clean -C /lib/modules/`uname -r`/build M=/home/kids/mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/linuxlakeshoredriver modules
-
+sudo cp cp210x.ko /lib/modules/$(uname -r)/kernel/drivers/usb/serial/
 #insmod /lib/modules/$(uname -r)/kernel/drivers/usb/serial/usbserial.ko  # Will fail since this already exists
 #insmod /lib/modules/$(uname -r)/kernel/drivers/usb/serial/cp210x.ko # Will also fail since the file already exists (can also just do insmod cp210x.ko)
 sudo modprobe -r cp210x # Unload old
