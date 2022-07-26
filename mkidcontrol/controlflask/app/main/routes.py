@@ -91,7 +91,6 @@ log = setup_logging('controlDirector')
 def guess_language(x):
     return 'en'
 
-# TODO: Figure out best how to set the global redis instance from current_app. Currently (20 July 2022) it is not working
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
@@ -200,17 +199,20 @@ def thermometry(device, channel):
         from ....commands import LS336InputSensor, ALLOWED_336_CHANNELS, LakeShoreCommand
 
         sensor = LS336InputSensor(channel=channel, redis=redis)
+        # TODO: Consider architecture and see if form=INPUT_TYPE_Form() works
         if sensor.sensor_type == "NTC RTD":
             form = RTDForm(channel=f"{channel}", name=sensor.name, sensor_type=sensor.sensor_type, units=sensor.units,
-                           curve=sensor.curve, autorange=bool(sensor.autorange_enabled),
-                           compensation=bool(sensor.compensation), input_range=sensor.input_range)
+                           curve=sensor.curve, autorange=sensor.autorange_enabled,
+                           compensation=sensor.compensation, input_range=sensor.input_range)
         elif sensor.sensor_type == "Diode":
             form = DiodeForm(channel=f"{channel}", name=sensor.name, sensor_type={sensor.sensor_type}, units=sensor.units,
-                              curve=sensor.curve, autorange=bool(sensor.autorange_enabled),
-                              compensation=bool(sensor.compensation), input_range=sensor.input_range)
+                              curve=sensor.curve, autorange=sensor.autorange_enabled,
+                              compensation=sensor.compensation, input_range=sensor.input_range)
         elif sensor.sensor_type == "Disabled":
             form = DisabledInputForm(channel=f"{channel}", name=sensor.name)
     elif device == 'ls372':
+
+        sensor = LS372InputSensor(channel=channel, redis=redis)
         return redirect(url_for('main.page_not_found'))
     return render_template('thermometry.html', title=f"{title} Thermometer", form=form)
 
