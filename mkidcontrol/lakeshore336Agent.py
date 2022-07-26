@@ -127,14 +127,15 @@ class RTDForm(InputSensorForm):
 
 
 class DisabledInputForm(FlaskForm):
-    from mkidcontrol.commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_INPUT_SENSOR_RANGE
+    from mkidcontrol.commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_INPUT_SENSOR_RANGE, \
+        LS336_AUTORANGE_VALUES, LS336_COMPENSATION_VALUES
     channel = HiddenField()
     name = StringField("Name")
     sensor_type = SelectField("Sensor Type", choices=list(LS336_INPUT_SENSOR_TYPES.keys()))
     units = SelectField("Units", choices=list(LS336_INPUT_SENSOR_UNITS.keys()), render_kw={'disabled':True})
     curve = SelectField("Curve", choices=np.arange(1, 60), render_kw={'disabled':True})
-    autorange = BooleanField(label="Autorange Enable", render_kw={'disabled':True})
-    compensation = BooleanField(label="Compensation", render_kw={'disabled':True})
+    autorange = SelectField("Autorange Enable", choices=list(LS336_AUTORANGE_VALUES.keys()))
+    compensation = SelectField("Compensation", choices=list(LS336_COMPENSATION_VALUES.keys()))
     input_range = SelectField("Input Range", choices=list(LS336_INPUT_SENSOR_RANGE.keys()), render_kw={'disabled':True})
     enable = SubmitField("Enable")
 
