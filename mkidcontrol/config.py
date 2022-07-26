@@ -15,6 +15,7 @@ REDIS_TS_RETENTION = 60 * 60 * 1000  # 30 min
 REDIS_TS_KEYS = ('temp:value', 'temp:cpu:value', 'lamp:flux'
                  'speaker:level', 'mic:level')
 
+# TODO: Add keys for other instruments
 REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                 'channels': ('lamp:settings',
                              'player:melody:play',
