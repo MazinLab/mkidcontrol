@@ -114,6 +114,7 @@ sudo udevadm trigger
 # STILL NEED TO VALIDATE THE REST BELOW
 
 # TODO: Get flask set up and running
+# TODO: Get flask db up and running (for login/logout)
 
 # Start instrument software
 sudo systemctl enable heatswitch
