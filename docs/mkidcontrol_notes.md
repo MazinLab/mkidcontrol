@@ -8,36 +8,46 @@
   so their udev rules are based on the FTDI chips in the USB-to-RS232 cable.
     - Each cable will be labelled with the device it goes to to avoid confusion.
 
-# How to properly configure the driver for the LakeShore240 USB!!
-- As of 14 October 2020, the LakeShore 240 Temperature Monitor is the only Lake Shore product that is NOT 
-  supported natively by Linux
+# How to properly configure the cp210x driver for unsupported USB devices!!
+- As of 26 July 2022, the LakeShore 240 and Lake shore 372 are not supported natively by Linux
 - Not to worry! We can slightly modify the driver module and make everything alright (see this post for a good intro
     of what we will be doing https://www.silabs.com/community/interface/forum.topic.html/linux_cannot_identif-PB7r)
-- First, from this link (https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers)
-    you can download driver source code so you can manually add it in.
-- Next, from the zipped directory you download, unzip into a directory (currently this is
-    'mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/linuxlakeshoredriver') where you will find a file called cp210x.c
-- In 'cp210x.c' add the VID/PID of the LS240 (1FB9, 0205) to the list like below
+- First, from this link (https://github.com/torvalds/linux/blob/master/drivers/usb/serial/cp210x.c) find the version of
+    the cp210x.c file that matches the linux kernel you have (e.g. if using Linux 5.15.10, use the cp210x.c from tag v5.15)
+- Copy the contents of this file into docs/hardware_reference_documentation/drivers/linuxlakeshoredriver/cp210x.c (you 
+    may move them anywhere, but this file currently exists and there is an appropriate Makefile in the same director)
+- In 'cp210x.c' add the VID/PID of the LS240 (1FB9, 0205) and LS372 (1FB9, 0305) to the list like below
     ```
     { USB_DEVICE(0x1FB9, 0x0201) }, /* Lake Shore Model 219 Temperature Monitor */
     { USB_DEVICE(0x1FB9, 0x0202) }, /* Lake Shore Model 233 Temperature Transmitter */
     { USB_DEVICE(0x1FB9, 0x0203) }, /* Lake Shore Model 235 Temperature Transmitter */
     { USB_DEVICE(0x1FB9, 0x0205) }, /* Lake Shore Model 240 Temperature Monitor <---Edit This line */ 
     { USB_DEVICE(0x1FB9, 0x0300) }, /* Lake Shore Model 335 Temperature Controller */
-  	{ USB_DEVICE(0x1FB9, 0x0305) }, /* Lake Shore Model 372 AC Bridge <--- Add this line as well */
+      { USB_DEVICE(0x1FB9, 0x0305) }, /* Lake Shore Model 372 AC Bridge <--- Add this line as well */
     ```
-- After adding in the appropriate USB_DEVICE VID and PID, you need to recompile the kernel object file.
-  - If there is already a cp210x.ko file, move it somewhere it will not be overwritten or modified 
-  - In the directory with the cp210x.c file (and the other requisite files) run `make all cp210x`
-  - This should create the new cp210x.ko file you will need
-- Once this is done, you need to copy the cp210x.ko file to where the kernel modules exist on your machine.
-    Note, this may require sudo/write permissions to the directory
-    - For Ubuntu 20.04, Linux kernel 5.3.0-59-generic, this is in '/lib/modules/5.3.0-59-generic/kernel/drivers/usb/serial'
-           (to find your active kernel, just type 'uname -r' into the command line)
-    - Alternatively, you can copy the file to '/lib/modules/$(uname -r)/kernel/drivers/usb/serial
-- After this, you should be able to run `sudo modprobe cp210x` and it will restart the module, however, no changes will take effect until re-plugging the USB devices
+- After adding in the appropriate USB_DEVICE VID and PID, recompile the kernel object file.
+  - NOTE: Make sure that you are using compatible gcc versions! 
+    - The linux kernel is compliled with a specific version that you can look up by running the command `cat /proc/version`.
+    - To find the gcc used when you run `make`, run `gcc -v`
+    - If the output from `gcc -v` is the same version (or higher) than that from `cat /proc/version`, you're okay and can run
+       everything normally. If not, you need to ensure that you use the right gcc.
+    - To set a higher gcc, first run `update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-<version-needed> 50` 
+       where `<version-needed` is the release of gcc that that linux kernel used (e.g. if it used `11.2.0`, `<version-needed>`=`11`).
+       The final number just sets a higher priority than the default (which is 60)
+    - Once installed, run `sudo update-alternatives --config gcc` and follow the prompts to use whichever gcc compiler you
+       need. The default will be what you saw from `gcc -v`, and you should have at least 1 more option from what you just
+       installed.
+    - Once you are confident you are compiling with the proper gcc version, proceed to the next steps
+  - In the directory with the cp210x.c file, run `make clean`. You should now only have the cp210x.c and Makefile 
+  - In the directory with the cp210x.c file (and the other requisite files) run `make all`
+  - If there are no errors, you should now have all the files you will need
+- Next, copy the cp210x.ko file to where the kernel modules exist on your machine.
+  - Run `sudo cp cp210x.ko /lib/modules/$(uname -r)/kernel/drivers/usb/serial`
+- Run `sudo insmod /lib/modules/$(uname -r)/kernel/drivers/usb/serial/cp210x.ko` (This should fail, as the file exists)
+- Run `sudo modprobe cp210x` to restart the module. 
+  - However, no changes will take effect until re-plugging the USB devices (i.e. your LS240 won't show up until replugging it in)
   - This will only get you the cp210x module started during this boot. If you reboot and do nothing else, then cp210x will not restart on a reboot
-  - To configure automatic start at boot, see the following note
+  - To configure automatic start at boot, see following note
 - Now, if you are NOT using secure boot, edit '/etc/modules' to contain 1 line that says 'cp210x'.
 - If you ARE using secure boot, still edit '/etc/modules' to contain the line 'cp210x', but we also need to manually
     sign the files (essentially signing off that they're trusted)

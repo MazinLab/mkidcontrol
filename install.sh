@@ -25,7 +25,7 @@ sudo ufw enable & sudo ufw reload  # Enable and reload the firewall with its new
 sudo apt install openssh-server  # This should automatically start the ssh server, and now you can ssh into the computer
 
 # Install some necessary packages and set the default terminal to zsh
-sudo apt install zsh vim nodejs curl git-all npm bison flex
+sudo apt install zsh vim nodejs curl git-all npm bison flex build-essential
 sudo apt-get install -y make
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 touch ~/.Xauthority
@@ -77,7 +77,7 @@ cd /home/mazinlab/mkidcontrol
 sudo cp etc/redis/redis.conf /etc/redis/
 sudo cp etc/systemd/system/* /etc/systemd/system/
 sudo cp etc/udev/rules.d/* /etc/udev/rules.d/
-sudo cp etc/modules /etc/ # For the lakeshore240 and lakeshore372 driver
+sudo cp etc/modules /etc/ # For the lakeshore240 and lakeshore372 cp210x USB to UART driver
 
 # Now that repo is cloned and the environment is created and files are in place, activate env and install repo in it
 conda activate control
@@ -91,11 +91,14 @@ sudo systemctl daemon-reload
 sudo systemctl enable redis-server
 sudo systemctl start redis-server
 
-# Compile cp210x.ko so that one can use all necessary usb devices (https://community.silabs.com/s/question/0D51M00007xeNm8SAE/linux-cannot-identify-silab-serial-usb?language=en_US)
-# Currently this should be done manually following notes in mkidcontrol_notes.md
-# Ensure that the cp210x.c file in this directory is for the proper linux kernel (current is for linux kernel 5.15)
-cd ~/mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/linuxlakeshoredriver
-sudo make all cp210x # NOTE: IF THIS COMMAND FAILS, LOOK AT THE COMMAND THAT IS FIRST PRINTED AND THEN JUST RUN THAT
+# Compile cp210x.ko so that one can use all necessary usb devices. The following 2 lines have good source material for this
+# https://community.silabs.com/s/question/0D51M00007xeNm8SAE/linux-cannot-identify-silab-serial-usb?language=en_US
+# https://github.com/torvalds/linux/blob/master/drivers/usb/serial/cp210x.c
+# Currently this should be done manually following notes in mkidcontrol_notes.md / instructions here (which are in sync)
+# Ensure that the cp210x.c file in this directory is for the proper linux kernel you've installed and you're using the
+# version of gcc that you desire
+cd ~/mkidcontrol/docs/hardware_reference_documentation/drivers/linuxlakeshoredriver
+sudo make all # NOTE: IF THIS COMMAND FAILS, LOOK AT THE COMMAND THAT IS FIRST PRINTED AND THEN JUST RUN THAT
 # INSTEAD (there's some weird path stuff going on). The command that worked for the xkid computer is below
 #sudo make clean -C /lib/modules/`uname -r`/build M=/home/kids/mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/linuxlakeshoredriver modules
 sudo cp cp210x.ko /lib/modules/$(uname -r)/kernel/drivers/usb/serial/
@@ -103,6 +106,7 @@ sudo cp cp210x.ko /lib/modules/$(uname -r)/kernel/drivers/usb/serial/
 #insmod /lib/modules/$(uname -r)/kernel/drivers/usb/serial/cp210x.ko # Will also fail since the file already exists (can also just do insmod cp210x.ko)
 sudo modprobe -r cp210x # Unload old
 sudo modprobe cp210x # Reload new
+# You can test this worked by running `lsmod | grep cp210x` to see if the module is running and also `modinfo cp210x` to get info about the module
 
 sudo udevadm control --reload-rules
 sudo udevadm trigger
@@ -125,8 +129,8 @@ sudo systemctl enable lakeshore625
 sudo systemctl start lakeshore625
 
 # Start instrument control software
-sudo systemctl enable mkidcontrol
-sudo systemctl start mkidcontrol
+sudo systemctl enable controlflask
+sudo systemctl start controlflask
 
 # Reboot for anything further that needs to take effect
 sudo reboot
