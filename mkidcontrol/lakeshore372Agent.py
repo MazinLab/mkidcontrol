@@ -20,6 +20,7 @@ TODO: Output voltage key value to report the control voltage to the lakeshore 62
 import sys
 import logging
 import time
+import numpy as np
 
 from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.devices import LakeShore372
@@ -106,6 +107,132 @@ def initializer(device):
         redis.store(initialized_settings)
     except RedisError:
         log.warning('Storing device settings to redis failed')
+
+
+import wtforms
+from wtforms.fields import *
+from wtforms.widgets import HiddenInput
+from wtforms.fields.html5 import *
+from wtforms.validators import *
+from wtforms import Form
+from flask_wtf import FlaskForm
+from serial import SerialException
+
+
+class LS372Form(FlaskForm):
+    title = "Lake Shore 372 Settings"
+    set = SubmitField("Set Lake Shore")
+
+
+class ControlSensorForm(FlaskForm):
+    from mkidcontrol.commands import LS372_SENSOR_MODE, LS372_AUTORANGE_VALUES, LS372_CONTROL_INPUT_CURRENT_RANGE, \
+        LS372_CURRENT_SOURCE_SHUNTED_VALUES, LS372_INPUT_SENSOR_UNITS, LS372_RESISTANCE_RANGE, LS372_ENABLED_VALUES, \
+        LS372_CURVE_COEFFICIENTS
+    channel = HiddenField("")
+    name = StringField("Name")
+    mode = SelectField("Sensor Mode", default="Current", choices=list(LS372_SENSOR_MODE.keys()), render_kw={'disabled': True})
+    current_excitation = SelectField("Excitation Current", choices=list(LS372_CONTROL_INPUT_CURRENT_RANGE.keys()))
+    curve = SelectField("Curve", choices=np.arange(1, 60))
+    autorange = SelectField("Autorange Enable", choices=list(LS372_AUTORANGE_VALUES.keys()))
+    current_source_shunted = SelectField("Current Source Shunted", choices=list(LS372_CURRENT_SOURCE_SHUNTED_VALUES.keys()))
+    units = SelectField("Units", choices=list(LS372_INPUT_SENSOR_UNITS.keys()))
+    resistance_range = SelectField("Resistance Range", choices=list(LS372_RESISTANCE_RANGE.keys()))
+    enabled = SelectField("Enabled", choices=list(LS372_ENABLED_VALUES.keys()))
+    dwell_time = IntegerField("Dwell Time", default=1, validators=[NumberRange(1, 200)])
+    pause_time = IntegerField("Pause Time", default=3, validators=[NumberRange(3, 200)])
+    temperature_coefficient = SelectField("Temperature Coefficient", choices=list(LS372_CURVE_COEFFICIENTS.keys()))
+    update = SubmitField("Update")
+
+
+class DiasbledControlSensorForm(FlaskForm):
+    from mkidcontrol.commands import LS372_SENSOR_MODE, LS372_AUTORANGE_VALUES, LS372_CONTROL_INPUT_CURRENT_RANGE, \
+        LS372_CURRENT_SOURCE_SHUNTED_VALUES, LS372_INPUT_SENSOR_UNITS, LS372_RESISTANCE_RANGE, LS372_ENABLED_VALUES, \
+        LS372_CURVE_COEFFICIENTS
+    channel = HiddenField("")
+    name = StringField("Name", render_kw={'disabled': True})
+    enabled = SelectField("Enabled", choices=list(LS372_ENABLED_VALUES.keys()))
+    mode = SelectField("Sensor Mode", default="Current", choices=list(LS372_SENSOR_MODE.keys()), render_kw={'disabled': True})
+    current_excitation = SelectField("Excitation Current", choices=list(LS372_CONTROL_INPUT_CURRENT_RANGE.keys()), render_kw={'disabled': True})
+    curve = SelectField("Curve", choices=np.arange(1, 60), render_kw={'disabled': True})
+    autorange = SelectField("Autorange Enable", choices=list(LS372_AUTORANGE_VALUES.keys()), render_kw={'disabled': True})
+    current_source_shunted = SelectField("Current Source Shunted", choices=list(LS372_CURRENT_SOURCE_SHUNTED_VALUES.keys()), render_kw={'disabled': True})
+    units = SelectField("Units", choices=list(LS372_INPUT_SENSOR_UNITS.keys()), render_kw={'disabled': True})
+    resistance_range = SelectField("Resistance Range", choices=list(LS372_RESISTANCE_RANGE.keys()), render_kw={'disabled': True})
+    dwell_time = IntegerField("Dwell Time", default=1, validators=[NumberRange(1, 200)], render_kw={'disabled': True})
+    pause_time = IntegerField("Pause Time", default=3, validators=[NumberRange(3, 200)], render_kw={'disabled': True})
+    temperature_coefficient = SelectField("Temperature Coefficient", choices=list(LS372_CURVE_COEFFICIENTS.keys()), render_kw={'disabled': True})
+    update = SubmitField("Update")
+
+
+class InputSensorForm(FlaskForm):
+    from mkidcontrol.commands import LS372_SENSOR_MODE, LS372_AUTORANGE_VALUES, LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE, \
+        LS372_MEASUREMENT_INPUT_CURRENT_RANGE, LS372_CURRENT_SOURCE_SHUNTED_VALUES, LS372_INPUT_SENSOR_UNITS, \
+        LS372_RESISTANCE_RANGE, LS372_ENABLED_VALUES, LS372_CURVE_COEFFICIENTS
+    channel = HiddenField("")
+    name = StringField("Name")
+    mode = SelectField("Sensor Mode", choices=list(LS372_SENSOR_MODE.keys()))
+    # TODO: Monitor excitation mode ("Sensor Mode") and enable/disable voltage/current excitation accordingly
+    voltage_excitation = SelectField("Excitation Voltage", choices=list(LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE.keys()))
+    current_excitation = SelectField("Excitation Current", choices=list(LS372_MEASUREMENT_INPUT_CURRENT_RANGE.keys()))
+    curve = SelectField("Curve", choices=np.arange(1, 60))
+    autorange = SelectField(label="Autorange Enable", choices=list(LS372_AUTORANGE_VALUES.keys()))
+    current_source_shunted = SelectField(label="Current Source Shunted", choices=list(LS372_CURRENT_SOURCE_SHUNTED_VALUES.keys()))
+    units = SelectField(label="Units", choices=list(LS372_INPUT_SENSOR_UNITS.keys()))
+    resistance_range = SelectField(label="Resistance Range", choices=list(LS372_RESISTANCE_RANGE.keys()))
+    enabled = SelectField(label="Enabled", choices=list(LS372_ENABLED_VALUES.keys()))
+    dwell_time = IntegerField(label="Dwell Time", default=1, validators=[NumberRange(1, 200)])
+    pause_time = IntegerField(label="Pause Time", default=3, validators=[NumberRange(3, 200)])
+    temperature_coefficient = SelectField(label="Temperature Coefficient", choices=list(LS372_CURVE_COEFFICIENTS))
+    update = SubmitField("Update")
+
+
+class DisabledEnabledInputSensorForm(FlaskForm):
+    from mkidcontrol.commands import LS372_SENSOR_MODE, LS372_AUTORANGE_VALUES, LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE, \
+        LS372_MEASUREMENT_INPUT_CURRENT_RANGE, LS372_CURRENT_SOURCE_SHUNTED_VALUES, LS372_INPUT_SENSOR_UNITS, \
+        LS372_RESISTANCE_RANGE, LS372_ENABLED_VALUES, LS372_CURVE_COEFFICIENTS
+    channel = HiddenField("")
+    name = StringField("Name")
+    mode = SelectField("Sensor Mode", choices=list(LS372_SENSOR_MODE.keys()))
+    # TODO: Monitor excitation mode ("Sensor Mode") and enable/disable voltage/current excitation accordingly
+    voltage_excitation = SelectField("Excitation Voltage", choices=list(LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE.keys()))
+    current_excitation = SelectField("Excitation Current", choices=list(LS372_MEASUREMENT_INPUT_CURRENT_RANGE.keys()))
+    curve = SelectField("Curve", choices=np.arange(1, 60))
+    autorange = SelectField(label="Autorange Enable", choices=list(LS372_AUTORANGE_VALUES.keys()))
+    current_source_shunted = SelectField(label="Current Source Shunted",
+                                         choices=list(LS372_CURRENT_SOURCE_SHUNTED_VALUES.keys()))
+    units = SelectField(label="Units", choices=list(LS372_INPUT_SENSOR_UNITS.keys()))
+    resistance_range = SelectField(label="Resistance Range", choices=list(LS372_RESISTANCE_RANGE.keys()))
+    enabled = SelectField(label="Enabled", choices=list(LS372_ENABLED_VALUES.keys()))
+    dwell_time = IntegerField(label="Dwell Time", default=1, validators=[NumberRange(1, 200)])
+    pause_time = IntegerField(label="Pause Time", default=3, validators=[NumberRange(3, 200)])
+    temperature_coefficient = SelectField(label="Temperature Coefficient", choices=list(LS372_CURVE_COEFFICIENTS))
+    update = SubmitField("Update")
+
+
+class OutputHeaterForm(FlaskForm):
+    from mkidcontrol.commands import LS372_HEATER_OUTPUT_MODE, LS372_HEATER_INPUT_CHANNEL, \
+        LS372_HEATER_POWERUP_ENABLE, LS372_HEATER_READING_FILTER, LS372_OUTPUT_POLARITY, LS372_HEATER_CURRENT_RANGE
+    channel = HiddenField("")
+    name = StringField("Name")
+    mode = SelectField("Output Mode", choices=list(LS372_HEATER_OUTPUT_MODE.keys()))
+    input_channel = SelectField("Input Channel", choices=list(LS372_HEATER_INPUT_CHANNEL.keys()))
+    powerup_enable = SelectField("Powerup Enable", choices=list(LS372_HEATER_POWERUP_ENABLE.keys()))
+    reading_filter = SelectField("Autorange Enable", choices=list(LS372_HEATER_READING_FILTER.keys()))
+    delay = IntegerField("Delay", default=1, validators=[NumberRange(1, 255)])
+    polarity = SelectField("Polarity", choices=list(LS372_OUTPUT_POLARITY.keys()))
+    setpoint = FloatField("Temperature Setpoint (K)", default=0.100,  validators=[NumberRange(0,300)])
+    gain = FloatField("PID Gain (P)", default=0.,  validators=[NumberRange()])  # TODO: Find values allowable
+    integral = FloatField("PID Integral (I)", default=0.,  validators=[NumberRange()])  # TODO: Find values allowable
+    ramp_rate = FloatField("PID Ramp Rate (D)", default=0.,  validators=[NumberRange()])  # TODO: Find values allowable
+    range = SelectField("Range", choices=list(LS372_HEATER_CURRENT_RANGE))
+    update = SubmitField("Update")
+
+
+class DisabledOutputHeaterForm(FlaskForm):
+    # TODO
+    update = SubmitField("Update")
+
+
 
 
 if __name__ == "__main__":
