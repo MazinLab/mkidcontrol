@@ -14,8 +14,9 @@ from redistimeseries.client import Client as _RTSClient
 import logging
 import datetime
 # from .config import REDIS_DB
-#
+
 REDIS_DB = 0
+
 
 class MKIDRedis(object):
     """
