@@ -78,17 +78,18 @@ class GracefulKiller:
 
 
 SERVICE_DESCRIPTIONS = {
-    # TODO
-    'fadecandy.service': "OpenPixelControl server, receives LED commands and controls the fadecandy",
-    'cloud-web.service': "Cloud website (gunicorn)",
-    'cloud-web.socket': 'Web connection listener, starts the webserver as needed',
-    'cloud-player.service': 'Audio effect engine',
-    'cloud-lamp.service': 'Lightshow effect engine',
-    'cloud-speaker.service': 'Speaker controller, keeps speaker connected',
-    'cloud-rqwork.service': 'Redis queue service, performs asynchronous jobs',
-    'cloud-rqsched.service': 'Task scheduler, must be running for scheduled events',
-    'raspotify.service': 'Spotify daemon',
-    'shairport-sync.service': "Airplay daemon"
+    'controlflask.service': 'Serves MKID Control Flask application',
+    'currentduino.service': "Currentduino service (PICTURE-C), monitors current-sensing resistor on HC Boost Board",
+    'heatswitch.service': "Heatswitch service, controls opening and closing of XKID Cryostat Heatswitch Zaber Motor",
+    'hemtduino.socket': "HEMT and heatswitch service, monitors HEMT biases and opens/closes heat switch (PICTURE-C)",
+    'lakeshore240.service': 'Controls Lake Shore 240-2P Thermometry Module (PICTURE-C)',
+    'lakeshore336.service': 'Controls Lake Shore 336 Temperature Controller (XKID)',
+    'lakeshore372.service': 'Controls Lake Shore 372 AC Resistance Bridge and Temperature Controller (XKID)',
+    'lakeshore625.service': 'Controls Lake Shore 625 Superconducting Magnet Supply (XKID)',
+    'redis-commander.service': 'Daemon for redis-commander program, web app integration for viewing redis DB',
+    'redis-server.service': "Daemon for redis server",
+    'sim921.service': "Controls Stanford Research Systems SIM 921 AC Resistance Bridge (PICTURE-C)",
+    'sim960.service': "Controls Stanford Research Systems SIM 960 Analog PID Controller (PICTURE-C)"
     }
 
 
@@ -129,8 +130,8 @@ class SystemdService:
 
     def control(self, action):
         """actions as supported by cloud-service-control"""
-        getLogger(__name__).info(f'Running cloud-service-control on {self.name}. Command: {action}')
-        subprocess.Popen(['/home/pi/.local/bin/cloud-service-control', self.name, action])
+        getLogger(__name__).info(f'Running mkid-service-control on {self.name}. Command: {action}')
+        subprocess.Popen(['/home/kids/.local/bin/mkid-service-control', self.name, action])
 
     def status_dict(self):
         enabled = self.enabled
