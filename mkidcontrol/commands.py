@@ -1,5 +1,7 @@
 """
 Author: Noah Swimmer, 10 May 2022
+
+TODO: Model Lakeshore 336 and 3722 curves after how the input sensors / output heaters are made for eventual flask control?
 """
 
 import numpy as np
@@ -253,8 +255,8 @@ class LS336InputSensor:
         self.name = values[f'device-settings:ls336:input-channel-{channel.lower()}:name']
         self.sensor_type = values[f'device-settings:ls336:input-channel-{channel.lower()}:sensor-type']
         self.input_range = values[f'device-settings:ls336:input-channel-{channel.lower()}:input-range']
-        self.autorange_enabled = False if values[f'device-settings:ls336:input-channel-{channel.lower()}:autorange-enable'].lower() == 'false' else True
-        self.compensation = False if values[f'device-settings:ls336:input-channel-{channel.lower()}:compensation'].lower() == "false" else True
+        self.autorange_enabled = values[f'device-settings:ls336:input-channel-{channel.lower()}:autorange-enable']
+        self.compensation = values[f'device-settings:ls336:input-channel-{channel.lower()}:compensation']
         self.curve = values[f'device-settings:ls336:input-channel-{channel.lower()}:curve']
         self.units = values[f'device-settings:ls336:input-channel-{channel.lower()}:units']
 
@@ -317,6 +319,43 @@ LS372_INPUT_SENSOR_RANGE = {}
 LS372_INPUT_SENSOR_RANGE.update(LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE)
 LS372_INPUT_SENSOR_RANGE.update(LS372_MEASUREMENT_INPUT_CURRENT_RANGE)
 LS372_INPUT_SENSOR_RANGE.update(LS372_CONTROL_INPUT_CURRENT_RANGE)
+
+
+class LS372InputSensor:
+    def __init__(self, channel, redis):
+        values = redis.read(redis.redis_keys(f'device-settings*ls372:input-channel-{channel.lower()}*'))
+        self.channel = channel.upper()
+
+        self.name = values[f'device-settings:ls372:input-channel-{channel.lower()}:name']
+        self.mode = values[f'device-settings:ls372:input-channel-{channel.lower()}:sensor-type']
+        self.excitation_range = values[f'device-settings:ls372:input-channel-{channel.lower()}:input-range']
+        self.autorange_enable = values[f'device-settings:ls372:input-channel-{channel.lower()}:autorange-enable']
+        self.current_source_shunted = values[f'device-settings:ls372:input-channel-{channel.lower()}:compensation']
+        self.units = values[f'device-settings:ls372:input-channel-{channel.lower()}:units']
+        self.resistance_range = values[f'device-settings:ls372:input-channel-{channel.lower()}:resistance-range']
+        self.enable = values[f'device-settings:ls372:input-channel-{channel.lower()}:enable']
+        self.dwell_time = values[f'device-settings:ls372:input-channel-{channel.lower()}:dwell-time']
+        self.pause_time = values[f'device-settings:ls372:input-channel-{channel.lower()}:pause-time']
+        self.curve_number = values[f'device-settings:ls372:input-channel-{channel.lower()}:curve-number']
+        self.temperature_coefficient = values[f'device-settings:ls372:input-channel-{channel.lower()}:temperature_coefficient']
+
+
+class LS372HeaterOutput:
+    def __init__(self, channel, redis):
+        values = redis.read(redis.redis_keys(f'device-settings*ls372:heater-channel-{channel.lower()}*'))
+        self.channel = channel.upper()
+
+        self.output_mode = values[f'device-settings:ls372:heater-channel-{ch}:output-mode']
+        self.input_channel = values[f'device-settings:ls372:heater-channel-{ch}:input-channel']
+        self.powerup_enable = values[f'device-settings:ls372:heater-channel-{ch}:powerup-enable']
+        self.reading_filter = values[f'device-settings:ls372:heater-channel-{ch}:reading-filter']
+        self.delay = values[f'device-settings:ls372:heater-channel-{ch}:delay']
+        self.polarity = values[f'device-settings:ls372:heater-channel-{ch}:polarity']
+        self.setpoint = values[f'device-settings:ls372:heater-channel-{ch}:setpoint']
+        self.gain = values[f'device-settings:ls372:heater-channel-{ch}:gain']
+        self.integral = values[f'device-settings:ls372:heater-channel-{ch}:integral']
+        self.ramp_rate = values[f'device-settings:ls372:heater-channel-{ch}:ramp_rate']
+        self.range = values[f'device-settings:ls372:heater-channel-{ch}:range']
 
 
 COMMANDS372 = {}
