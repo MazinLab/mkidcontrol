@@ -9,19 +9,25 @@ from flask_mail import Mail
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_babel import Babel, lazy_gettext as _l
-import mkidcontrol.mkidredis as mkidredis
+import mkidcontrol.mkidredis as redis
 from mkidcontrol.util import setup_logging
 import threading
 import rq
 import rq_scheduler
 import queue
 import numpy as np
+from mkidcontrol.heatswitchAgent import TS_KEYS as TS_KEYS_hs
+from mkidcontrol.lakeshore336Agent import TS_KEYS as TS_KEYS_ls336
+from mkidcontrol.lakeshore372Agent import TS_KEYS as TS_KEYS_ls372
+from mkidcontrol.lakeshore625Agent import TS_KEYS as TS_KEYS_ls625
+from mkidcontrol.magnetAgent import TS_KEYS as TS_KEYS_magnet
 # try:
 from ...config import Config
 # from ...config import schema_keys
 # except ValueError:
 #     from config import Config
 
+TS_KEYS = tuple(TS_KEYS_hs) + tuple(TS_KEYS_ls336) + tuple(TS_KEYS_ls372) + tuple(TS_KEYS_ls625) + tuple(TS_KEYS_magnet)
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -89,9 +95,10 @@ def create_app(config_class=Config):
     bootstrap.init_app(app)
     moment.init_app(app)
     babel.init_app(app)
-    app.redis = mkidredis.setup_redis() #Redis.from_url(app.config['REDIS_URL'])
-    # app.task_queue = rq.Queue('cloudlight', connection=app.redis.redis)
-    # app.scheduler = rq_scheduler.Scheduler('cloudlight', connection=app.redis.redis)
+    redis.setup_redis(ts_keys=TS_KEYS)
+    app.redis = redis.mkidredis #Redis.from_url(app.config['REDIS_URL'])
+    # app.task_queue = rq.Queue('mkidcontrol', connection=app.redis.redis)
+    # app.scheduler = rq_scheduler.Scheduler('mkidcontrol', connection=app.redis.redis)
     # app.announcer = MessageAnnouncer()
     # datalistener = threading.Thread(target=datagen, args=(app.redis, app.announcer), daemon=True)
     # datalistener.start()
