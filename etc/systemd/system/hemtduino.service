@@ -6,8 +6,8 @@ WantedBy=mkidcontrol.service
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/control/bin/hemttempAgent.py
-WorkingDirectory=/home/mazinlab/mkidcontrol
-User=mazinlab
+ExecStart=/home/kids/anaconda3/envs/control/bin/hemttempAgent.py
+WorkingDirectory=/home/kids/mkidcontrol
+User=kids
 RestartSec=100ms
 Restart=always

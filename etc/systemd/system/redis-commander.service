@@ -5,7 +5,7 @@ After=redis.service
 [Service]
 #WorkingDirectory=/usr/lib/node_modules/redis-commander/bin/
 ExecStart=/usr/local/bin/redis-commander
-User=mazinlab
+User=kids
 
 [Install]
 WantedBy=multi-user.target
