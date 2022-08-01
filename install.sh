@@ -30,6 +30,9 @@ sudo apt-get install -y make
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 touch ~/.Xauthority
 
+# This progam will muck up FTDI USB-to-RS232 serial chips. Removing it gets rid of the issue
+sudo apt-get remove brltty
+
 # Install anaconda so that it is usable.
 wget https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
 chmod +x Anaconda-latest-Linux-x86_64.sh
@@ -94,6 +97,8 @@ sudo systemctl start redis-server
 # Compile cp210x.ko so that one can use all necessary usb devices. The following 2 lines have good source material for this
 # https://community.silabs.com/s/question/0D51M00007xeNm8SAE/linux-cannot-identify-silab-serial-usb?language=en_US
 # https://github.com/torvalds/linux/blob/master/drivers/usb/serial/cp210x.c
+mkdir ~/original_ko_files
+sudo cp /lib/modules/$(uname -r)/kernel/drivers/usb/serial/cp210x.ko ~/original_ko_files
 # Currently this should be done manually following notes in mkidcontrol_notes.md / instructions here (which are in sync)
 # Ensure that the cp210x.c file in this directory is for the proper linux kernel you've installed and you're using the
 # version of gcc that you desire
@@ -110,8 +115,10 @@ sudo modprobe cp210x # Reload new
 
 sudo udevadm control --reload-rules
 sudo udevadm trigger
-# STOPPED HERE UPON INITIAL INSTALL
-# STILL NEED TO VALIDATE THE REST BELOW
+
+# Get flask up and running to start (this can be added to the .zshrc file for ease)
+export FLASK_APP=/home/kids/mkidcontrol/mkidcontrol/controlflask/mkidDirector.py
+export FLASK_ENV=develop
 
 # TODO: Get flask set up and running
 # TODO: Get flask db up and running (for login/logout)
