@@ -42,12 +42,14 @@ DEFAULT_ACCELERATION = 2
 FULL_OPEN_POSITION = 0
 FULL_CLOSE_POSITION = 4194303
 
-HEATSWITCH_STATUS_KEY = "status:device:heatswitch:position"  # OPENED | OPENING | CLOSED | CLOSING
-MOTOR_POS = "status:device:heatswitch-motor:position"  # Integer between 0 and 4194303
-HEATSWITCH_MOVE_KEY = f"command:{HEATSWITCH_STATUS_KEY}"
-HEATSWITCH_MOVE_BY_KEY = f"command:device:heatswitch-motor:move-by"
-HEATSWITCH_ENGINEERING_MODE_KEY = f"command:device:heatswitch-motor:engineering-mode"
-HEATSWITCH_SET_POSITION_KEY = f"command:status:device:heatswitch-motor:reset-position"
+STATUS_KEY = 'status:device:heatswitch:status'  # OK | ERROR | OFF
+HEATSWITCH_POSITION_KEY = "status:device:heatswitch:position"  # OPENED | OPENING | CLOSED | CLOSING
+MOTOR_POS = "status:device:heatswitch:motor-position"  # Integer between 0 and 4194303
+
+HEATSWITCH_MOVE_KEY = f"command:{HEATSWITCH_POSITION_KEY}"
+HEATSWITCH_MOVE_BY_KEY = f"command:device:heatswitch:move-by"
+HEATSWITCH_ENGINEERING_MODE_KEY = f"command:device:heatswitch:engineering-mode"
+HEATSWITCH_SET_POSITION_KEY = f"command:device:heatswitch:reset-position"
 
 COMMAND_KEYS = (HEATSWITCH_MOVE_KEY, HEATSWITCH_MOVE_BY_KEY, HEATSWITCH_ENGINEERING_MODE_KEY, HEATSWITCH_SET_POSITION_KEY)
 TS_KEYS = (MOTOR_POS,)
@@ -62,17 +64,22 @@ def open():
 
 
 def is_opened():
-    return (redis.read(HEATSWITCH_STATUS_KEY) == HeatswitchPosition.OPENED) or (redis.read(HEATSWITCH_STATUS_KEY) == HeatswitchPosition.OPENING)
+    return (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENED) or (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENING)
 
 
 def is_closed():
-    return redis.read(HEATSWITCH_STATUS_KEY) == HeatswitchPosition.CLOSED
+    return redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.CLOSED
 
 
 def monitor_callback(mpos):
-    d = {k: v for k, v in [[MOTOR_POS, mpos]] if mpos is not None}
+    d = {MOTOR_POS: mpos}
     try:
-        redis.store(d, timeseries=True)
+        if mpos is None:
+            # N.B. If there is an error on the query, the value passed is None
+            redis.store({STATUS_KEY: "Error"})
+        else:
+            redis.store(d, timeseries=True)
+            redis.store({STATUS_KEY: "OK"})
     except RedisError:
         log.warning('Storing motor position to redis failed')
 
@@ -95,7 +102,7 @@ def compute_initial_state(heatswitch):
         elif position == FULL_OPEN_POSITION:
             initial_state = "opened"
         else:
-            if redis.read(HEATSWITCH_STATUS_KEY) == HeatswitchPosition.OPENING:
+            if redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENING:
                 initial_state = "opening"
             else:
                 initial_state = "closing"
@@ -277,11 +284,10 @@ class HeatswitchMotor:
                 if value_callback is not None:
                     if len(value_callback) > 1 or len(monitor_func) == 1:
                         for v, cb in zip(vals, value_callback):
-                            if v is not None:
-                                try:
-                                    cb(v)
-                                except Exception as e:
-                                    log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
+                            try:
+                                cb(v)
+                            except Exception as e:
+                                log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
                     else:
                         cb = value_callback[0]
                         try:
@@ -385,7 +391,8 @@ class HeatswitchController(LockedMachine):
     def record_entry(self, event):
         self.state_entry_time[self.state] = time.time()
         log.info(f"Recorded entry: {self.state}")
-        redis.store({HEATSWITCH_STATUS_KEY: self.state})
+        redis.store({HEATSWITCH_POSITION_KEY: self.state})
+        redis.store({STATUS_KEY: 'OK'})
         write_persisted_state(self.statefile, self.state)
 
 
@@ -422,7 +429,15 @@ if __name__ == "__main__":
     redis = MKIDRedis(ts_keys=TS_KEYS)
     util.setup_logging('heatswitchAgent')
 
-    hs = HeatswitchMotor('/dev/heatswitch')
+    try:
+        hs = HeatswitchMotor('/dev/heatswitch')
+        redis.store({STATUS_KEY: "OK"})
+    except Exception as e:
+        # TODO: There is a trivial exception that will trigger this: If you change a redis DB key that is necessary for
+        #  the heatswitch to connect, then you will error out.
+        log.critical(f"Could not connect to the heatswitch!")
+        redis.store({STATUS_KEY: f"Error: {e}"})
+        sys.exit(1)
 
     hs.monitor(QUERY_INTERVAL, (hs.motor_position,), value_callback=monitor_callback)
 
@@ -432,25 +447,29 @@ if __name__ == "__main__":
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"Redis listened to something! Key: {key} -- Val: {val}")
-                if key == HEATSWITCH_MOVE_KEY:
-                    hspos = val.lower()
-                    if hspos == 'open':
-                        controller.open()
-                    elif hspos == 'close':
-                        controller.close()
-                elif key == HEATSWITCH_ENGINEERING_MODE_KEY:
-                    log.info(f"Entering engineering mode: be warned you are in manual territory!")
-                    controller.stop()
-                elif key == HEATSWITCH_SET_POSITION_KEY:
-                    log.info(f"Setting registered position of the heatswitch motor to {val}")
-                    pos = val
-                    hs._set_position_value(pos)
-                elif key == HEATSWITCH_MOVE_BY_KEY:
-                    log.info(f"Attempting to move heatswitch motor by {val} steps")
-                    dist = val
-                    hs.move_by(dist)
-                else:
-                    log.warning(f"Heard: '{key} -- {val}, not supported commands")
-
+                try:
+                    if key == HEATSWITCH_MOVE_KEY:
+                        hspos = val.lower()
+                        if hspos == 'open':
+                            controller.open()
+                        elif hspos == 'close':
+                            controller.close()
+                    elif key == HEATSWITCH_ENGINEERING_MODE_KEY:
+                        log.info(f"Entering engineering mode: be warned you are in manual territory!")
+                        controller.stop()
+                    elif key == HEATSWITCH_SET_POSITION_KEY:
+                        log.info(f"Setting registered position of the heatswitch motor to {val}")
+                        pos = val
+                        hs._set_position_value(pos)
+                    elif key == HEATSWITCH_MOVE_BY_KEY:
+                        log.info(f"Attempting to move heatswitch motor by {val} steps")
+                        dist = val
+                        hs.move_by(dist)
+                    else:
+                        log.warning(f"Heard: '{key} -- {val}, not supported commands")
+                    redis.store({STATUS_KEY: "OK"})
+                except (IOError, MachineError) as e:
+                    redis.store({STATUS_KEY: f"Error: {e}"})
     except RedisError as e:
         log.error(f"Redis server error! {e}")
+        sys.exit(1)
