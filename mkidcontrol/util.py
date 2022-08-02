@@ -233,7 +233,7 @@ def get_system_status(adapter='wlan1'):
 
 def get_service(name):
     system_services = list(
-        map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../etc/systemd/*'))))
+        map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../etc/systemd/system/*'))))
     user_services = list(
         map(os.path.basename, glob(pkg_resources.resource_filename('mkidcontrol', '../systemd-user/*'))))
     if name not in system_services + user_services:
