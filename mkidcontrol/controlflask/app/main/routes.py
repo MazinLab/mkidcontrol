@@ -41,7 +41,7 @@ from mkidcontrol.hemttempAgent import HEMTTEMP_KEYS
 from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
 from .forms import *
 
-
+# TODO: Make these importable from configuration files
 TS_KEYS = ['status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
            'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
            'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current']
