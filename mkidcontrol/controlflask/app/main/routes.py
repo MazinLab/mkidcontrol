@@ -42,18 +42,7 @@ from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
 from .forms import *
 
 
-TS_KEYS = ['status:temps:mkidarray:temp', 'status:temps:mkidarray:resistance', 'status:temps:lhetank',
-           'status:temps:ln2tank', 'status:feedline1:hemt:gate-voltage-bias',
-           'status:feedline2:hemt:gate-voltage-bias', 'status:feedline3:hemt:gate-voltage-bias',
-           'status:feedline4:hemt:gate-voltage-bias', 'status:feedline5:hemt:gate-voltage-bias',
-           'status:feedline1:hemt:drain-voltage-bias', 'status:feedline2:hemt:drain-voltage-bias',
-           'status:feedline3:hemt:drain-voltage-bias', 'status:feedline4:hemt:drain-voltage-bias',
-           'status:feedline5:hemt:drain-voltage-bias', 'status:feedline1:hemt:drain-current-bias',
-           'status:feedline2:hemt:drain-current-bias', 'status:feedline3:hemt:drain-current-bias',
-           'status:feedline4:hemt:drain-current-bias', 'status:feedline5:hemt:drain-current-bias',
-           'status:device:sim960:hcfet-control-voltage', 'status:highcurrentboard:current',
-           'status:device:sim960:current-setpoint', 'status:device:sim921:sim960-vout', 'status:device:sim960:vin',
-           'status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
+TS_KEYS = ['status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
            'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
            'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current']
 
@@ -79,9 +68,7 @@ KEYS = list(COMMAND_DICT.keys()) + \
         'status:temps:device-stage:resistance',
         'status:magnet:current']
 
-
-DASHDATA = np.load('/mkidcontrol/mkidcontrol/frontend/dashboard_placeholder.npy')
-
+# DASHDATA = np.load('/mkidcontrol/mkidcontrol/frontend/dashboard_placeholder.npy')
 
 redis.setup_redis(ts_keys=TS_KEYS)
 
@@ -124,16 +111,9 @@ def index():
 
     d,l,c = initialize_sensors_plot(CHART_KEYS.keys())
     dd, dl, dc = view_array_data()
-    cycleform = CycleControlForm()
-    magnetform = MagnetControlForm()
 
-    subkeys = [key for key in FIELD_KEYS.keys() if FIELD_KEYS[key]['type'] in ('magnet', 'cycle')]
-    rtvkeys = [key for key in subkeys if FIELD_KEYS[key]['field_type'] in ('string')]
-    updatingkeys = [[key, FIELD_KEYS[key]['key']] for key in FIELD_KEYS.keys() if FIELD_KEYS[key]['type'] in ('magnet')]
-
-    return render_template('index.html', form=form, mag=magnetform, cyc=cycleform,
-                           d=d, l=l, c=c, dd=dd, dl=dl, dc=dc, subkeys=subkeys, rtvkeys=rtvkeys,
-                           updatingkeys=updatingkeys, sensorkeys=list(CHART_KEYS.values()))
+    return render_template('index.html', form=form, d=d, l=l, c=c, dd=dd, dl=dl, dc=dc,
+                           sensorkeys=list(CHART_KEYS.values()))
 
 
 @bp.route('/other_plots', methods=['GET'])
@@ -210,8 +190,11 @@ def thermometry(device, channel):
                               compensation=sensor.compensation, input_range=sensor.input_range)
         elif sensor.sensor_type == "Disabled":
             form = DisabledInputForm(channel=f"{channel}", name=sensor.name)
+        else:
+            return redirect(url_for('main.page_not_found'))
     elif device == 'ls372':
-
+        from ....lakeshore372Agent import ControlSensorForm, InputSensorForm
+        from ....commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS, LakeShoreCommand
         sensor = LS372InputSensor(channel=channel, redis=redis)
         return redirect(url_for('main.page_not_found'))
     return render_template('thermometry.html', title=f"{title} Thermometer", form=form)
@@ -223,13 +206,37 @@ def services():
     services = mkidcontrol_services()
     # TODO: Figure this block out with g.redis.
     #  Until then, exporting = False
-    # try:
-    #     job = Job.fetch('email-logs', connection=g.redis)
-    #     exporting = job.get_status() in ('queued', 'started', 'deferred', 'scheduled')
-    # except NoSuchJobError:
-    #     exporting = False
-    exporting = False
+    try:
+        job = Job.fetch('email-logs', connection=g.redis.redis)
+        exporting = job.get_status() in ('queued', 'started', 'deferred', 'scheduled')
+    except NoSuchJobError:
+        exporting = False
     return render_template('services.html', title=_('Services'), services=services.values(), exporting=exporting)
+
+
+@bp.route('/heatswitch/<mode>', methods=['POST', 'GET'])
+# @login_required
+def heatswitch(mode):
+    from ....heatswitchAgent import HeatSwitchForm, HeatSwitchEngineeringModeForm
+    if request.method == "POST":
+        print(f"Form: {request.form}")
+        for key in request.form.keys():
+            print(f"{key} : {request.form.get(key)}")
+            # try:
+            #     x = LakeShoreCommand(
+            #         f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
+            #         request.form.get(key))
+            #     print(x)
+            # except ValueError as e:
+            #     print(e)
+
+
+    if mode == 'engineering':
+        form = HeatSwitchEngineeringModeForm()
+    else:
+        form = HeatSwitchForm()
+
+    return render_template('heatswitch.html', title=_('Heat Switch'), form=form)
 
 
 @bp.route('/service', methods=['POST', 'GET'])
@@ -465,7 +472,8 @@ def view_array_data():
     'device view' on the homepage of the flask application.
     """
     frame_to_use = 100
-    x = DASHDATA[frame_to_use][100:170, 100:170]
+    # x = DASHDATA[frame_to_use][100:170, 100:170]
+    x = np.zeros((70,70))
     noise = 25 * np.random.randn(70, 70)
     y = x + noise
     z = [{'z': y.tolist(), 'type': 'heatmap', 'showscale':False}]
