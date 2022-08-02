@@ -123,6 +123,11 @@ export FLASK_ENV=develop
 # TODO: Get flask set up and running
 # TODO: Get flask db up and running (for login/logout)
 
+cp ~/mkidcontrol/bin/mkid-service-control ~/.local/bin/
+# Manually do the following
+# sudo visudo
+#add: kids  ALL=(ALL) NOPASSWD: /home/kids/.local/bin/mkid-service-control
+
 # Start instrument software
 sudo systemctl enable heatswitch
 sudo systemctl start heatswitch
