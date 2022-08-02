@@ -160,17 +160,23 @@ if __name__ == "__main__":
         vals = tvals + svals
         keys = TEMP_KEYS + SENSOR_VALUE_KEYS
         d = {k: x for k, x in zip(keys, vals) if x}
-        redis.store(d, timeseries=True)
-
+        try:
+            if all(i is None for i in vals):
+                redis.store({STATUS_KEY: "Error"})
+            else:
+                redis.store(d, timeseries=True)
+                redis.store({STATUS_KEY: "OK"})
+        except RedisError:
+            log.warning('Storing LakeShore336 data to redis failed!')
 
     try:
-        lakeshore = LakeShore336('LakeShore336', port=DEVICE, enabled_channels=ENABLED_336_CHANNELS,
-                                 initializer=initializer)
+        lakeshore = LakeShore336('LakeShore336', port=DEVICE, enabled_channels=ENABLED_336_CHANNELS)#,
+                                 # initializer=initializer)
     except:
-        lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS,
-                                 initializer=initializer)
+        lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS)#,
+                                 # initializer=initializer)
 
-    # TODO: Allow monitor to gracefully fail if it is querying garbage
+
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals), value_callback=callback)
 
     try:

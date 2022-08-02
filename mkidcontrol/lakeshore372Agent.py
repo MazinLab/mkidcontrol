@@ -242,14 +242,21 @@ if __name__ == "__main__":
 
     try:
         lakeshore = LakeShore372('LakeShore372', baudrate=57600, port='/dev/ls372',
-                                 enabled_input_channels=ENABLED_372_INPUT_CHANNELS, initializer=initializer)
+                                 enabled_input_channels=ENABLED_372_INPUT_CHANNELS)#, initializer=initializer)
     except:
         lakeshore = LakeShore372('LakeShore372', baudrate=57600,
-                                 enabled_input_channels=ENABLED_372_INPUT_CHANNELS, initializer=initializer)
+                                 enabled_input_channels=ENABLED_372_INPUT_CHANNELS)#, initializer=initializer)
 
     def callback(temp, res, ex, ov):
         d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY), (temp, res, ex, ov))}
-        redis.store(d, timeseries=True)
+        try:
+            if all(i is None for i in [temp, res, ex, ov]):
+                redis.store({STATUS_KEY: "Error"})
+            else:
+                redis.store(d, timeseries=True)
+                redis.store({STATUS_KEY: "OK"})
+        except RedisError:
+            log.warning('Storing LakeShore372 data to redis failed!')
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals, lakeshore.excitation_power, lakeshore.output_voltage), value_callback=callback)
 

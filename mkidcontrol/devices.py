@@ -273,11 +273,10 @@ class SerialDevice:
                 if value_callback is not None:
                     if len(value_callback) > 1 or len(monitor_func) == 1:
                         for v, cb in zip(vals, value_callback):
-                            if v is not None:
-                                try:
-                                    cb(v)
-                                except Exception as e:
-                                    log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
+                            try:
+                                cb(v)
+                            except Exception as e:
+                                log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
                     else:
                         cb = value_callback[0]
                         try:
@@ -840,11 +839,10 @@ class LakeShoreMixin:
                 if value_callback is not None:
                     if len(value_callback) > 1 or len(monitor_func) == 1:
                         for v, cb in zip(vals, value_callback):
-                            if v is not None:
-                                try:
-                                    cb(v)
-                                except Exception as e:
-                                    log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
+                            try:
+                                cb(v)
+                            except Exception as e:
+                                log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
                     else:
                         cb = value_callback[0]
                         try:
