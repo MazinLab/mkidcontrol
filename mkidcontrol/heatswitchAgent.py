@@ -14,8 +14,6 @@ switch too tightly.
 
 Note: Documentation for zaber python library exists at https://www.zaber.com/software/docs/motion-library/
 Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdf
-
-TODO: Error handling
 """
 
 import sys
@@ -47,8 +45,11 @@ FULL_CLOSE_POSITION = 4194303
 HEATSWITCH_STATUS_KEY = "status:device:heatswitch:position"  # OPENED | OPENING | CLOSED | CLOSING
 MOTOR_POS = "status:device:heatswitch-motor:position"  # Integer between 0 and 4194303
 HEATSWITCH_MOVE_KEY = f"command:{HEATSWITCH_STATUS_KEY}"
+HEATSWITCH_MOVE_BY_KEY = f"command:device:heatswitch-motor:move-by"
+HEATSWITCH_ENGINEERING_MODE_KEY = f"command:device:heatswitch-motor:engineering-mode"
+HEATSWITCH_SET_POSITION_KEY = f"command:status:device:heatswitch-motor:reset-position"
 
-COMMAND_KEYS = (HEATSWITCH_MOVE_KEY,)
+COMMAND_KEYS = (HEATSWITCH_MOVE_KEY, HEATSWITCH_MOVE_BY_KEY, HEATSWITCH_ENGINEERING_MODE_KEY, HEATSWITCH_SET_POSITION_KEY)
 TS_KEYS = (MOTOR_POS,)
 
 
@@ -77,7 +78,6 @@ def monitor_callback(mpos):
 
 
 def compute_initial_state(heatswitch):
-    # TODO: Adapt to heatswitch from lakeshore
     """
     Initial states can be opening, closing, opened, or closed
     """
@@ -147,7 +147,7 @@ class HeatswitchMotor:
 
         if distance == 0:
             log.info(f"Device is in the same state as during the previous connection. Motor is in position {last_recorded_position}.")
-            self.hs.generic_command(CommandCode.SET_CURRENT_POSITION, last_recorded_position)
+            # self.hs.generic_command(CommandCode.SET_CURRENT_POSITION, last_recorded_position)
         else:
             log.warning(f"Device was last recorded in position {last_recorded_position}, now thinks that it is at "
                         f"{reported_position}. Setting the position to {last_recorded_position}. If unrecorded movement"
@@ -236,6 +236,15 @@ class HeatswitchMotor:
 
         return self.last_recorded_position
 
+    def _set_position_value(self, value):
+        """
+        Tells this heat switch that it is at a different position than it thinks it is
+        E.G. If the heatswitch reports that it is at 0 and one uses this function with <value>=10, it will then report
+        that it is at position 10 without ever having moved.
+        THIS IS SOLELY AN ENGINEERING FUNCTION AND SHOULD ONLY BE USED WITH EXTREME CARE
+        """
+        self.hs.generic_command(CommandCode.SET_CURRENT_POSITION, value)
+
     def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
         """
         Given a monitoring function (or is of the same) and either one or the same number of optional callback
@@ -291,7 +300,7 @@ class HeatswitchController(LockedMachine):
     LOOP_INTERVAL = 1
     BLOCKS = defaultdict(set)
 
-    def __init__(self, statefile='./heatswitchmotorstate.txt'):
+    def __init__(self, heatswitch, statefile='./heatswitchmotorstate.txt'):
         transitions = [
             # NOTE: Heatswitch will not allow the user to start reopening while closing or start reclosing while opening
             {'trigger': 'open', 'source': 'closed', 'dest': 'opening'},
@@ -310,18 +319,20 @@ class HeatswitchController(LockedMachine):
 
             {'trigger': 'next', 'source': 'closing', 'dest': 'closed', 'conditions': 'hs_is_closed'},
             {'trigger': 'next', 'source': 'closing', 'dest': None, 'unless': 'hs_is_closed', 'after': 'close_heatswitch'},
+
+            {'trigger': 'stop', 'source': '*', 'dest': 'off'},
+            {'trigger': 'next', 'source': 'engineering', 'dest': None},
+            {'trigger': 'open', 'source': 'engineering', 'dest': 'opening'},
+            {'trigger': 'close', 'source': 'engineering', 'dest': 'closing'}
         ]
 
         states = (State('opened', on_enter='record_entry'),
                   State('opening', on_enter='record_entry'),
                   State('closed', on_enter='record_entry'),
-                  State('closing', on_enter='record_entry'))
+                  State('closing', on_enter='record_entry'),
+                  State('engineering', on_enter='record_entry'))
 
-        hs = HeatswitchMotor('/dev/heatswitch')
-
-        hs.monitor(QUERY_INTERVAL, (hs.motor_position,), value_callback=monitor_callback)
-
-        self.hs = hs
+        self.hs = heatswitch
         self.lock = threading.RLock()
         self._run = False  # Set to false to kill the main loop
         self._mainthread = None
@@ -335,11 +346,11 @@ class HeatswitchController(LockedMachine):
         self.start_main()
 
     def open_heatswitch(self, event):
-        new_pos = self.hs.move_by(-75000)
+        new_pos = self.hs.move_by(-50000)
         return new_pos
 
     def close_heatswitch(self, event):
-        new_pos = self.hs.move_by(75000)
+        new_pos = self.hs.move_by(50000)
         return new_pos
 
     def hs_is_opened(self, event):
@@ -378,22 +389,68 @@ class HeatswitchController(LockedMachine):
         write_persisted_state(self.statefile, self.state)
 
 
+import wtforms
+from wtforms.fields import *
+from wtforms.widgets import HiddenInput
+from wtforms.fields.html5 import *
+from wtforms.validators import *
+from wtforms import Form
+from flask_wtf import FlaskForm
+from serial import SerialException
+
+
+class HeatSwitchForm(FlaskForm):
+    open = SubmitField("Open")
+    close = SubmitField("Close")
+    engineering_mode = SubmitField("Engineering Mode")
+    move_by = IntegerField("Move By", default=0, validators=[number_range(-1 * FULL_CLOSE_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
+    current_position = IntegerField("Current Position", default=FULL_CLOSE_POSITION, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
+    set_position = IntegerField("Set Position To:", default=FULL_CLOSE_POSITION, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
+
+
+class HeatSwitchEngineeringModeForm(FlaskForm):
+    open = SubmitField("Open")
+    close = SubmitField("Close")
+    engineering_mode = SubmitField("Engineering Mode", render_kw={'disabled': True})
+    move_by = IntegerField("Move By", default=0, validators=[number_range(-1 * FULL_CLOSE_POSITION, FULL_CLOSE_POSITION)])
+    current_position = IntegerField("Current Position", default=FULL_CLOSE_POSITION, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
+    set_position = IntegerField("Set Position To:", default=FULL_CLOSE_POSITION, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
+
+
 if __name__ == "__main__":
 
-    # Library.enable_device_db_store()
-    redis = MKIDRedis(create_ts_keys=TS_KEYS)
+    redis = MKIDRedis(ts_keys=TS_KEYS)
     util.setup_logging('heatswitchAgent')
 
-    controller = HeatswitchController()
+    hs = HeatswitchMotor('/dev/heatswitch')
+
+    hs.monitor(QUERY_INTERVAL, (hs.motor_position,), value_callback=monitor_callback)
+
+    controller = HeatswitchController(heatswitch=hs)
 
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"Redis listened to something! Key: {key} -- Val: {val}")
-                hspos = val.lower()
-                if hspos == 'open':
-                    controller.open()
-                elif hspos == 'close':
-                    controller.close()
+                if key == HEATSWITCH_MOVE_KEY:
+                    hspos = val.lower()
+                    if hspos == 'open':
+                        controller.open()
+                    elif hspos == 'close':
+                        controller.close()
+                elif key == HEATSWITCH_ENGINEERING_MODE_KEY:
+                    log.info(f"Entering engineering mode: be warned you are in manual territory!")
+                    controller.stop()
+                elif key == HEATSWITCH_SET_POSITION_KEY:
+                    log.info(f"Setting registered position of the heatswitch motor to {val}")
+                    pos = val
+                    hs._set_position_value(pos)
+                elif key == HEATSWITCH_MOVE_BY_KEY:
+                    log.info(f"Attempting to move heatswitch motor by {val} steps")
+                    dist = val
+                    hs.move_by(dist)
+                else:
+                    log.warning(f"Heard: '{key} -- {val}, not supported commands")
+
     except RedisError as e:
         log.error(f"Redis server error! {e}")
