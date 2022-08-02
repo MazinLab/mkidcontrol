@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import mkidcontrol.mkidredis
 from mkidcontrol.util import setup_logging
 from mkidcontrol.util import get_service as mkidcontrol_service
+from mkidcontrol.util import get_services as mkidcontrol_services
 
 import numpy as np
 import flask
@@ -40,6 +41,10 @@ from mkidcontrol.lakeshore240Agent import LAKESHORE240_KEYS
 from mkidcontrol.hemttempAgent import HEMTTEMP_KEYS
 from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
 from .forms import *
+
+
+# TODO: Turn all graphs/plots into plotly graph objects
+
 
 # TODO: Make these importable from configuration files
 TS_KEYS = ['status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
@@ -78,6 +83,7 @@ log = setup_logging('controlDirector')
 def guess_language(x):
     return 'en'
 
+
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
@@ -88,6 +94,7 @@ def before_request():
         g.redis = current_app.redis
     else:
         g.redis = mkidcontrol.mkidredis.setup_redis(ts_keys=TS_KEYS)
+
 
 @bp.after_request
 def add_header(response):
@@ -103,8 +110,13 @@ def index():
     Processes requests from the magnet cycle form (start/abort/cancel/schedule cooldown) and magnet form (ramp rates/
     soak settings) and publishes them to be interpreted by the necessary agents.
     Initializes sensor plot data to send for plotting.
-    TODO: Device Viewer - Currently has placeholder buttons/information/'view'
     """
+    # TODO: Make further robust to redis not being up and running
+    try:
+        redis.read(KEYS)
+    except KeyError:
+        return redirect(url_for('main.redis_error_page'))
+
     form = FlaskForm()
     if request.method == 'POST':
         return handle_validation(request, submission=True)
@@ -170,16 +182,18 @@ def thermometry(device, channel):
             print(f"{key} : {request.form.get(key)}")
             try:
                 x = LakeShoreCommand(f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
-                print(x)
+                log.info(f"Sending command:{x.setting}' -> {x.value} ")
+                redis.publish(f"command:{x.setting}", x.value)
+                log.info(f"Command sent successfully")
             except ValueError as e:
-                print(e)
+                log.warning(f"Value error: {e} in parsing commands")
+                log.debug(f"Unrecognized field to send as command: {key}")
 
     if device == 'ls336':
         from ....lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
-        from ....commands import LS336InputSensor, ALLOWED_336_CHANNELS, LakeShoreCommand
+        from ....commands import LS336InputSensor, ALLOWED_336_CHANNELS
 
         sensor = LS336InputSensor(channel=channel, redis=redis)
-        # TODO: Consider architecture and see if form=INPUT_TYPE_Form() works
         if sensor.sensor_type == "NTC RTD":
             form = RTDForm(channel=f"{channel}", name=sensor.name, sensor_type=sensor.sensor_type, units=sensor.units,
                            curve=sensor.curve, autorange=sensor.autorange_enabled,
@@ -192,26 +206,24 @@ def thermometry(device, channel):
             form = DisabledInputForm(channel=f"{channel}", name=sensor.name)
         else:
             return redirect(url_for('main.page_not_found'))
+
     elif device == 'ls372':
         from ....lakeshore372Agent import ControlSensorForm, InputSensorForm
-        from ....commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS, LakeShoreCommand
+        from ....commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS
         sensor = LS372InputSensor(channel=channel, redis=redis)
-        return redirect(url_for('main.page_not_found'))
+        if channel == "A":
+            form = ControlSensorForm(channel=f"{channel}", name=sensor.name, mode=sensor.mode, excitation_range=sensor.excitation_range,
+                                     curve=sensor.curve_number, autorange=sensor.auto_range, current_source_shunted=sensor.current_source_shunted,
+                                     units=sensor.units, resistance_range=sensor.resistance_range, enabled=sensor.enable,
+                                     dwell_time=sensor.dwell_time, pause_time=sensor.pause_time, temperature_coefficient=sensor.temperature_coefficient)
+        elif channel in ALLOWED_372_INPUT_CHANNELS[1:]:
+            form = InputSensorForm(channel=f"{channel}", name=sensor.name, mode=sensor.mode, excitation_range=sensor.excitation_range,
+                                     curve=sensor.curve_number, autorange=sensor.auto_range, current_source_shunted=sensor.current_source_shunted,
+                                     units=sensor.units, resistance_range=sensor.resistance_range, enabled=sensor.enable,
+                                     dwell_time=sensor.dwell_time, pause_time=sensor.pause_time, temperature_coefficient=sensor.temperature_coefficient)
+        else:
+            return redirect(url_for('main.page_not_found'))
     return render_template('thermometry.html', title=f"{title} Thermometer", form=form)
-
-
-@bp.route('/services')
-def services():
-    from mkidcontrol.util import get_services as mkidcontrol_services
-    services = mkidcontrol_services()
-    # TODO: Figure this block out with g.redis.
-    #  Until then, exporting = False
-    try:
-        job = Job.fetch('email-logs', connection=g.redis.redis)
-        exporting = job.get_status() in ('queued', 'started', 'deferred', 'scheduled')
-    except NoSuchJobError:
-        exporting = False
-    return render_template('services.html', title=_('Services'), services=services.values(), exporting=exporting)
 
 
 @bp.route('/heatswitch/<mode>', methods=['POST', 'GET'])
@@ -222,13 +234,6 @@ def heatswitch(mode):
         print(f"Form: {request.form}")
         for key in request.form.keys():
             print(f"{key} : {request.form.get(key)}")
-            # try:
-            #     x = LakeShoreCommand(
-            #         f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
-            #         request.form.get(key))
-            #     print(x)
-            # except ValueError as e:
-            #     print(e)
 
 
     if mode == 'engineering':
@@ -237,6 +242,17 @@ def heatswitch(mode):
         form = HeatSwitchForm()
 
     return render_template('heatswitch.html', title=_('Heat Switch'), form=form)
+
+
+@bp.route('/services')
+def services():
+    services = mkidcontrol_services()
+    try:
+        job = Job.fetch('email-logs', connection=g.redis.redis)
+        exporting = job.get_status() in ('queued', 'started', 'deferred', 'scheduled')
+    except NoSuchJobError:
+        exporting = False
+    return render_template('services.html', title=_('Services'), services=services.values(), exporting=exporting)
 
 
 @bp.route('/service', methods=['POST', 'GET'])
@@ -350,6 +366,11 @@ def test_page():
 def page_not_found():
     return render_template('/errors/404.html'), 404
 
+
+@bp.route('/6379', methods=['GET', 'POST'])
+def redis_error_page():
+    return render_template('/errors/6379.html'), 412
+
 # ----------------------------------- Helper Functions Below -----------------------------------
 @bp.route('/dashlistener', methods=["GET"])
 def dashlistener():
@@ -378,10 +399,23 @@ def listener():
         while True:
             time.sleep(.75)
             x = redis.read(KEYS)
+            y = mkidcontrol_services().items()
+            s = {}
+            for k,v in y:
+                sd = v.status_dict()
+                if sd['enabled']:
+                    if sd['running']:
+                        s.update({k: 'Running'})
+                    elif sd['failed']:
+                        s.update({k: 'Failed'})
+                else:
+                    s.update({k: 'Disabled'})
+
+            x.update(s)
             x = json.dumps(x)
             msg = f"retry:5\ndata: {x}\n\n"
             yield msg
-    return Response(stream(), mimetype='text/event-stream', content_type='text/event-stream')
+    return current_app.response_class(stream(), mimetype='text/event-stream', content_type='text/event-stream')
 
 
 @bp.route('/journalctl_streamer/<service>')

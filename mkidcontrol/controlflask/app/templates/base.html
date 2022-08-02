@@ -22,10 +22,22 @@
                 update_div("50K_Temp", "status:temps:50k-stage:temp", newdata, true);
                 update_div("3K_Temp", "status:temps:3k-stage:temp", newdata, true);
                 update_div("1K_Temp", "status:temps:1k-stage:temp", newdata, true);
-                update_div("Temp_Report", "status:temps:device-stage:temp", newdata, true);
+                update_div("Device_Temp", "status:temps:device-stage:temp", newdata, true);
                 update_div("Meas_Current", "status:magnet:current", newdata, true);
                 update_div("Magnet_Status", "status:magnet:state", newdata);
                 update_div("heatswitch", "device-settings:currentduino:heatswitch", newdata);
+                update_div("LS336", "status:device:ls336:status", newdata);
+                update_div("LS372", "status:device:ls372:status", newdata);
+                update_div("LS625", "status:device:ls625:status", newdata);
+                update_div("HSMotor", "status:device:heatswitch:status", newdata);
+                update_service_div("LS336Service", "lakeshore336.service", newdata);
+                update_service_div("LS372Service", "lakeshore372.service", newdata);
+                update_service_div("LS625Service", "lakeshore625.service", newdata);
+                update_service_div("HSMotorService", "heatswitch.service", newdata);
+                update_service_div("MagnetService", "magnet.service", newdata);
+                update_service_div("RedisService", "redis-server.service", newdata);
+                update_service_div("RedisCommanderService", "redis-commander.service", newdata);
+                update_service_div("FlaskService", "controlflask.service", newdata);
             }, false);
             source.addEventListener("open", function (e) {
                 console.log('Connection was opened: ', e);
@@ -45,7 +57,12 @@
                 var value = data;
             }
             $("#"+div).text(value)
-        };
+        }
+
+        function update_service_div(div, service, sentdata) {
+            var data = sentdata[service];
+            $("#"+div).text(data)
+        }
 
         function update_plot(div, key, sentdata, trace=0) {
             var data = sentdata[key];
