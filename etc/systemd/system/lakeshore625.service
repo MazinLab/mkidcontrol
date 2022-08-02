@@ -5,7 +5,6 @@ Wants=lakeshore372.service
 
 [Install]
 WantedBy=mkidcontrol.service
-WantedBy=lakeshore625.service
 
 [Service]
 Type=simple
