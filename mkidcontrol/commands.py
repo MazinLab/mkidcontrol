@@ -205,7 +205,7 @@ class LakeShoreCommand:
 
 def load_tvals(curve):
     if curve == 1:
-        file = '/home/mazinlab/picturec/docs/hardware_reference_documentation/thermometry/RX-102A/RX-102A_Mean_Curve.tbl'
+        file = '/home/kids/mkidcontrol/docs/hardware_reference_documentation/thermometry/RX-102A/RX-102A_Mean_Curve.tbl'
         # import pkg_resources as pkg
         # file = pkg.resource_filename('hardware.thermometry.RX-102A', 'RX-102A_Mean_Curve.tbl')
     else:
@@ -327,17 +327,17 @@ class LS372InputSensor:
         self.channel = channel.upper()
 
         self.name = values[f'device-settings:ls372:input-channel-{channel.lower()}:name']
-        self.mode = values[f'device-settings:ls372:input-channel-{channel.lower()}:sensor-type']
-        self.excitation_range = values[f'device-settings:ls372:input-channel-{channel.lower()}:input-range']
-        self.autorange_enable = values[f'device-settings:ls372:input-channel-{channel.lower()}:autorange-enable']
-        self.current_source_shunted = values[f'device-settings:ls372:input-channel-{channel.lower()}:compensation']
+        self.mode = values[f'device-settings:ls372:input-channel-{channel.lower()}:mode']
+        self.excitation_range = values[f'device-settings:ls372:input-channel-{channel.lower()}:excitation-range']
+        self.auto_range = values[f'device-settings:ls372:input-channel-{channel.lower()}:auto-range']
+        self.current_source_shunted = values[f'device-settings:ls372:input-channel-{channel.lower()}:current-source-shunted']
         self.units = values[f'device-settings:ls372:input-channel-{channel.lower()}:units']
         self.resistance_range = values[f'device-settings:ls372:input-channel-{channel.lower()}:resistance-range']
         self.enable = values[f'device-settings:ls372:input-channel-{channel.lower()}:enable']
         self.dwell_time = values[f'device-settings:ls372:input-channel-{channel.lower()}:dwell-time']
         self.pause_time = values[f'device-settings:ls372:input-channel-{channel.lower()}:pause-time']
         self.curve_number = values[f'device-settings:ls372:input-channel-{channel.lower()}:curve-number']
-        self.temperature_coefficient = values[f'device-settings:ls372:input-channel-{channel.lower()}:temperature_coefficient']
+        self.temperature_coefficient = values[f'device-settings:ls372:input-channel-{channel.lower()}:temperature-coefficient']
 
 
 class LS372HeaterOutput:
@@ -345,17 +345,17 @@ class LS372HeaterOutput:
         values = redis.read(redis.redis_keys(f'device-settings*ls372:heater-channel-{channel.lower()}*'))
         self.channel = channel.upper()
 
-        self.output_mode = values[f'device-settings:ls372:heater-channel-{ch}:output-mode']
-        self.input_channel = values[f'device-settings:ls372:heater-channel-{ch}:input-channel']
-        self.powerup_enable = values[f'device-settings:ls372:heater-channel-{ch}:powerup-enable']
-        self.reading_filter = values[f'device-settings:ls372:heater-channel-{ch}:reading-filter']
-        self.delay = values[f'device-settings:ls372:heater-channel-{ch}:delay']
-        self.polarity = values[f'device-settings:ls372:heater-channel-{ch}:polarity']
-        self.setpoint = values[f'device-settings:ls372:heater-channel-{ch}:setpoint']
-        self.gain = values[f'device-settings:ls372:heater-channel-{ch}:gain']
-        self.integral = values[f'device-settings:ls372:heater-channel-{ch}:integral']
-        self.ramp_rate = values[f'device-settings:ls372:heater-channel-{ch}:ramp_rate']
-        self.range = values[f'device-settings:ls372:heater-channel-{ch}:range']
+        self.output_mode = values[f'device-settings:ls372:heater-channel-{channel.lower()}:output-mode']
+        self.input_channel = values[f'device-settings:ls372:heater-channel-{channel.lower()}:input-channel']
+        self.powerup_enable = values[f'device-settings:ls372:heater-channel-{channel.lower()}:powerup-enable']
+        self.reading_filter = values[f'device-settings:ls372:heater-channel-{channel.lower()}:reading-filter']
+        self.delay = values[f'device-settings:ls372:heater-channel-{channel.lower()}:delay']
+        self.polarity = values[f'device-settings:ls372:heater-channel-{channel.lower()}:polarity']
+        self.setpoint = values[f'device-settings:ls372:heater-channel-{channel.lower()}:setpoint']
+        self.gain = values[f'device-settings:ls372:heater-channel-{channel.lower()}:gain']
+        self.integral = values[f'device-settings:ls372:heater-channel-{channel.lower()}:integral']
+        self.ramp_rate = values[f'device-settings:ls372:heater-channel-{channel.lower()}:ramp_rate']
+        self.range = values[f'device-settings:ls372:heater-channel-{channel.lower()}:range']
 
 
 COMMANDS372 = {}
@@ -461,8 +461,7 @@ COMMANDSMAGNET = {'device-settings:sim960:ramp-rate': {'command': '', 'vals': [0
 COMMAND_DICT = {}
 COMMAND_DICT.update(COMMANDS336)
 COMMAND_DICT.update(COMMANDS372)
-COMMAND_DICT.update(COMMANDS960)
-COMMAND_DICT.update(COMMANDS921)
-COMMAND_DICT.update(COMMANDSHS)
-COMMAND_DICT.update(COMMANDSMAGNET)
+# COMMAND_DICT.update(COMMANDS960)
+# COMMAND_DICT.update(COMMANDS921)
+# COMMAND_DICT.update(COMMANDSHS)
 COMMAND_DICT.update(COMMANDS625)
