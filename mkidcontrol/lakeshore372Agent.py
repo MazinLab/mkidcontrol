@@ -131,13 +131,13 @@ class ControlSensorForm(FlaskForm):
     channel = HiddenField("")
     name = StringField("Name")
     mode = SelectField("Sensor Mode", default="Current", choices=list(LS372_SENSOR_MODE.keys()), render_kw={'disabled': True})
-    current_excitation = SelectField("Excitation Current", choices=list(LS372_CONTROL_INPUT_CURRENT_RANGE.keys()))
-    curve = SelectField("Curve", choices=np.arange(1, 60))
-    autorange = SelectField("Autorange Enable", choices=list(LS372_AUTORANGE_VALUES.keys()))
+    excitation_range = SelectField("Excitation Current", choices=list(LS372_CONTROL_INPUT_CURRENT_RANGE.keys()))
+    curve_number = SelectField("Curve", choices=np.arange(1, 60))
+    auto_range = SelectField("Autorange Enable", choices=list(LS372_AUTORANGE_VALUES.keys()))
     current_source_shunted = SelectField("Current Source Shunted", choices=list(LS372_CURRENT_SOURCE_SHUNTED_VALUES.keys()))
     units = SelectField("Units", choices=list(LS372_INPUT_SENSOR_UNITS.keys()))
-    resistance_range = SelectField("Resistance Range", choices=list(LS372_RESISTANCE_RANGE.keys()))
-    enabled = SelectField("Enabled", choices=list(LS372_ENABLED_VALUES.keys()))
+    resistance_range = SelectField("Resistance Range", default='63.2 k\u03A9', choices=list(LS372_RESISTANCE_RANGE.keys()), render_kw={'disabled': True})
+    enable = SelectField("Enable", choices=list(LS372_ENABLED_VALUES.keys()))
     dwell_time = IntegerField("Dwell Time", default=1, validators=[NumberRange(1, 200)])
     pause_time = IntegerField("Pause Time", default=3, validators=[NumberRange(3, 200)])
     temperature_coefficient = SelectField("Temperature Coefficient", choices=list(LS372_CURVE_COEFFICIENTS.keys()))
@@ -221,9 +221,9 @@ class OutputHeaterForm(FlaskForm):
     delay = IntegerField("Delay", default=1, validators=[NumberRange(1, 255)])
     polarity = SelectField("Polarity", choices=list(LS372_OUTPUT_POLARITY.keys()))
     setpoint = FloatField("Temperature Setpoint (K)", default=0.100,  validators=[NumberRange(0,300)])
-    gain = FloatField("PID Gain (P)", default=0.,  validators=[NumberRange()])  # TODO: Find values allowable
-    integral = FloatField("PID Integral (I)", default=0.,  validators=[NumberRange()])  # TODO: Find values allowable
-    ramp_rate = FloatField("PID Ramp Rate (D)", default=0.,  validators=[NumberRange()])  # TODO: Find values allowable
+    gain = FloatField("PID Gain (P)", default=0,  validators=[NumberRange()])  # TODO: Find values allowable
+    integral = FloatField("PID Integral (I)", default=0,  validators=[NumberRange()])  # TODO: Find values allowable
+    ramp_rate = FloatField("PID Ramp Rate (D)", default=0,  validators=[NumberRange()])  # TODO: Find values allowable
     range = SelectField("Range", choices=list(LS372_HEATER_CURRENT_RANGE))
     update = SubmitField("Update")
 
