@@ -79,23 +79,6 @@
                     </form>
                 </div>
             </div>
-            <div class="row" style="padding-top: 2%">
-                <form id="{{ cyc.schedulecooldown.name }}_form" action="{{ url_for('main.index') }}" method="post">
-                    <div class="column" style="float: left; margin-left: 5%">
-                        <div class="column" style="float: left; margin-left: 4%; width: 25%">
-                            {{ cyc.hidden_tag() }}
-                            {{ cyc.schedulecooldown.label }}
-                        </div>
-                        <div class="column" style="float: left; margin-left: 2%; width: 35%">
-                            {{ cyc.schedulecooldown() }}
-                            <div id="{{ cyc.schedulecooldown.name }}_success" style="float: right"></div>
-                        </div>
-                        <div class="column" style="text-align: right; float: right; width: 5%">
-                            <button type="submit" id="schedulesubmit">Schedule</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
             <div class="row">
                 <div class="column" id="ButtonData" style="float: left; margin-left: 5%"></div>
             </div>
