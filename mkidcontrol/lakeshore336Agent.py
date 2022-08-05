@@ -24,7 +24,7 @@ import time
 import numpy as np
 
 from mkidcontrol.mkidredis import RedisError
-from mkidcontrol.devices import LakeShore336
+from mkidcontrol.devices import LakeShore336, InstrumentException
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS336, LakeShoreCommand, ENABLED_336_CHANNELS
 import mkidcontrol.mkidredis as redis
@@ -87,6 +87,20 @@ def initializer(device):
         log.warning('Storing device settings to redis failed')
 
 
+def callback(tvals, svals):
+    vals = tvals + svals
+    keys = TEMP_KEYS + SENSOR_VALUE_KEYS
+    d = {k: x for k, x in zip(keys, vals) if x}
+    try:
+        if all(i is None for i in vals):
+            redis.store({STATUS_KEY: "Error"})
+        else:
+            redis.store(d, timeseries=True)
+            redis.store({STATUS_KEY: "OK"})
+    except RedisError:
+        log.warning('Storing LakeShore336 data to redis failed!')
+
+
 import wtforms
 from wtforms.fields import *
 from wtforms.widgets import HiddenInput
@@ -95,11 +109,6 @@ from wtforms.validators import *
 from wtforms import Form
 from flask_wtf import FlaskForm
 from serial import SerialException
-
-
-class LS336Form(FlaskForm):
-    title = "Lake Shore 336 Settings"
-    set = SubmitField("Set Lake Shore")
 
 
 class InputSensorForm(FlaskForm):
@@ -140,42 +149,32 @@ class DisabledInputForm(FlaskForm):
     enable = SubmitField("Enable")
 
 
-class Schedule(FlaskForm):
-    at = DateTimeLocalField('Activate at', format='%m/%d/%Y %I:%M %p')
-    # at = wtforms.DateTimeField('Activate at', format='%m/%d/%Y %I:%M %p')
-    # date = wtforms.fields.html5.DateField('Date')
-    # time = wtforms.fields.html5.TimeField('Time')
-    repeat = BooleanField(label='Every Day?', default=True)
-    clear = SubmitField("Clear")
-    schedule = SubmitField("Set")
-
-
 if __name__ == "__main__":
 
     util.setup_logging('lakeshore336Agent')
     redis.setup_redis(ts_keys=TS_KEYS)
 
 
-    def callback(tvals, svals):
-        vals = tvals + svals
-        keys = TEMP_KEYS + SENSOR_VALUE_KEYS
-        d = {k: x for k, x in zip(keys, vals) if x}
-        try:
-            if all(i is None for i in vals):
-                redis.store({STATUS_KEY: "Error"})
-            else:
-                redis.store(d, timeseries=True)
-                redis.store({STATUS_KEY: "OK"})
-        except RedisError:
-            log.warning('Storing LakeShore336 data to redis failed!')
-
     try:
-        lakeshore = LakeShore336('LakeShore336', port=DEVICE, enabled_channels=ENABLED_336_CHANNELS)#,
-                                 # initializer=initializer)
-    except:
-        lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS)#,
-                                 # initializer=initializer)
-
+        log.debug(f"Connecting to LakeShore 336")
+        try:
+            lakeshore = LakeShore336('LakeShore336', port=DEVICE, enabled_channels=ENABLED_336_CHANNELS)#,
+                                     # initializer=initializer)
+            log.info(f"LakeShore 336 connection successful!")
+            redis.store({STATUS_KEY: "OK"})
+        except InstrumentException:
+            log.info(f"Instrument exception occurred, trying to connect from PID/VID")
+            lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS)#,
+                                     # initializer=initializer)
+            log.info(f"Lake Shore 336 connection successful!")
+            redis.store({STATUS_KEY: "OK"})
+    except IOError as e:
+        log.critical(f"Error in connecting to LakeShore 336: {e}")
+        redis.store({STATUS_KEY: "Error"})
+        sys.exit(1)
+    except RedisError as e:
+        log.critical(f"Error in communicating with redis: {e}")
+        sys.exit(1)
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals), value_callback=callback)
 
