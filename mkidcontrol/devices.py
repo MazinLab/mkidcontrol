@@ -12,6 +12,8 @@ import time
 import threading
 import serial
 from serial import SerialException
+from lakeshore import InstrumentException
+
 from mkidcontrol.mkidredis import RedisError
 
 from mkidcontrol.commands import SimCommand, LakeShoreCommand
@@ -485,7 +487,7 @@ class LakeShoreDevice(SerialDevice):
         self._lsspecificconnect()
 
         if self.initializer and not self._initialized:
-            self.initializer()
+            self.initializer(self)
             self._initialized = True
 
     def read_schema_settings(self, settings):
@@ -1268,17 +1270,18 @@ class LakeShore625(LakeShoreDevice):
         return {'current': current_lim, 'voltage': voltage_lim, 'rate': rate_limit}
 
     def _lsspecificconnect(self):
-        mode = self.query("XPGM?")
-        current = self.query("SETI?")
-
-        if int(mode) == 0 and float(current) == 0.0:
-            self._initialized = True
-        else:
-            self._initialized = False
-        self.initialized_at_last_connect = self._initialized
+        # mode = self.query("XPGM?")
+        # current = self.query("SETI?")
+        #
+        # if int(mode) == 0 and float(current) == 0.0:
+        #     self._initialized = True
+        # else:
+        #     self._initialized = False
+        # self.initialized_at_last_connect = self._initialized
+        pass
 
     def current(self):
-        current = self.query("RDGI?")
+        current = float(self.query("RDGI?"))
         self.last_current_read = current
         return current
 
@@ -1286,12 +1289,12 @@ class LakeShore625(LakeShoreDevice):
         self.send(f"SETI {current}")
 
     def field(self):
-        field = self.query("RDGF?")
+        field = float(self.query("RDGF?"))
         self.last_field_read = field
         return field
 
     def output_voltage(self):
-        voltage = self.query("RDGV?")
+        voltage = float(self.query("RDGV?"))
         self.last_voltage_read = voltage
         return voltage
 
