@@ -131,6 +131,27 @@ def compute_initial_state(lakeshore, statefile):
     return initial_state
 
 
+import wtforms
+from wtforms.fields import *
+from wtforms.widgets import HiddenInput
+from wtforms.fields.html5 import *
+from wtforms.validators import *
+from wtforms import Form
+from flask_wtf import FlaskForm
+from serial import SerialException
+
+
+class ScheduleForm(FlaskForm):
+    at = DateTimeLocalField('Schedule cycle for:', format='%m/%d/%Y %I:%M %p')
+    schedule = SubmitField("Schedule")
+
+
+class MagnetCycleForm(FlaskForm):
+    start = SubmitField("Start Cooldown")
+    abort = SubmitField("Abort Cooldown")
+    cancel_scheduled = SubmitField("Cancel Scheduled Cooldown")
+
+
 class MagnetController(LockedMachine):
     LOOP_INTERVAL = 1
     BLOCKS = defaultdict(set)  # This holds the ls625 commands that are blocked out in a given state i.e.
