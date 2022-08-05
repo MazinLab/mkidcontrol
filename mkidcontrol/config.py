@@ -12,7 +12,10 @@ REDIS_DB = 0
 
 REDIS_TS_RETENTION = 60 * 60 * 1000  # 30 min
 
-REDIS_TS_KEYS = ()
+REDIS_TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
+                 'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
+                 'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current',
+                 'status:magnet:field', 'status:device:ls625:output-voltage', 'status:device:heatswitch:motor-position')
 
 REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                 'channels': (),
