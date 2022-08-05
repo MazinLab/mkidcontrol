@@ -125,7 +125,7 @@ class MKIDRedis(object):
                     try:
                         v = self.redis_ts.get(k)
                         vals.append(v + (datetime.datetime.fromtimestamp(v[0] / 1000).strftime("%H:%M:%S"),))
-                    except ResponseError:
+                    except (ResponseError, TypeError):
                         vals.append(None)
                 else:
                     try:
