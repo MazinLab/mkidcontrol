@@ -415,6 +415,11 @@ class HeatSwitchForm(FlaskForm):
     set_position = IntegerField("Set Position To:", default=FULL_CLOSE_POSITION, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
 
 
+class HeatSwitchForm2(FlaskForm):
+    open = SubmitField("Open")
+    close = SubmitField("Close")
+
+
 class HeatSwitchEngineeringModeForm(FlaskForm):
     open = SubmitField("Open")
     close = SubmitField("Close")
