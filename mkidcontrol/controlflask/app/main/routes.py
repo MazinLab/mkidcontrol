@@ -4,6 +4,7 @@ from datetime import datetime
 import plotly.graph_objects as go
 
 import mkidcontrol.mkidredis
+from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.util import setup_logging
 from mkidcontrol.util import get_service as mkidcontrol_service
 from mkidcontrol.util import get_services as mkidcontrol_services
@@ -34,6 +35,7 @@ import select
 from mkidcontrol.controlflask.config import Config
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMAND_DICT, SimCommand
+from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
 
 from mkidcontrol.sim960Agent import SIM960_KEYS
 from mkidcontrol.sim921Agent import SIM921_KEYS
@@ -46,32 +48,22 @@ from .forms import *
 # TODO: Turn all graphs/plots into plotly graph objects
 
 
-# TODO: Make these importable from configuration files
-TS_KEYS = ['status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
-           'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
-           'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current']
-
 CHART_KEYS = {'Device T':'status:temps:device-stage:temp',
-              '1K Stage':'status:temps:1k-stage:temp',
-              '3K Stage':'status:temps:3k-stage:temp',
-              '50K Stage':'status:temps:50k-stage:temp'}#,
-              # 'Magnet I':'status:magnet:current'}
+              '1K Stage T':'status:temps:1k-stage:temp',
+              '3K Stage T':'status:temps:3k-stage:temp',
+              '50K Stage T':'status:temps:50k-stage:temp',
+              'Magnet I':'status:magnet:current'}
 
 RAMP_SLOPE_KEY = 'device-settings:sim960:ramp-rate'
 DERAMP_SLOPE_KEY = 'device-settings:sim960:deramp-rate'
 SOAK_TIME_KEY = 'device-settings:sim960:soak-time'
 SOAK_CURRENT_KEY = 'device-settings:sim960:soak-current'
 
-KEYS = list(COMMAND_DICT.keys()) + \
-       ['status:temps:50k-stage:temp',
-        'status:temps:50k-stage:voltage',
-        'status:temps:3k-stage:temp',
-        'status:temps:3k-stage:voltage',
-        'status:temps:1k-stage:temp',
-        'status:temps:1k-stage:resistance',
-        'status:temps:device-stage:temp',
-        'status:temps:device-stage:resistance',
-        'status:magnet:current']
+KEYS = list(COMMAND_DICT.keys()) + list(TS_KEYS) + ['status:device:heatswitch:position',
+                                                    'status:device:ls336:status',
+                                                    'status:device:ls372:status',
+                                                    'status:device:ls625:status',
+                                                    'status:device:heatswitch:status']
 
 # DASHDATA = np.load('/mkidcontrol/mkidcontrol/frontend/dashboard_placeholder.npy')
 
@@ -102,6 +94,12 @@ def add_header(response):
     return response
 
 
+class ObsControlForm(FlaskForm):
+    start_stop = SubmitField("Start")
+    wavecal = SubmitField("Wavecal")
+    flat = SubmitField("Take Flat")
+    dark = SubmitField("Take Dark")
+
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/main', methods=['GET', 'POST'])
 def index():
@@ -111,20 +109,32 @@ def index():
     soak settings) and publishes them to be interpreted by the necessary agents.
     Initializes sensor plot data to send for plotting.
     """
-    # TODO: Make further robust to redis not being up and running
+    # TODO: Make robust to redis not being up and running
     try:
         redis.read(KEYS)
-    except KeyError:
+    except RedisError:
         return redirect(url_for('main.redis_error_page'))
+    except KeyError:
+        return flash(f"Redis keys are missing!")
+
+    from mkidcontrol.magnetAgent import MagnetCycleForm, ScheduleForm
+    from mkidcontrol.heatswitchAgent import HeatSwitchForm2
+    magnetform = MagnetCycleForm()
+    schedule = ScheduleForm()
+    hsform = HeatSwitchForm2()
+    obsform = ObsControlForm()
 
     form = FlaskForm()
     if request.method == 'POST':
-        return handle_validation(request, submission=True)
+        print(request.form)
 
     d,l,c = initialize_sensors_plot(CHART_KEYS.keys())
     dd, dl, dc = view_array_data()
 
-    return render_template('index.html', form=form, d=d, l=l, c=c, dd=dd, dl=dl, dc=dc,
+    return render_template('index.html', magnetform=magnetform, schedule=schedule,
+                           hsform=hsform, obsform=obsform, form=form,
+                           d=d, l=l, c=c,
+                           dd=dd, dl=dl, dc=dc,
                            sensorkeys=list(CHART_KEYS.values()))
 
 
@@ -171,9 +181,51 @@ def log_viewer():
     return render_template('log_viewer.html', title='Log Viewer', form=form)
 
 
+@bp.route('/heater/<device>/<channel>', methods=['GET', 'POST'])
+def heater(device, channel):
+    from ....commands import LakeShoreCommand
+
+    if request.method == 'POST':
+        print(f"Form: {request.form}")
+        for key in request.form.keys():
+            print(f"{key} : {request.form.get(key)}")
+            try:
+                x = LakeShoreCommand(f"device-settings:{device}:heater-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
+                log.info(f"Sending command:{x.setting}' -> {x.value} ")
+                redis.publish(f"command:{x.setting}", x.value)
+                log.info(f"Command sent successfully")
+            except ValueError as e:
+                log.warning(f"Value error: {e} in parsing commands")
+                log.debug(f"Unrecognized field to send as command: {key}")
+
+    if device == "ls372":
+        from ....lakeshore372Agent import HeaterForm
+        from ....commands import LS372HeaterOutput, ALLOWED_372_OUTPUT_CHANNELS
+        heater = LS372HeaterOutput(channel, redis)
+
+        if channel == "0":
+            title = "Sample Heater"
+            form = HeaterForm(**vars(heater))
+        elif channel == "1":
+            title = "Warm-Up Heater"
+            return redirect(url_for('main.page_not_found'))
+        elif channel == "2":
+            title = "Analog/Still"
+            return redirect(url_for('main.page_not_found'))
+    elif device == "ls336":
+        return redirect(url_for('main.page_not_found'))
+    else:
+        return redirect(url_for('main.page_not_found'))
+    return render_template('heater.html', title=f"{title} Control", form=form)
+
+
 @bp.route('/thermometry/<device>/<channel>', methods=['GET', 'POST'])
 def thermometry(device, channel):
-    title = redis.read(f'device-settings:{device}:input-channel-{channel.lower()}:name')
+    try:
+        title = redis.read(f'device-settings:{device}:input-channel-{channel.lower()}:name')
+    except:
+        return redirect(url_for('main.page_not_found'))
+
     from ....commands import LakeShoreCommand
 
     if request.method == 'POST':
@@ -195,32 +247,23 @@ def thermometry(device, channel):
 
         sensor = LS336InputSensor(channel=channel, redis=redis)
         if sensor.sensor_type == "NTC RTD":
-            form = RTDForm(channel=f"{channel}", name=sensor.name, sensor_type=sensor.sensor_type, units=sensor.units,
-                           curve=sensor.curve, autorange=sensor.autorange_enabled,
-                           compensation=sensor.compensation, input_range=sensor.input_range)
+            form = RTDForm(**vars(sensor))
         elif sensor.sensor_type == "Diode":
-            form = DiodeForm(channel=f"{channel}", name=sensor.name, sensor_type={sensor.sensor_type}, units=sensor.units,
-                              curve=sensor.curve, autorange=sensor.autorange_enabled,
-                              compensation=sensor.compensation, input_range=sensor.input_range)
+            form = DiodeForm(**vars(sensor))
         elif sensor.sensor_type == "Disabled":
-            form = DisabledInputForm(channel=f"{channel}", name=sensor.name)
+            form = DisabledInputForm(**vars(sensor))
         else:
             return redirect(url_for('main.page_not_found'))
 
     elif device == 'ls372':
+        # TODO: Enable/disable
         from ....lakeshore372Agent import ControlSensorForm, InputSensorForm
         from ....commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS
         sensor = LS372InputSensor(channel=channel, redis=redis)
         if channel == "A":
-            form = ControlSensorForm(channel=f"{channel}", name=sensor.name, mode=sensor.mode, excitation_range=sensor.excitation_range,
-                                     curve=sensor.curve_number, autorange=sensor.auto_range, current_source_shunted=sensor.current_source_shunted,
-                                     units=sensor.units, resistance_range=sensor.resistance_range, enabled=sensor.enable,
-                                     dwell_time=sensor.dwell_time, pause_time=sensor.pause_time, temperature_coefficient=sensor.temperature_coefficient)
+            form = ControlSensorForm(**vars(sensor))
         elif channel in ALLOWED_372_INPUT_CHANNELS[1:]:
-            form = InputSensorForm(channel=f"{channel}", name=sensor.name, mode=sensor.mode, excitation_range=sensor.excitation_range,
-                                     curve=sensor.curve_number, autorange=sensor.auto_range, current_source_shunted=sensor.current_source_shunted,
-                                     units=sensor.units, resistance_range=sensor.resistance_range, enabled=sensor.enable,
-                                     dwell_time=sensor.dwell_time, pause_time=sensor.pause_time, temperature_coefficient=sensor.temperature_coefficient)
+            form = InputSensorForm(**vars(sensor))
         else:
             return redirect(url_for('main.page_not_found'))
     return render_template('thermometry.html', title=f"{title} Thermometer", form=form)
@@ -234,7 +277,6 @@ def heatswitch(mode):
         print(f"Form: {request.form}")
         for key in request.form.keys():
             print(f"{key} : {request.form.get(key)}")
-
 
     if mode == 'engineering':
         form = HeatSwitchEngineeringModeForm()
@@ -507,11 +549,11 @@ def view_array_data():
     """
     frame_to_use = 100
     # x = DASHDATA[frame_to_use][100:170, 100:170]
-    x = np.zeros((70,70))
-    noise = 25 * np.random.randn(70, 70)
+    x = np.zeros((125, 80))
+    noise = 25 * np.random.randn(125, 80)
     y = x + noise
     z = [{'z': y.tolist(), 'type': 'heatmap', 'showscale':False}]
-    plot_layout = {'title': 'Array'}
+    plot_layout = {}
     plot_config = {'responsive': True}
     d = json.dumps(z, cls=plotly.utils.PlotlyJSONEncoder)
     l = json.dumps(plot_layout, cls=plotly.utils.PlotlyJSONEncoder)
