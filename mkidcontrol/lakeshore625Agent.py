@@ -20,6 +20,10 @@ N.B. (19 July 2022): The limiting values are as follows (and remember, the limit
                    R_system was measured by N.S. simply using a multimeter between the + and - terminals of the magnet cable
                    (di/dt)_desired is tunable, we don't recommend higher than 10 mA/s
 - Ramp rate: 20 mA/s (you want this to be about double + 10% of the max rate you expect to use)
+
+
+# TODO: Add 'pause' command
+# TODO: Clean code
 """
 
 import sys
@@ -64,6 +68,20 @@ COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
 LS625KEYS = TS_KEYS + [STATUS_KEY, FIRMWARE_KEY, MODEL_KEY, SN_KEY, SOAK_TIME_KEY, SOAK_CURRENT_KEY, RAMP_RATE_KEY]
 
 
+import wtforms
+from wtforms.fields import *
+from wtforms.widgets import HiddenInput
+from wtforms.fields.html5 import *
+from wtforms.validators import *
+from wtforms import Form
+from flask_wtf import FlaskForm
+from serial import SerialException
+
+
+class Lakeshore625ControlForm(FlaskForm):
+    desired_current = FloatField("Desired Current", default=0, validators=[NumberRange(0, 9.4)])
+
+
 def firmware_pull(device):
     # Grab and store device info
     try:
@@ -102,26 +120,37 @@ def initializer(device):
         log.warning('Storing device settings to redis failed')
 
 
+def callback(cur, field, ov):
+    d = {k: float(x) for k, x in zip((MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY), (cur, field, ov)) if
+         x}
+    try:
+        if all(i is None for i in [cur, field, ov]) is None:
+            # N.B. If there is an error on the query, the value passed is None
+            redis.store({STATUS_KEY: "Error"})
+        else:
+            redis.store(d, timeseries=True)
+            redis.store({STATUS_KEY: "OK"})
+    except RedisError:
+        log.warning('Storing LakeShore625 data to redis failed!')
+
+
 if __name__ == "__main__":
 
     util.setup_logging('lakeshore625Agent')
     redis.setup_redis(ts_keys=TS_KEYS)
 
-    def callback(cur, field, ov):
-        d = {k: x for k, x in zip((MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY), (cur, field, ov)) if x}
-        try:
-            if all(i is None for i in [cur, field, ov]) is None:
-                # N.B. If there is an error on the query, the value passed is None
-                redis.store({STATUS_KEY: "Error"})
-            else:
-                redis.store(d, timeseries=True)
-                redis.store({STATUS_KEY: "OK"})
-        except RedisError:
-            log.warning('Storing LakeShore625 data to redis failed!')
-
-
-    # Handle a non-connect / disconnection during operation
-    lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=initializer)
+    try:
+        log.debug(f"Connecting to LakeShore 625")
+        lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=initializer)
+        log.info(f"LakeShore 625 connection successful!")
+        redis.store({STATUS_KEY: "OK"})
+    except IOError as e:
+        log.critical(f"Error in connecting to LakeShore 625: {e}")
+        redis.store({STATUS_KEY: "Error"})
+        sys.exit(1)
+    except RedisError as e:
+        log.critical(f"Error in communicating with redis: {e}")
+        sys.exit(1)
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.current, lakeshore.field, lakeshore.output_voltage),
                       value_callback=callback)
