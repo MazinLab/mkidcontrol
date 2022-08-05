@@ -342,20 +342,21 @@ class LS372InputSensor:
 
 class LS372HeaterOutput:
     def __init__(self, channel, redis):
-        values = redis.read(redis.redis_keys(f'device-settings*ls372:heater-channel-{channel.lower()}*'))
-        self.channel = channel.upper()
+        # N.B. Heater channels are numbers, no need to match lower/upper-case
+        values = redis.read(redis.redis_keys(f'device-settings*ls372:heater-channel-{channel}*'))
+        self.channel = channel
 
-        self.output_mode = values[f'device-settings:ls372:heater-channel-{channel.lower()}:output-mode']
-        self.input_channel = values[f'device-settings:ls372:heater-channel-{channel.lower()}:input-channel']
-        self.powerup_enable = values[f'device-settings:ls372:heater-channel-{channel.lower()}:powerup-enable']
-        self.reading_filter = values[f'device-settings:ls372:heater-channel-{channel.lower()}:reading-filter']
-        self.delay = values[f'device-settings:ls372:heater-channel-{channel.lower()}:delay']
-        self.polarity = values[f'device-settings:ls372:heater-channel-{channel.lower()}:polarity']
-        self.setpoint = values[f'device-settings:ls372:heater-channel-{channel.lower()}:setpoint']
-        self.gain = values[f'device-settings:ls372:heater-channel-{channel.lower()}:gain']
-        self.integral = values[f'device-settings:ls372:heater-channel-{channel.lower()}:integral']
-        self.ramp_rate = values[f'device-settings:ls372:heater-channel-{channel.lower()}:ramp_rate']
-        self.range = values[f'device-settings:ls372:heater-channel-{channel.lower()}:range']
+        self.output_mode = values[f'device-settings:ls372:heater-channel-{channel}:output-mode']
+        self.input_channel = values[f'device-settings:ls372:heater-channel-{channel}:input-channel']
+        self.powerup_enable = values[f'device-settings:ls372:heater-channel-{channel}:powerup-enable']
+        self.reading_filter = values[f'device-settings:ls372:heater-channel-{channel}:reading-filter']
+        self.delay = values[f'device-settings:ls372:heater-channel-{channel}:delay']
+        self.polarity = values[f'device-settings:ls372:heater-channel-{channel}:polarity']
+        self.setpoint = values[f'device-settings:ls372:heater-channel-{channel}:setpoint']
+        self.gain = values[f'device-settings:ls372:heater-channel-{channel}:gain']
+        self.integral = values[f'device-settings:ls372:heater-channel-{channel}:integral']
+        self.ramp_rate = values[f'device-settings:ls372:heater-channel-{channel}:ramp_rate']
+        self.range = values[f'device-settings:ls372:heater-channel-{channel}:range']
 
 
 COMMANDS372 = {}
