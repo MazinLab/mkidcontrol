@@ -25,7 +25,8 @@
                 update_div("Device_Temp", "status:temps:device-stage:temp", newdata, true);
                 update_div("Meas_Current", "status:magnet:current", newdata, true);
                 update_div("Magnet_Status", "status:magnet:state", newdata);
-                update_div("heatswitch", "device-settings:currentduino:heatswitch", newdata);
+                update_div("heatswitch", "status:device:heatswitch:position", newdata);
+                update_div("HSMotorPos", "status:device:heatswitch:motor-position", newdata, true)
                 update_div("LS336", "status:device:ls336:status", newdata);
                 update_div("LS372", "status:device:ls372:status", newdata);
                 update_div("LS625", "status:device:ls625:status", newdata);
@@ -52,7 +53,11 @@
             var data = sentdata[key];
             if (ts) {
                 var time = data[2];
-                var value = Number(data[1]).toFixed(3);
+                if (key == 'status:device:heatswitch:motor-position'){
+                    var value = Number(data[1]).toFixed(0);
+                } else {
+                    var value = Number(data[1]).toFixed(3);
+                }
             } else {
                 var value = data;
             }
