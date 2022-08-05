@@ -23,7 +23,7 @@ import time
 import numpy as np
 
 from mkidcontrol.mkidredis import RedisError
-from mkidcontrol.devices import LakeShore372
+from mkidcontrol.devices import LakeShore372, InstrumentException
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS372, LakeShoreCommand, ENABLED_372_INPUT_CHANNELS
 import mkidcontrol.mkidredis as redis
@@ -109,6 +109,18 @@ def initializer(device):
         log.warning('Storing device settings to redis failed')
 
 
+def callback(temp, res, ex, ov):
+    d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY), (temp, res, ex, ov))}
+    try:
+        if all(i is None for i in [temp, res, ex, ov]):
+            redis.store({STATUS_KEY: "Error"})
+        else:
+            redis.store(d, timeseries=True)
+            redis.store({STATUS_KEY: "OK"})
+    except RedisError:
+        log.warning('Storing LakeShore372 data to redis failed!')
+
+
 import wtforms
 from wtforms.fields import *
 from wtforms.widgets import HiddenInput
@@ -119,9 +131,23 @@ from flask_wtf import FlaskForm
 from serial import SerialException
 
 
-class LS372Form(FlaskForm):
-    title = "Lake Shore 372 Settings"
-    set = SubmitField("Set Lake Shore")
+class HeaterForm(FlaskForm):
+    from mkidcontrol.commands import LS372_HEATER_OUTPUT_MODE, LS372_HEATER_INPUT_CHANNEL,\
+    LS372_HEATER_POWERUP_ENABLE, LS372_HEATER_READING_FILTER, LS372_OUTPUT_POLARITY, LS372_HEATER_CURRENT_RANGE
+
+    channel = HiddenField("")
+    output_mode = SelectField("Output Mode", choices=list(LS372_HEATER_OUTPUT_MODE.keys()))
+    input_channel = SelectField("Input Channel", choices=list(LS372_HEATER_INPUT_CHANNEL.keys()))
+    powerup_enable = SelectField("Powerup Enable", choices=list(LS372_HEATER_POWERUP_ENABLE.keys()))
+    reading_filter = SelectField("Reading Filter", choices=list(LS372_HEATER_READING_FILTER))
+    delay = IntegerField("Delay", default=1, validators=[NumberRange(1, 255)])
+    polarity = SelectField("Polarity", default="Unipolar", choices=list(LS372_OUTPUT_POLARITY.keys()))
+    setpoint = FloatField("Setpoint (K)", default=0.100, validators=[NumberRange(0, 4)])
+    gain = FloatField("Gain (P)", default=0.1, validators=[NumberRange(0, 1000)])
+    integral = FloatField("Integral (I)", default=1.0, validators=[NumberRange(0, 10000)])
+    ramp_rate = FloatField("Ramp Rate (D)", default=0, validators=[NumberRange(0,2500)])
+    range = SelectField("Range", choices=list(LS372_HEATER_CURRENT_RANGE.keys()))
+    update = SubmitField("Update")
 
 
 class ControlSensorForm(FlaskForm):
@@ -233,30 +259,31 @@ class DisabledOutputHeaterForm(FlaskForm):
     update = SubmitField("Update")
 
 
-
-
 if __name__ == "__main__":
 
     util.setup_logging('lakeshore372Agent')
     redis.setup_redis(ts_keys=TS_KEYS)
 
     try:
-        lakeshore = LakeShore372('LakeShore372', baudrate=57600, port='/dev/ls372',
-                                 enabled_input_channels=ENABLED_372_INPUT_CHANNELS)#, initializer=initializer)
-    except:
-        lakeshore = LakeShore372('LakeShore372', baudrate=57600,
-                                 enabled_input_channels=ENABLED_372_INPUT_CHANNELS)#, initializer=initializer)
-
-    def callback(temp, res, ex, ov):
-        d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY), (temp, res, ex, ov))}
+        log.debug(f"Connecting to LakeShore 372...")
         try:
-            if all(i is None for i in [temp, res, ex, ov]):
-                redis.store({STATUS_KEY: "Error"})
-            else:
-                redis.store(d, timeseries=True)
-                redis.store({STATUS_KEY: "OK"})
-        except RedisError:
-            log.warning('Storing LakeShore372 data to redis failed!')
+            lakeshore = LakeShore372('LakeShore372', baudrate=57600, port='/dev/ls372',
+                                     enabled_input_channels=ENABLED_372_INPUT_CHANNELS)#, initializer=initializer)
+            log.info(f"LakeShore 372 connection successful!")
+            redis.store({STATUS_KEY: "OK"})
+        except InstrumentException:
+            log.info(f"Instrument exception occurred, trying to connect from PID/VID")
+            lakeshore = LakeShore372('LakeShore372', baudrate=57600,
+                                     enabled_input_channels=ENABLED_372_INPUT_CHANNELS)#, initializer=initializer)
+            log.info(f"LakeShore 372 connection successful!")
+            redis.store({STATUS_KEY: "OK"})
+    except IOError as e:
+        log.critical(f"Error in connecting to LakeShore 372: {e}")
+        redis.store({STATUS_KEY: "Error"})
+        sys.exit(1)
+    except RedisError as e:
+        log.critical(f"Error in communicating with redis: {e}")
+        sys.exit(1)
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.temp, lakeshore.sensor_vals, lakeshore.excitation_power, lakeshore.output_voltage), value_callback=callback)
 
@@ -273,10 +300,11 @@ if __name__ == "__main__":
                     lakeshore.handle_command(cmd)
                     redis.store({cmd.setting: cmd.value})
                     if cmd.command_code == "SETP":
+                        # TODO: May need to publish this as well, need to walk through what other programs need this value
                         redis.store({REGULATION_TEMP_KEY: cmd.command_value})
                     redis.store({STATUS_KEY: "OK"})
                 except IOError as e:
-                    redis.store({STATUS_KEY: f"Error {e}"})
+                    redis.store({STATUS_KEY: f"Error"})
                     log.error(f"Comm error: {e}")
     except RedisError as e:
         log.critical(f"Redis server error! {e}")
