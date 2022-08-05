@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {{ super() }}
+    <div class="container-fluid">
+        <div class="row">
+            <main role="main" class="col-12">
+                <div class="d-flex justify-content-center flex-wrap flex-md-nowrap align-items-center pb-2 mt-3 mr-0 border-bottom">
+                    {{ render_form(form) }}
+                </div>
+            </main>
+        </div>
+    </div>
+{% endblock %}
