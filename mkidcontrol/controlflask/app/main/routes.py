@@ -514,12 +514,12 @@ def initialize_sensor_plot(title):
     last_tval = time.time() # In seconds
     first_tval = int((last_tval - 1800) * 1000)  # Allow data from up to 30 minutes beforehand to be plotted (30 m = 1800 s)
     ts = np.array(redis.mkr_range(CHART_KEYS[title], f"{first_tval}", '+'))
-    times = [datetime.datetime.fromtimestamp(t/1000).strftime("%H:%M:%S") for t in ts[:,0]]
-    vals = list(ts[:,1])
-    if len(times) == 0:
-        val = redis.read(CHART_KEYS[title])
-        times = [datetime.datetime.fromtimestamp(val[0] / 1000).strftime("%H:%M:%S")]
-        vals = [val[1]]
+    if ts[0][0] is not None:
+        times = [datetime.datetime.fromtimestamp(t/1000).strftime("%H:%M:%S") for t in ts[:,0]]
+        vals = list(ts[:,1])
+    else:
+        times = [None]
+        vals = [None]
 
     plot_data = [{'x': times,'y': vals,'name': title}]
     plot_layout = {'title': title}
