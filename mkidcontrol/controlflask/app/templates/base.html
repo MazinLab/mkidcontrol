@@ -141,22 +141,6 @@
             });
         }
 
-        function register_realtime_validation(keys) {
-            var i;
-            var k = keys;
-            for (i=0; i < k.length; i++) {
-                realtime_validate(k[i])
-            }
-        }
-
-        function register_submitters(keys, url) {
-            var i;
-            var k = keys;
-            for (i=0; i < k.length; i++) {
-                subdata(k[i], url)
-            }
-        }
-
         function update_multiple_divs(id_and_redis_names, data) {
             var i;
             var keys = id_and_redis_names;
