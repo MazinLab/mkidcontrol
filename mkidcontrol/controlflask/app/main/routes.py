@@ -48,11 +48,17 @@ from .forms import *
 # TODO: Turn all graphs/plots into plotly graph objects
 
 
-CHART_KEYS = {'Device T':'status:temps:device-stage:temp',
-              '1K Stage T':'status:temps:1k-stage:temp',
-              '3K Stage T':'status:temps:3k-stage:temp',
-              '50K Stage T':'status:temps:50k-stage:temp',
-              'Magnet I':'status:magnet:current'}
+CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
+              '1k Stage T': 'status:temps:1k-stage:temp',
+              '3k Stage T': 'status:temps:3k-stage:temp',
+              '50k Stage T': 'status:temps:50k-stage:temp',
+              'Magnet I': 'status:magnet:current',
+              '50k Stage V': 'status:temps:50k-stage:voltage',
+              '3k Stage V': 'status:temps:3k-stage:voltage',
+              '1k Stage R': 'status:temps:1k-stage:resistance',
+              'Device R': 'status:temps:device-stage:resistance',
+              'Magnet Field': 'status:magnet:field',
+              'LS625 Output V': 'status:device:ls625:output-voltage'}
 
 RAMP_SLOPE_KEY = 'device-settings:sim960:ramp-rate'
 DERAMP_SLOPE_KEY = 'device-settings:sim960:deramp-rate'
@@ -143,20 +149,30 @@ def other_plots():
     """
     Flask endpoint for 'other plots'. This page has ALL sensor plots in one place for convenience (in contrast to index,
     which only has one at a time).
+    # TODO
     """
     print('going to other plots page!')
     form = FlaskForm()
-    devt_d, devt_l, devt_c = initialize_sensor_plot('Device T')
-    onek_d, onek_l, onek_c = initialize_sensor_plot('1K Stage')
-    threek_d, threek_l, threek_c = initialize_sensor_plot('3K Stage')
-    fiftyk_d, fiftyk_l, fiftyk_c = initialize_sensor_plot('50K Stage')
-    # magc_d, magc_l, magc_c = initialize_sensor_plot('Magnet I')
+    devT = initialize_sensor_plot('Device T')
+    onekT = initialize_sensor_plot('1k Stage T')
+    threekT = initialize_sensor_plot('3k Stage T')
+    fiftykT = initialize_sensor_plot('50k Stage T')
+    magI = initialize_sensor_plot('Magnet I')
+    devR = initialize_sensor_plot('Device R')
+    onekR = initialize_sensor_plot('1k Stage R')
+    threekV = initialize_sensor_plot('3k Stage V')
+    fiftykV = initialize_sensor_plot('50k Stage V')
+    magF = initialize_sensor_plot('Magnet Field')
+    ls625ov = initialize_sensor_plot('LS625 Output V')
 
-    return render_template('other_plots.html', title='Other Plots', form=form,
-                           devt_d=devt_d, devt_l=devt_l, devt_c=devt_c,
-                           onek_d=onek_d, onek_l=onek_l, onek_c=onek_c,
-                           threek_d=threek_d, threek_l=threek_l, threek_c=threek_c,
-                           fiftyk_d=fiftyk_d, fiftyk_l=fiftyk_l, fiftyk_c=fiftyk_c)
+    ids = ['device_t', 'onek_t', 'threek_t', 'fiftyk_t', 'magnet_i',
+           'device_r', 'onek_r', 'threek_v', 'fiftyk_v', 'magnet_f',
+           'ls625_ov']
+    plots = [devT, onekT, threekT, fiftykT, magI,
+             devR, onekR, threekV, fiftykV, magF,
+             ls625ov]
+
+    return render_template('other_plots.html', title='Other Plots', form=form, plots=plots, ids=ids)
 
 
 @bp.route('/settings', methods=['GET', 'POST'])
