@@ -99,48 +99,6 @@
             })
         }
 
-        function subdata(id, url) {
-            $(document).on('submit', "#"+id+"_form", function(e){
-               e.preventDefault();
-               $.ajax({
-                   type:'POST',
-                   url:url,
-                   data:{
-                       id:id,
-                       data:$("#"+id).val()
-                   },
-                   success:function(d)
-                   {
-                       $("#"+id+"_success").text(d['legal'][1])
-                       if (d['legal'][0] == false) {
-                            document.getElementById(id).style.color = 'red'
-                        } else {
-                            document.getElementById(id).style.color = 'blue'
-                        }
-                        if (d['cycle'] == true) {
-                            var msg;
-                            console.log(d['key'])
-                            if (d['key'] == 'command:get-cold'){
-                                msg = "Started cooldown at: ";
-                            } else if (d['key'] == 'command:abort-cooldown') {
-                                msg = "Cooldown aborted at: ";
-                            } else if (d['key'] == 'command:cancel-scheduled-cooldown') {
-                                msg = "Canceled previously scheduled cooldown at: ";
-                            } else if (d['key'] == 'command:be-cold-at') {
-                                if (d['legal'][0] == true) {
-                                    msg = "Scheduling cooldown for: ";
-                                } else {
-                                    msg = "ILLEGAL TIME OR FORMAT! Cannot schedule cooldown for: ";
-                                }
-                            }
-                            $("#ButtonData").text(msg+d['value'])
-                        }
-                       console.log(d);
-                   }
-               })
-            });
-        }
-
         function update_multiple_divs(id_and_redis_names, data) {
             var i;
             var keys = id_and_redis_names;
