@@ -116,12 +116,12 @@ sudo modprobe cp210x # Reload new
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
-# Get flask up and running to start (this can be added to the .zshrc file for ease)
+# Get flask up and running to start (this can be added to the .zshrc file for ease and permanence)
 export FLASK_APP=/home/kids/mkidcontrol/mkidcontrol/controlflask/mkidDirector.py
 export FLASK_ENV=develop
+flask db init
 
 # TODO: Get flask set up and running
-# TODO: Get flask db up and running (for login/logout)
 
 cp ~/mkidcontrol/bin/mkid-service-control ~/.local/bin/
 # Manually do the following
