@@ -285,6 +285,13 @@ def thermometry(device, channel):
     return render_template('thermometry.html', title=f"{title} Thermometer", form=form)
 
 
+@bp.route('/ls625', methods=['POST', 'GET'])
+# @login_required
+def ls625():
+    form = FlaskForm()
+    return render_template('ls625.html', title=_("Magnet Power Supply Setup"), form=form)
+
+
 @bp.route('/heatswitch/<mode>', methods=['POST', 'GET'])
 # @login_required
 def heatswitch(mode):
