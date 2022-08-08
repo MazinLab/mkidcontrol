@@ -515,11 +515,17 @@ def initialize_sensor_plot(title):
 
 
 def initialize_sensors_plot(titles):
+    # TODO: Clean up, modularize, optimize
     last_tval = time.time()
     first_tval = int((last_tval - 1800) * 1000)
     keys = [CHART_KEYS[i] for i in titles]
     timestreams = [np.array(redis.mkr_range(key, f"{first_tval}", "+")) for key in keys]
-    times = [[datetime.datetime.fromtimestamp(t / 1000).strftime("%H:%M:%S") for t in ts[:, 0]] for ts in timestreams]
+    times = []
+    for ts in timestreams:
+        if ts[0][0] is not None:
+            times.append([datetime.datetime.fromtimestamp(t / 1000).strftime("%H:%M:%S") for t in ts[:, 0]])
+        else:
+            times.append([None])
     vals = [list(ts[:, 1]) for ts in timestreams]
 
     update_menus = []

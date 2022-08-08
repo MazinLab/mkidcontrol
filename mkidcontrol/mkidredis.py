@@ -238,8 +238,12 @@ class MKIDRedis(object):
             end = -1
         else:
             end = int(end.timestamp() * 1000)
-        return self.redis_ts.range(key, start, end)
 
+        rang = self.redis_ts.range(key, start, end)
+        if len(rang):
+            return rang
+        else:
+            return [(None, None)]
 
 mkidredis = None
 store = None
