@@ -150,6 +150,9 @@ class MagnetCycleForm(FlaskForm):
     start = SubmitField("Start Cooldown")
     abort = SubmitField("Abort Cooldown")
     cancel_scheduled = SubmitField("Cancel Scheduled Cooldown")
+    soak_current = FloatField("Soak Current (A)", default=9.4, validators=[NumberRange(0,9.4)])
+    soak_time = IntegerField("Soak Time (minutes)", default=30, validators=[NumberRange(0, 240)])
+    update = SubmitField("Update")
 
 
 class MagnetController(LockedMachine):
