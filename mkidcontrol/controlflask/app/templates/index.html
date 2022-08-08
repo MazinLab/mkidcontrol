@@ -153,9 +153,6 @@
         }
         update_array_viewer()
 
-        register_realtime_validation({{ rtvkeys | safe }})
-        register_submitters({{ subkeys | safe }})
-
         var myPlot = document.getElementById('dash');
 
         function delete_pixel_lightcurve_trace(){
