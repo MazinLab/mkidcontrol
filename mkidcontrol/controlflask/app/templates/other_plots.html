@@ -2,27 +2,71 @@
 
 {% block content %}
     {{ super() }}
-    <div class="container" style="float:left; margin-left: 10%; max-width: 78%; padding: 0px">
-        <div class="column" style="float:left; width: 33%">
-            <div class="row" id="device_temp"></div>
-            <div class="row" id="fiftyk"></div>
-        </div>
+    <div class="container-fluid">
+        <div class="flex-row">
+            <main role="main" class="col-10">
+                <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
+                    <div class="flex-column col-6 border-right" id="device_t">
 
-        <div class="column" style="float: left; width: 33%">
-            <div class="row" id="onek"></div>
-<!--            <div class="row" id="magnet_current"></div>-->
-        </div>
-        <div class="column" style="float: left; width: 33%">
-            <div class="row" id="threek"></div>
+                    </div>
+                    <div class="flex-column col-6" id="device_r">
+
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
+                    <div class="flex-column col-6 border-right" id="onek_t">
+
+                    </div>
+                    <div class="flex-column col-6" id="onek_r">
+
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
+                    <div class="flex-column col-6 border-right" id="threek_t">
+
+                    </div>
+                    <div class="flex-column col-6" id="threek_v">
+
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
+                    <div class="flex-column col-6 border-right" id="fiftyk_t">
+
+                    </div>
+                    <div class="flex-column col-6" id="fiftyk_v">
+
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
+                    <div class="flex-column col-6 border-right" id="magnet_i">
+
+                    </div>
+                    <div class="flex-column col-6" id="magnet_f">
+
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
+                    <div class="flex-column col-6 border-right" id="ls625_ov">
+
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
+
     <script>
-        Plotly.newPlot('device_temp', {{ devt_d | safe }}, {{ devt_l | safe }}, {{ devt_c | safe}})
-        Plotly.newPlot('onek', {{ onek_d | safe }}, {{ onek_l | safe }}, {{ onek_c | safe}})
-        Plotly.newPlot('threek', {{ threek_d | safe }}, {{ threek_l | safe }}, {{ threek_c | safe}})
-        Plotly.newPlot('fiftyk', {{ fiftyk_d | safe }}, {{ fiftyk_l | safe }}, {{ fiftyk_c | safe}})
-        // Plotly.newPlot('magnet_current', {{ magc_d | safe }}, {{ magc_l | safe }}, {{ magc_c | safe}})
+        Plotly.newPlot('device_t', {{ plots[0][0] | safe }}, {{ plots[0][1] | safe }}, {{ plots[0][2] | safe}})
+        Plotly.newPlot('onek_t', {{ plots[1][0] | safe }}, {{ plots[1][1] | safe }}, {{ plots[1][2] | safe}})
+        Plotly.newPlot('threek_t', {{ plots[2][0] | safe }}, {{ plots[2][1] | safe }}, {{ plots[2][2] | safe}})
+        Plotly.newPlot('fiftyk_t', {{ plots[3][0] | safe }}, {{ plots[3][1] | safe }}, {{ plots[3][2] | safe}})
+        Plotly.newPlot('magnet_i', {{ plots[4][0] | safe }}, {{ plots[4][1] | safe }}, {{ plots[4][2] | safe}})
+        Plotly.newPlot('device_r', {{ plots[5][0] | safe }}, {{ plots[5][1] | safe }}, {{ plots[5][2] | safe}})
+        Plotly.newPlot('onek_r', {{ plots[6][0] | safe }}, {{ plots[6][1] | safe }}, {{ plots[6][2] | safe}})
+        Plotly.newPlot('threek_v', {{ plots[7][0] | safe }}, {{ plots[7][1] | safe }}, {{ plots[7][2] | safe}})
+        Plotly.newPlot('fiftyk_v', {{ plots[8][0] | safe }}, {{ plots[8][1] | safe }}, {{ plots[8][2] | safe}})
+        Plotly.newPlot('magnet_f', {{ plots[9][0] | safe }}, {{ plots[9][1] | safe }}, {{ plots[9][2] | safe}})
+        Plotly.newPlot('ls625_ov', {{ plots[10][0] | safe }}, {{ plots[10][1] | safe }}, {{ plots[10][2] | safe}})
     </script>
 
     <script>
@@ -30,12 +74,18 @@
             var source = new EventSource("/listener");
             source.addEventListener("message", function (e) {
                 var newdata = JSON.parse(e.data);
-                // console.log("Message: ", newdata);
-                update_plot("device_temp", "status:temps:device-stage:temp", newdata);
-                update_plot("onek", "status:temps:1k-stage:temp", newdata);
-                update_plot("threek", "status:temps:4k-stage:temp", newdata);
-                update_plot("fiftyk", "status:temps:77k-stage:temp", newdata);
-                // update_plot("magnet_current", "status:magnet:current", newdata);
+                console.log("Message: ", newdata);
+                update_plot("device_t", "status:temps:device-stage:temp", newdata);
+                update_plot("onek_t", "status:temps:1k-stage:temp", newdata);
+                update_plot("threek_t", "status:temps:3k-stage:temp", newdata);
+                update_plot("fiftyk_t", "status:temps:50k-stage:temp", newdata);
+                update_plot("magnet_i", "status:magnet:current", newdata);
+                update_plot("device_r", "status:temps:device-stage:resistance", newdata);
+                update_plot("onek_r", "status:temps:1k-stage:resistance", newdata);
+                update_plot("threek_v", "status:temps:3k-stage:voltage", newdata);
+                update_plot("fiftyk_v", "status:temps:50k-stage:voltage", newdata);
+                update_plot("magnet_f", "status:magnet:field", newdata);
+                update_plot("ls625_ov", "status:device:ls625:output-voltage", newdata);
             }, false);
             source.addEventListener("open", function (e) {
                 console.log('Connection was opened: ', e);
