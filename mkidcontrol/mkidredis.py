@@ -224,7 +224,7 @@ class MKIDRedis(object):
             else:
                 int(start)
         elif start is None:
-            start = 0
+            start = "-"
         else:
             start = int(start.timestamp() * 1000)
         if isinstance(end, (int, float)):
@@ -235,7 +235,7 @@ class MKIDRedis(object):
             else:
                 int(end)
         elif end is None:
-            end = -1
+            end = "+"
         else:
             end = int(end.timestamp() * 1000)
 
