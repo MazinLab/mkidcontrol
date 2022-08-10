@@ -164,7 +164,8 @@ def other_plots():
            'magnet_i', 'magnet_f',
            'ls625_ov']
 
-    return render_template('other_plots.html', title=_('Other Plots'), form=form, plots=plots, ids=ids)
+    return render_template('other_plots.html', title=_('Other Plots'), form=form,
+                           plots=plots, ids=ids, sensorkeys=list(CHART_KEYS.values()))
 
 
 @bp.route('/settings', methods=['GET', 'POST'])
