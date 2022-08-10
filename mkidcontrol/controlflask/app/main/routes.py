@@ -153,26 +153,15 @@ def other_plots():
     """
     print('going to other plots page!')
     form = FlaskForm()
-    devT = initialize_sensor_plot('Device T')
-    onekT = initialize_sensor_plot('1k Stage T')
-    threekT = initialize_sensor_plot('3k Stage T')
-    fiftykT = initialize_sensor_plot('50k Stage T')
-    magI = initialize_sensor_plot('Magnet I')
-    devR = initialize_sensor_plot('Device R')
-    onekR = initialize_sensor_plot('1k Stage R')
-    threekV = initialize_sensor_plot('3k Stage V')
-    fiftykV = initialize_sensor_plot('50k Stage V')
-    magF = initialize_sensor_plot('Magnet Field')
-    ls625ov = initialize_sensor_plot('LS625 Output V')
+
+    plots = [create_fig(title) for title in CHART_KEYS.keys()]
 
     ids = ['device_t', 'onek_t', 'threek_t', 'fiftyk_t', 'magnet_i',
            'device_r', 'onek_r', 'threek_v', 'fiftyk_v', 'magnet_f',
            'ls625_ov']
-    plots = [devT, onekT, threekT, fiftykT, magI,
-             devR, onekR, threekV, fiftykV, magF,
-             ls625ov]
 
-    return render_template('other_plots.html', title='Other Plots', form=form, plots=plots, ids=ids)
+
+    return render_template('other_plots.html', title=_('Other Plots'), form=form, plots=plots, ids=ids)
 
 
 @bp.route('/settings', methods=['GET', 'POST'])
@@ -185,7 +174,7 @@ def settings():
         return handle_validation(request, submission=True)
 
 
-    return render_template('settings.html', title='Settings')
+    return render_template('settings.html', title=_('Settings'))
 
 
 @bp.route('/log_viewer', methods=['GET', 'POST'])
@@ -194,7 +183,7 @@ def log_viewer():
     Flask endpoint for log viewer. This page is solely for observing the journalctl output from each agent.
     """
     form = FlaskForm()
-    return render_template('log_viewer.html', title='Log Viewer', form=form)
+    return render_template('log_viewer.html', title=_('Log Viewer'), form=form)
 
 
 @bp.route('/heater/<device>/<channel>', methods=['GET', 'POST'])
@@ -232,7 +221,7 @@ def heater(device, channel):
         return redirect(url_for('main.page_not_found'))
     else:
         return redirect(url_for('main.page_not_found'))
-    return render_template('heater.html', title=f"{title} Control", form=form)
+    return render_template('heater.html', title=_(f"{title} Control"), form=form)
 
 
 @bp.route('/thermometry/<device>/<channel>', methods=['GET', 'POST'])
@@ -268,21 +257,19 @@ def thermometry(device, channel):
             form = DiodeForm(**vars(sensor))
         elif sensor.sensor_type == "Disabled":
             form = DisabledInputForm(**vars(sensor))
-        else:
-            return redirect(url_for('main.page_not_found'))
-
     elif device == 'ls372':
-        # TODO: Enable/disable
         from ....lakeshore372Agent import ControlSensorForm, InputSensorForm
         from ....commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS
         sensor = LS372InputSensor(channel=channel, redis=redis)
+        # TODO: Enable/disable
         if channel == "A":
             form = ControlSensorForm(**vars(sensor))
         elif channel in ALLOWED_372_INPUT_CHANNELS[1:]:
             form = InputSensorForm(**vars(sensor))
-        else:
-            return redirect(url_for('main.page_not_found'))
-    return render_template('thermometry.html', title=f"{title} Thermometer", form=form)
+    else:
+        return redirect(url_for('main.page_not_found'))
+
+    return render_template('thermometry.html', title=_(f"{title} Thermometer"), form=form)
 
 
 @bp.route('/ls625', methods=['POST', 'GET'])
@@ -310,6 +297,7 @@ def heatswitch(mode):
 
 
 @bp.route('/services')
+# @login_required
 def services():
     services = mkidcontrol_services()
     try:
@@ -396,35 +384,8 @@ def system():
 
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
-    from ....lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
-    from mkidcontrol.commands import LS336InputSensor, ENABLED_336_CHANNELS, ALLOWED_336_CHANNELS, LakeShoreCommand
-    """
-    Test area for trying out things before implementing them on a page
-    """
-    if request.method == 'POST':
-        print(f"Form: {request.form}")
-        for key in request.form.keys():
-            print(f"{key} : {request.form.get(key)}")
-            try:
-                x = LakeShoreCommand(f"device-settings:ls336:input-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
-                print(x)
-            except ValueError as e:
-                print(e)
-    # schedule = Schedule()
-    forms = []
-    for ch in ALLOWED_336_CHANNELS:
-        sensor = LS336InputSensor(channel=ch, redis=redis)
-        if sensor.sensor_type == "NTC RTD":
-            forms.append([ch, RTDForm(channel=f"{ch}", name="NTC RTD", sensor_type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
-                                 autorange=bool(sensor.autorange_enabled), compensation=bool(sensor.compensation),
-                                 input_range=sensor.input_range)])
-        elif sensor.sensor_type == "Diode":
-            forms.append([ch, DiodeForm(channel=f"{ch}", name="Diode", sensor_type=sensor.sensor_type, units=sensor.units, curve=sensor.curve,
-                                   autorange=bool(sensor.autorange_enabled), compensation=bool(sensor.compensation),
-                                   input_range=sensor.input_range)])
-        elif sensor.sensor_type == "Disabled":
-            forms.append([ch, DisabledInputForm(channel=f"{ch}", name="Disabled Input")])
-    return render_template('test_page.html', title='Test Page', forms=forms) #, schedule=schedule)
+    form = FlaskForm()
+    return render_template('test_page.html', title=_('Test Page'), form=form)
 
 
 @bp.route('/404', methods=['GET', 'POST'])
@@ -502,39 +463,21 @@ def journalctl_streamer(service):
     return Response(st(args), mimetype='text/event-stream', content_type='text/event-stream')
 
 
-@bp.route('/validatecmd', methods=['POST'])
-def validate_cmd_change():
-    """
-    Flask endpoint which is called from an AJAX request when new data is typed/entered into a submittable field. This
-    will then report back if the value is allowed or not and report that to the user accordingly (with a check or X)
-    """
-    return handle_validation(request)
-
-
-def initialize_sensor_plot(title):
-    """
-    :param key: Redis key plot data is needed for
-    :param title: Plot title. If '-', not used
-    :param typ: <'new'|'old'> Type of updating required. 'new' gives the most recent point. 'old' gives up to 30 minutes of data.
-    :return: data to be plotted.
-    """
-    last_tval = time.time() # In seconds
-    first_tval = int((last_tval - 1800) * 1000)  # Allow data from up to 30 minutes beforehand to be plotted (30 m = 1800 s)
-    ts = np.array(redis.mkr_range(CHART_KEYS[title], f"{first_tval}", '+'))
-    if ts[0][0] is not None:
-        times = [datetime.datetime.fromtimestamp(t/1000).strftime("%H:%M:%S") for t in ts[:,0]]
-        vals = list(ts[:,1])
+def create_fig(name):
+    since = None
+    first_tval = int((datetime.datetime.now() - timedelta(hours=0.5)).timestamp() * 1000) if not since else since
+    timestream = np.array(redis.mkr_range(CHART_KEYS[name], f"{first_tval}"))
+    if timestream[0][0] is not None:
+        times = [datetime.datetime.fromtimestamp(t / 1000).strftime("%H:%M:%S") for t in timestream[:, 0]]
+        vals = list(timestream[:, 1])
     else:
         times = [None]
         vals = [None]
-
-    plot_data = [{'x': times,'y': vals,'name': title}]
-    plot_layout = {'title': title}
-    plot_config = {'responsive': True}
-    d = json.dumps(plot_data, cls=plotly.utils.PlotlyJSONEncoder)
-    l = json.dumps(plot_layout, cls=plotly.utils.PlotlyJSONEncoder)
-    c = json.dumps(plot_config, cls=plotly.utils.PlotlyJSONEncoder)
-    return d, l, c
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=times, y=vals, mode='lines', name=f"{name}"))
+    fig.update_layout(title=f"{name}")
+    fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    return fig
 
 
 def initialize_sensors_plot(titles):
@@ -590,6 +533,39 @@ def view_array_data():
     return d, l, c
 
 
+# Controls need to be named with their redis key
+@bp.route('/plotdata', methods=['GET'])
+@login_required
+def plotdata():
+
+    # @copy_current_request_context
+    def _stream():
+        since = None
+        while True:
+            kind = 'full' if since is None else 'partial'
+            start = datetime.datetime.now() - timedelta(hours=1) if not since else since
+            times, vals = list(zip(*r.range('temp:value_avg120000', start=start)))
+            timescpu, valscpu = list(zip(*r.range('temp:cpu:value_avg120000', start=start)))
+            # since = times[-1]
+            times = np.array(times, dtype='datetime64[ms]')
+            timescpu = np.array(timescpu, dtype='datetime64[ms]')
+            if kind == 'full':
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=times, y=vals, mode='lines', name='Internal'))
+                fig.add_trace(go.Scatter(x=timescpu, y=valscpu, mode='lines', name='CPU'))
+                fig.update_layout(title='Cloud Temps', xaxis_title='Time', yaxis_title='\N{DEGREE SIGN}F')
+                figdata = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+            else:
+                figdata = {'x': times, 'y': vals}
+
+            data = {'id': f'temp-plot', 'kind': kind, 'data': figdata}
+            yield f"event:plot\nretry:5\ndata: {json.dumps(data)}\n\n"
+            time.sleep(15)
+
+    return current_app.response_class(_stream(), mimetype="text/event-stream")
+
+
+
 def parse_schedule_cooldown(schedule_time):
     """
     Takes a string input from the schedule cooldown field and parses it to determine if it is in a proper format to be
@@ -597,41 +573,7 @@ def parse_schedule_cooldown(schedule_time):
     Returns a timestamp in seconds (to send to the SIM960 agent for scheduling), a datetime object (for reporting to
     flask page), and time until the desired cold time in seconds (to check for it being allowable)
     """
-    t = schedule_time.split(" ")
-    now = datetime.datetime.now()
-    year = now.year
-    month = now.month
-    day = now.day
-    if len(t) == 2:
-        sked_type = 'date'
-    else:
-        sked_type = 'time'
-    if sked_type == 'date':
-        d = t[0].split('/')
-        print(d, len(d))
-        month = int(d[0])
-        day = int(d[1])
-        print(month, day)
-        if len(d) == 2:
-            year = now.year
-        elif (len(d[2]) == 2) and (d[2][0:2] != 20):
-            year = int('20'+d[2])
-        else:
-            year = int(d[2])
-        tval = t[1].split(":")
-        hr = int(tval[0])
-        minute = int(tval[1])
-        print(f"year: {year}, month: {month}, day: {day}")
-    else:
-        tval = t[0].split(":")
-        hr = int(tval[0])
-        minute = int(tval[1])
-
-    be_cold_at = datetime.datetime(year, month, day, hr, minute)
-    tdelta = (be_cold_at - datetime.datetime.now()).total_seconds()
-    ts = be_cold_at.timestamp()
-    return ts, be_cold_at, tdelta
-
+    pass
 
 def handle_validation(req, submission=False):
     id = req.form.get('id')
@@ -692,6 +634,7 @@ def notifications():
     notifications = current_user.notifications.filter(
         Notification.timestamp > since).order_by(Notification.timestamp.asc())
     return jsonify([{'name': n.name, 'data': n.get_data(), 'timestamp': n.timestamp} for n in notifications])
+
 
 # ----- v Below == Cloudlight Stuff v -----
 
@@ -810,38 +753,6 @@ def notifications():
 #     return bad_request('control failed')
 #
 #
-# # Controls need to be named with their redis key
-# @bp.route('/plotdata', methods=['GET'])
-# @login_required
-# def plotdata():
-#
-#     # @copy_current_request_context
-#     def _stream():
-#         since = None
-#         import cloudlight.cloudredis as clr
-#         r = clr.setup_redis(use_schema=False, module=False)
-#         while True:
-#             kind = 'full' if since is None else 'partial'
-#             start = datetime.datetime.now() - timedelta(days=.5) if not since else since
-#             times, vals = list(zip(*r.range('temp:value_avg120000', start=start)))
-#             timescpu, valscpu = list(zip(*r.range('temp:cpu:value_avg120000', start=start)))
-#             # since = times[-1]
-#             times = np.array(times, dtype='datetime64[ms]')
-#             timescpu = np.array(timescpu, dtype='datetime64[ms]')
-#             if kind == 'full':
-#                 fig = go.Figure()
-#                 fig.add_trace(go.Scatter(x=times, y=vals, mode='lines', name='Internal'))
-#                 fig.add_trace(go.Scatter(x=timescpu, y=valscpu, mode='lines', name='CPU'))
-#                 fig.update_layout(title='Cloud Temps', xaxis_title='Time', yaxis_title='\N{DEGREE SIGN}F')
-#                 figdata = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-#             else:
-#                 figdata = {'x': times, 'y': vals}
-#
-#             data = {'id': f'temp-plot', 'kind': kind, 'data': figdata}
-#             yield f"event:plot\nretry:5\ndata: {json.dumps(data)}\n\n"
-#             time.sleep(15)
-#
-#     return current_app.response_class(_stream(), mimetype="text/event-stream")
 #
 #
 # # Controls need to be named with their redis key
@@ -873,74 +784,6 @@ def notifications():
 #     return jsonify(g.redis.read(schema_keys()))
 #
 #
-# @bp.route('/system', methods=['POST'])
-# @login_required
-# def system():
-#     """data: shutdown|reboot|reinit """
-#     cmd = request.form.get('data', '')
-#     if cmd in ('shutdown', 'reboot'):
-#         subprocess.Popen(['/home/pi/.local/bin/cloud-service-control', cmd])
-#         flash(f'System going offline for {cmd}')
-#         return jsonify({'success': True})
-#     elif cmd == 'reinit':
-#         import cloudlight.cloudredis as clr
-#         clr.setup_redis(module=False, clear=True, use_schema=True)
-#         return jsonify({'success': True})
-#     else:
-#         return bad_request('Invalid shutdown command')
-#
-#
-# @bp.route('/task', methods=['GET', 'POST'])
-# @login_required
-# def task():
-#     if request.method == 'POST':
-#         id = request.form.get('id')
-#         if id != 'email-logs':
-#             return bad_request('Unknown task')
-#         try:
-#             job = Job.fetch(id, connection=g.redis.redis)
-#             if job.is_failed or job.is_finished:
-#                 job.delete()
-#                 job = None
-#         except NoSuchJobError:
-#             job = None
-#         if job:
-#             flash(_(f'Task "{id} is currently pending'))
-#             return bad_request(f'Task "{id}" in progress')
-#         else:
-#             current_app.task_queue.enqueue(f"cloudlight.cloudflask.app.tasks.{id.replace('-', '_')}", job_id=id)
-#             return jsonify({'success': True})
-#
-#     else:
-#         id = request.args.get('id', '')
-#         if not id:
-#             return bad_request('Task id required')
-#         try:
-#             job = Job.fetch(id, connection=g.redis.redis)
-#         except NoSuchJobError:
-#             return bad_request('Unknown task')
-#         status = job.get_status()
-#         return jsonify({'done': status == 'finished', 'error': status != 'finished',
-#                         'progress': job.meta.get('progress', 0)})
-#
-#
-# @bp.route('/service', methods=['POST', 'GET'])
-# @login_required
-# def service():
-#     """start, stop, enable, disable, restart"""
-#     name = request.args.get('name', '')
-#     try:
-#         service = cloudlight_service(name)
-#     except ValueError:
-#         return bad_request(f'Service "{name}" does not exist.')
-#     if request.method == 'POST':
-#         service.control(request.form['data'])
-#         # flash('Executing... updating in 5')
-#         return jsonify({'success': True})
-#     else:
-#         return jsonify(service.status_dict())
-#
-#
 # @bp.route('/status')
 # @login_required
 # def status():
@@ -963,7 +806,6 @@ def notifications():
 #
 #     return render_template('status.html', title=_('Status'), table=table, tempfig=fig, system_stat=system)
 #
-#
 # #TODO add critical temp? todo make sliders responsive
 # @bp.route('/settings', methods=['GET', 'POST'])
 # @login_required
@@ -978,34 +820,9 @@ def notifications():
 #     return render_template('settings.html', title=_('Settings'), form=f)
 #
 #
-# @bp.route('/off', methods=['POST'])
-# @login_required
-# def off():
-#     g.redis.store('lamp:mode', 'off')
-#     canceled = 'sleep_timer' in current_app.scheduler
-#     current_app.scheduler.cancel('sleep_timer')
-#     if canceled:
-#         flash('Sleep timer canceled.')
-#     return jsonify({'success': True})
-#
-#
 # @bp.route('/help')
 # def help():
 #     return render_template('help.html', title=_('Help'))
-#
-#
-# @bp.route('/services')
-# @login_required
-# def services():
-#     from cloudlight.util import get_services as cloudlight_services
-#     services = cloudlight_services()
-#     try:
-#         job = Job.fetch('email-logs', connection=g.redis.redis)
-#         exporting = job.get_status() in ('queued', 'started', 'deferred', 'scheduled')
-#     except NoSuchJobError:
-#         exporting = False
-#     return render_template('services.html', title=_('Services'), services=services.values(), exporting=exporting)
-#
 #
 # @bp.route('/pihole')
 # def pihole():
