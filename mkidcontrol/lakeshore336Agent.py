@@ -37,8 +37,8 @@ SETTING_KEYS = tuple(COMMANDS336.keys())
 
 DEVICE = '/dev/ls336'
 
-TEMP_KEYS = ['status:temps:1k-stage:temp', 'status:temps:3k-stage:temp', 'status:temps:50k-stage:temp']
-SENSOR_VALUE_KEYS = ['status:temps:1k-stage:resistance', 'status:temps:3k-stage:voltage', 'status:temps:50k-stage:voltage']
+TEMP_KEYS = ['status:temps:3k-stage:temp', 'status:temps:50k-stage:temp']
+SENSOR_VALUE_KEYS = ['status:temps:3k-stage:voltage', 'status:temps:50k-stage:voltage']
 
 TS_KEYS = TEMP_KEYS + SENSOR_VALUE_KEYS
 
@@ -90,7 +90,7 @@ def initializer(device):
 def callback(tvals, svals):
     vals = tvals + svals
     keys = TEMP_KEYS + SENSOR_VALUE_KEYS
-    d = {k: x for k, x in zip(keys, vals) if x}
+    d = {k: x for k, x in zip(keys, vals)}
     try:
         if all(i is None for i in vals):
             redis.store({STATUS_KEY: "Error"})

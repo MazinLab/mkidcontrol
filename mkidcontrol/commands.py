@@ -224,7 +224,7 @@ def load_tvals(curve):
 
 
 # ---- Lake Shore 336 Commands ----
-ENABLED_336_CHANNELS = ('B', 'C', 'D')
+ENABLED_336_CHANNELS = ('C', 'D')
 ALLOWED_336_CHANNELS = ("A", "B", "C", "D")
 
 from lakeshore import Model336InputSensorType, Model336InputSensorUnits, \
@@ -277,7 +277,7 @@ COMMANDS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command':
 
 
 # ---- Lake Shore 372 Commands ----
-ENABLED_372_INPUT_CHANNELS = ("A")
+ENABLED_372_INPUT_CHANNELS = ("A", "1")
 ALLOWED_372_INPUT_CHANNELS = ("A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16")
 ENABLED_372_OUTPUT_CHANNELS = (0, )
 ALLOWED_372_OUTPUT_CHANNELS = (0, 1, 2)

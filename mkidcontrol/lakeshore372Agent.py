@@ -30,15 +30,16 @@ import mkidcontrol.mkidredis as redis
 
 log = logging.getLogger()
 
-TEMPERATURE_KEY = 'status:temps:device-stage:temp'
-RESISTANCE_KEY = 'status:temps:device-stage:resistance'
-EXCITATION_POWER_KEY = 'status:temps:device-stage:excitation-power'
+TEMPERATURE_KEYS = ['status:temps:device-stage:temp', 'status:temps:1k-stage:temp']
+RESISTANCE_KEYS = ['status:temps:device-stage:resistance', 'status:temps:1k-stage:resistance']
+EXCITATION_POWER_KEYS = ['status:temps:device-stage:excitation-power', 'status:temps:1k-stage:excitation-power']
+
 
 OUTPUT_VOLTAGE_KEY = 'status:device:ls372:output-voltage'
 
 REGULATION_TEMP_KEY = "device-settings:mkidarray:regulating-temp"
 
-TS_KEYS = (TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY)
+TS_KEYS = TEMPERATURE_KEYS + RESISTANCE_KEYS + EXCITATION_POWER_KEYS + list(OUTPUT_VOLTAGE_KEY)
 
 STATUS_KEY = 'status:device:ls372:status'
 FIRMWARE_KEY = "status:device:ls372:firmware"
@@ -109,10 +110,13 @@ def initializer(device):
         log.warning('Storing device settings to redis failed')
 
 
-def callback(temp, res, ex, ov):
-    d = {k: x for k, x in zip((TEMPERATURE_KEY, RESISTANCE_KEY, EXCITATION_POWER_KEY, OUTPUT_VOLTAGE_KEY), (temp, res, ex, ov))}
+def callback(temps, ress, exs, ov):
+    vals = temps + ress + exs + [ov]
+    keys = TEMPERATURE_KEYS + RESISTANCE_KEYS + EXCITATION_POWER_KEYS + [OUTPUT_VOLTAGE_KEY]
+
+    d = {k: x for k, x in zip(keys, vals)}
     try:
-        if all(i is None for i in [temp, res, ex, ov]):
+        if all(i is None for i in vals):
             redis.store({STATUS_KEY: "Error"})
         else:
             redis.store(d, timeseries=True)
