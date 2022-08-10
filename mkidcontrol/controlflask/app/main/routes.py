@@ -409,7 +409,7 @@ def listener():
     listener is a function that implements the python (server) side of a server sent event (SSE) communication protocol
     where data can be streamed directly to the flask app.
     """
-    def stream():
+    def _stream():
         while True:
             time.sleep(.75)
             x = redis.read(KEYS)
@@ -429,7 +429,7 @@ def listener():
             x = json.dumps(x)
             msg = f"retry:5\ndata: {x}\n\n"
             yield msg
-    return current_app.response_class(stream(), mimetype='text/event-stream', content_type='text/event-stream')
+    return current_app.response_class(_stream(), mimetype='text/event-stream', content_type='text/event-stream')
 
 
 @bp.route('/journalctl_streamer/<service>')
