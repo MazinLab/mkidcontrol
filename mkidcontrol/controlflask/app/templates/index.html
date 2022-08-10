@@ -113,6 +113,7 @@
         var lightcurve_init = {{ pix_lightcurve | safe }};
         Plotly.react('pixel_lightcurve', lightcurve_init)
 
+        var rediskeys = {{ sensorkeys | safe }};
         var pixel = [-1, -1];
         var array_update_time;
 
@@ -138,22 +139,6 @@
         }, false);
         psource.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
         psource.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
-
-        function update_index_page() {
-            var source = new EventSource("/listener");
-            source.addEventListener("message", function (e) {
-                var newdata = JSON.parse(e.data);
-
-                var j;
-                var k = {{ sensorkeys | safe }};
-                for (j=0; j<k.length; j++) {
-                    update_plot("indexplot", k[j], newdata, j);
-                }
-            }, false);
-            source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
-            source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
-        }
-        update_index_page()
 
         function delete_pixel_lightcurve_trace(){
             pixel = [-1, -1]
@@ -181,6 +166,17 @@
                     }
                 })
         })
+
+        var source = new EventSource("/listener");
+        source.addEventListener("message", function (e) {
+            var newdata = JSON.parse(e.data);
+
+            for (let j=0; j<rediskeys.length; j++) {
+                update_plot("indexplot", k[j], newdata, j);
+            }
+        }, false);
+        source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
+        source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
 
     </script>
 
