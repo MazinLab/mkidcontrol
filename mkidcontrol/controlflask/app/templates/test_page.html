@@ -6,13 +6,15 @@
     <div class="container-fluid">
         <div class="row">
             <main role="main" class="col-12">
-                {% for ch, f in forms %}
-                    <div class="d-flex justify-content-center flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom" style="margin-left:20%; margin-right:20%; margin-top:5%">
-                        Channel {{ ch }}
-                        {{ render_form(f) }}
-                    </div>
-                {% endfor %}
+                <div class="flex-column flex-wrap flex-md-nowrap py-2 mb-3">
+                    <div id="indexplot_test"></div>
+                </div>
             </main>
         </div>
     </div>
+
+    <script>
+        var testplot = {{ sensorfig | safe }};
+        Plotly.react('indexplot_test', testplot)
+    </script>
 {% endblock %}

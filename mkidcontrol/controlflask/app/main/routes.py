@@ -49,14 +49,14 @@ from .forms import *
 
 
 CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
-              '1k Stage T': 'status:temps:1k-stage:temp',
-              '3k Stage T': 'status:temps:3k-stage:temp',
-              '50k Stage T': 'status:temps:50k-stage:temp',
-              'Magnet I': 'status:magnet:current',
-              '50k Stage V': 'status:temps:50k-stage:voltage',
-              '3k Stage V': 'status:temps:3k-stage:voltage',
-              '1k Stage R': 'status:temps:1k-stage:resistance',
               'Device R': 'status:temps:device-stage:resistance',
+              '1k Stage T': 'status:temps:1k-stage:temp',
+              '1k Stage R': 'status:temps:1k-stage:resistance',
+              '3k Stage T': 'status:temps:3k-stage:temp',
+              '3k Stage V': 'status:temps:3k-stage:voltage',
+              '50k Stage T': 'status:temps:50k-stage:temp',
+              '50k Stage V': 'status:temps:50k-stage:voltage',
+              'Magnet I': 'status:magnet:current',
               'Magnet Field': 'status:magnet:field',
               'LS625 Output V': 'status:device:ls625:output-voltage'}
 
@@ -134,13 +134,14 @@ def index():
     if request.method == 'POST':
         print(request.form)
 
-    d,l,c = initialize_sensors_plot(CHART_KEYS.keys())
-    dd, dl, dc = view_array_data()
+    sensor_fig = multi_sensor_fig(CHART_KEYS.keys())
+    array_fig = view_array_data()
+    pix_lightcurve = pixel_lightcurve()
 
     return render_template('index.html', magnetform=magnetform, schedule=schedule,
                            hsform=hsform, obsform=obsform, form=form,
-                           d=d, l=l, c=c,
-                           dd=dd, dl=dl, dc=dc,
+                           sensor_fig=sensor_fig, array_fig=array_fig,
+                           pix_lightcurve=pix_lightcurve,
                            sensorkeys=list(CHART_KEYS.values()))
 
 
@@ -151,15 +152,17 @@ def other_plots():
     which only has one at a time).
     # TODO
     """
-    print('going to other plots page!')
+
     form = FlaskForm()
 
     plots = [create_fig(title) for title in CHART_KEYS.keys()]
 
-    ids = ['device_t', 'onek_t', 'threek_t', 'fiftyk_t', 'magnet_i',
-           'device_r', 'onek_r', 'threek_v', 'fiftyk_v', 'magnet_f',
+    ids = ['device_t', 'device_r',
+           'onek_t', 'onek_r',
+           'threek_t', 'threek_v',
+           'fiftyk_t', 'fiftyk_v',
+           'magnet_i', 'magnet_f',
            'ls625_ov']
-
 
     return render_template('other_plots.html', title=_('Other Plots'), form=form, plots=plots, ids=ids)
 
@@ -385,7 +388,9 @@ def system():
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
     form = FlaskForm()
-    return render_template('test_page.html', title=_('Test Page'), form=form)
+    sensorfig = multi_sensor_fig(CHART_KEYS.keys())
+
+    return render_template('test_page.html', title=_('Test Page'), form=form, sensorfig=sensorfig)
 
 
 @bp.route('/404', methods=['GET', 'POST'])
@@ -398,23 +403,6 @@ def redis_error_page():
     return render_template('/errors/6379.html'), 412
 
 # ----------------------------------- Helper Functions Below -----------------------------------
-@bp.route('/dashlistener', methods=["GET"])
-def dashlistener():
-    """
-    listener is a function that implements the python (server) side of a server sent event (SSE) communication protocol
-    where data can be streamed directly to the flask app.
-    """
-    def stream():
-        while True:
-            time.sleep(.5)
-            d, _, _ = view_array_data()
-            t = time.time()
-            mes = json.dumps({'data':d, 'time':datetime.datetime.fromtimestamp(t).strftime("%H:%M:%S.%f")[:-4]})
-            msg = f"retry:5\ndata: {mes}\n\n"
-            yield msg
-    return Response(stream(), mimetype='text/event-stream', content_type='text/event-stream')
-
-
 @bp.route('/listener', methods=["GET"])
 def listener():
     """
@@ -463,6 +451,26 @@ def journalctl_streamer(service):
     return Response(st(args), mimetype='text/event-stream', content_type='text/event-stream')
 
 
+@bp.route('/pixel_lightcurve', methods=["POST"])
+def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
+
+    if request.method == "POST":
+        init = bool(int(request.form.get("init")))
+        time = request.form.get("time")
+        cts = float(request.form.get("cts"))
+        pix_x = int(request.form.get("pix_x"))
+        pix_y = int(request.form.get("pix_y"))
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[time], y=[cts], mode='lines'))
+    if init:
+        fig.update_layout(title=f"Pixel Not Selected")
+    else:
+        fig.update_layout(title=f"Pixel ({pix_x}, {pix_y})")
+    fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    return fig
+
+
 def create_fig(name):
     since = None
     first_tval = int((datetime.datetime.now() - timedelta(hours=0.5)).timestamp() * 1000) if not since else since
@@ -480,12 +488,12 @@ def create_fig(name):
     return fig
 
 
-def initialize_sensors_plot(titles):
-    # TODO: Clean up, modularize, optimize
-    last_tval = time.time()
-    first_tval = int((last_tval - 1800) * 1000)
-    keys = [CHART_KEYS[i] for i in titles]
-    timestreams = [np.array(redis.mkr_range(key, f"{first_tval}", "+")) for key in keys]
+def multi_sensor_fig(titles):
+    since = None
+    first_tval = int((datetime.datetime.now() - timedelta(hours=0.5)).timestamp() * 1000) if not since else since
+    keys = [CHART_KEYS[title] for title in titles]
+
+    timestreams = [np.array(redis.mkr_range(key, f"{first_tval}")) for key in keys]
     times = []
     for ts in timestreams:
         if ts[0][0] is not None:
@@ -500,18 +508,18 @@ def initialize_sensors_plot(titles):
         visible[n] = True
         t_dict = dict(label=str(t),
                       method='update',
-                      args=[{'visible': visible}])#, {'title': t}])
+                      args=[{'visible': visible}])
         update_menus.append(t_dict)
 
-    plot_data = [{'x': i, 'y': j, 'name': t, 'mode': 'lines', 'visible': False} for i, j, t in
-                 zip(times, vals, titles)]
-    plot_data[0]['visible'] = True
-    plot_layout = dict(updatemenus=list([dict(buttons=update_menus, x=0.01, xanchor='left', y=1.1, yanchor='top')]))
-    plot_config = {'responsive': True}
-    d = json.dumps(plot_data, cls=plotly.utils.PlotlyJSONEncoder)
-    l = json.dumps(plot_layout, cls=plotly.utils.PlotlyJSONEncoder)
-    c = json.dumps(plot_config, cls=plotly.utils.PlotlyJSONEncoder)
-    return d, l, c
+    fig = go.Figure()
+    for count, data in enumerate(zip(times, vals, titles)):
+        if count == 0:
+            fig.add_trace(go.Scatter(x=data[0], y=data[1], mode='lines', name=data[2], visible=True))
+        else:
+            fig.add_trace(go.Scatter(x=data[0], y=data[1], mode='lines', name=data[2], visible=False))
+    fig.update_layout(dict(updatemenus=list([dict(buttons=update_menus, x=0.01, xanchor='left', y=1.1, yanchor='top')])))
+    fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    return fig
 
 
 def view_array_data():
@@ -519,51 +527,30 @@ def view_array_data():
     Placeholding function to grab a frame from a (hard-coded, previously made) temporal drizzle to display as the
     'device view' on the homepage of the flask application.
     """
-    frame_to_use = 100
-    # x = DASHDATA[frame_to_use][100:170, 100:170]
     x = np.zeros((125, 80))
     noise = 25 * np.random.randn(125, 80)
     y = x + noise
-    z = [{'z': y.tolist(), 'type': 'heatmap', 'showscale':False}]
-    plot_layout = {}
-    plot_config = {'responsive': True}
-    d = json.dumps(z, cls=plotly.utils.PlotlyJSONEncoder)
-    l = json.dumps(plot_layout, cls=plotly.utils.PlotlyJSONEncoder)
-    c = json.dumps(plot_config, cls=plotly.utils.PlotlyJSONEncoder)
-    return d, l, c
+    fig = go.Figure()
+    fig.add_heatmap(z=y.tolist(), showscale=False)
+    fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    return fig
 
 
-# Controls need to be named with their redis key
-@bp.route('/plotdata', methods=['GET'])
-@login_required
-def plotdata():
-
-    # @copy_current_request_context
+@bp.route('/dashplot', methods=["GET"])
+# @login_required
+def dashplot():
+    """
+    TODO: Update appropriately following 'plot_data()' function from cloudflask
+    """
     def _stream():
-        since = None
         while True:
-            kind = 'full' if since is None else 'partial'
-            start = datetime.datetime.now() - timedelta(hours=1) if not since else since
-            times, vals = list(zip(*r.range('temp:value_avg120000', start=start)))
-            timescpu, valscpu = list(zip(*r.range('temp:cpu:value_avg120000', start=start)))
-            # since = times[-1]
-            times = np.array(times, dtype='datetime64[ms]')
-            timescpu = np.array(timescpu, dtype='datetime64[ms]')
-            if kind == 'full':
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=times, y=vals, mode='lines', name='Internal'))
-                fig.add_trace(go.Scatter(x=timescpu, y=valscpu, mode='lines', name='CPU'))
-                fig.update_layout(title='Cloud Temps', xaxis_title='Time', yaxis_title='\N{DEGREE SIGN}F')
-                figdata = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-            else:
-                figdata = {'x': times, 'y': vals}
+            figdata = view_array_data()
+            t = time.time()
+            data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%H:%M:%S.%f")[:-4]}
+            yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
+            time.sleep(1) # TODO
 
-            data = {'id': f'temp-plot', 'kind': kind, 'data': figdata}
-            yield f"event:plot\nretry:5\ndata: {json.dumps(data)}\n\n"
-            time.sleep(15)
-
-    return current_app.response_class(_stream(), mimetype="text/event-stream")
-
+    return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
 
 def parse_schedule_cooldown(schedule_time):

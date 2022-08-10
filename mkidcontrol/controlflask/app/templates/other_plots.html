@@ -60,25 +60,17 @@
         var plots = {{ plots | safe }};
         var ids = {{ ids | safe }};
 
-        console.log(plots);
-        console.log(ids);
-
-        for (let i = 0; i < ids.length; i++) {
-            console.log(i, ids[i]);
-            Plotly.newPlot(ids[i], plots[i]);
-        }
-
-        // Plotly.newPlot('device_t', {{ plots[0] | safe }}) //, {{ devT | safe }})
-        // Plotly.newPlot('onek_t', {{ plots[1] | safe }}) //, {{ onekT | safe }}})
-        // Plotly.newPlot('threek_t', {{ plots[2] | safe }}) //, {{ threekT | safe }}})
-        // Plotly.newPlot('fiftyk_t', {{ plots[3] | safe }}) //, {{ fiftykT | safe }}})
-        // Plotly.newPlot('magnet_i', {{ plots[4] | safe }}) //, {{ magI | safe }})
-        // Plotly.newPlot('device_r', {{ plots[5] | safe }}) //, {{ devR | safe }})
-        // Plotly.newPlot('onek_r', {{ plots[6] | safe }}) //, {{ onekR | safe }})
-        // Plotly.newPlot('threek_v', {{ plots[7] | safe }}) //, {{ threekV | safe }})
-        // Plotly.newPlot('fiftyk_v', {{ plots[8] | safe }}) //, {{ fiftykV | safe }})
-        // Plotly.newPlot('magnet_f', {{ plots[9] | safe }}) //, {{ magF | safe }})
-        // Plotly.newPlot('ls625_ov', {{ plots[10] | safe }}) //, {{ ls625ov | safe }})
+        Plotly.newPlot('device_t', {{ plots[0] | safe }}) //, {{ devT | safe }})
+        Plotly.newPlot('device_r', {{ plots[1] | safe }}) //, {{ devR | safe }})
+        Plotly.newPlot('onek_t', {{ plots[2] | safe }}) //, {{ onekT | safe }}})
+        Plotly.newPlot('onek_r', {{ plots[3] | safe }}) //, {{ onekR | safe }})
+        Plotly.newPlot('threek_t', {{ plots[4] | safe }}) //, {{ threekT | safe }}})
+        Plotly.newPlot('threek_v', {{ plots[5] | safe }}) //, {{ threekV | safe }})
+        Plotly.newPlot('fiftyk_t', {{ plots[6] | safe }}) //, {{ fiftykT | safe }}})
+        Plotly.newPlot('fiftyk_v', {{ plots[7] | safe }}) //, {{ fiftykV | safe }})
+        Plotly.newPlot('magnet_i', {{ plots[8] | safe }}) //, {{ magI | safe }})
+        Plotly.newPlot('magnet_f', {{ plots[9] | safe }}) //, {{ magF | safe }})
+        Plotly.newPlot('ls625_ov', {{ plots[10] | safe }}) //, {{ ls625ov | safe }})
 
 
         function update_plots() {

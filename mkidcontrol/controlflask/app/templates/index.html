@@ -83,7 +83,7 @@
                 <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
                     <div class="flex-column col-6">
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-2 mb-3">
-                            <h4>Device Plots!</h4>
+                            <h4>Sensor Plots</h4>
                         </div>
                         <div class="flex-column flex-wrap flex-md-nowrap py-2 mb-3">
                             <div id="indexplot"></div>
@@ -104,9 +104,40 @@
     </div>
 
     <script>
-        Plotly.react('dash', {{ dd | safe}}, {{ dl | safe }}, {{ dc | safe}})
-        Plotly.newPlot('indexplot', {{ d | safe }}, {{ l | safe }}, {{ c | safe}})
-        initialize_lightcurve()
+        var sensorfig = {{ sensor_fig | safe }};
+        Plotly.react('indexplot', sensorfig)
+
+        var arrayfig = {{ array_fig | safe }};
+        Plotly.react('dash', arrayfig)
+
+        var lightcurve_init = {{ pix_lightcurve | safe }};
+        Plotly.react('pixel_lightcurve', lightcurve_init)
+
+        var pixel = [-1, -1];
+        var array_update_time;
+
+        var psource = new EventSource('{{ url_for("main.dashplot") }}');
+        psource.addEventListener("dashplot", function (event) {
+            var update = JSON.parse(event.data);
+            var elem = document.getElementById(update['id']);
+            var data = JSON.parse(update['data']);
+            array_update_time = update['time'];
+            if (elem) {
+                switch (update['kind']) {
+                    case "full":
+                        Plotly.react(update['id'], data);
+                        break;
+                    case "partial":
+                        Plotly.extendTraces(update['id'], {z: [data.data[0]['z']]});
+                        break;
+                }
+            }
+            if (pixel[0] != -1 && pixel[1] != -1) {
+                Plotly.extendTraces('pixel_lightcurve', {x:[[update['time']]], y:[[data.data[0]['z'][pixel[1]][pixel[0]]]]}, [0])
+            }
+        }, false);
+        psource.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
+        psource.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
 
         function update_index_page() {
             var source = new EventSource("/listener");
@@ -119,63 +150,36 @@
                     update_plot("indexplot", k[j], newdata, j);
                 }
             }, false);
-            source.addEventListener("open", function (e) {
-                console.log('Connection was opened: ', e);
-            }, false);
-            source.addEventListener("error", function (e) {
-                console.log("Connection errored out: ", e);
-            }, false);
+            source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
+            source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
         }
         update_index_page()
-
-        var pixel;
-        var array_update_time;
-        function update_array_viewer() {
-            pixel = [-1, -1];
-            var source = new EventSource("/dashlistener");
-            source.addEventListener("message", function (e) {
-                var newdata = JSON.parse(e.data);
-                var array_data = JSON.parse(newdata['data'])
-                Plotly.react('dash', array_data, {{ dl | safe }})
-                console.log(pixel)
-
-                array_update_time = newdata['time'];
-                if (pixel[0] != -1 && pixel[1] != -1) {
-                    Plotly.extendTraces('pixel_lightcurve', {x:[[array_update_time]], y:[[array_data[0].z[pixel[1]][pixel[0]]]]}, [0])
-                }
-            }, false);
-            source.addEventListener("open", function (e) {
-                console.log('Connection was opened: ', e);
-            }, false);
-            source.addEventListener("error", function (e) {
-                console.log("Connection errored out: ", e);
-            }, false);
-        }
-        update_array_viewer()
-
-        var myPlot = document.getElementById('dash');
 
         function delete_pixel_lightcurve_trace(){
             pixel = [-1, -1]
             Plotly.deleteTraces('pixel_lightcurve', 0);
-            initialize_lightcurve()
+            Plotly.react('pixel_lightcurve', lightcurve_init)
         };
 
-        function initialize_lightcurve(time=0, cts=0, p=[-1,-1]){
-            if (p[0] != -1) {
-                Plotly.newPlot('pixel_lightcurve', [{x:[time], y:[cts], type:'scatter'}], {title:"Pixel ("+p[0]+", "+p[1]+") Light Curve"}, {'responsive': true})
-            }
-            else {
-                Plotly.newPlot('pixel_lightcurve', [{x:[time], y:[cts], type:'scatter'}], {title:"Pixel Light Curve"}, {'responsive': true})
-            }
-
-        };
-
+        var myPlot = document.getElementById('dash');
         myPlot.on('plotly_click', function(data){
             delete_pixel_lightcurve_trace()
             console.log("value at ("+data.points[0].x+", "+data.points[0].y+") is "+Number(data.points[0].z).toFixed(2)+" cts/s")
             pixel = [data.points[0].x, data.points[0].y]
-            initialize_lightcurve(array_update_time, Number(data.points[0].z).toFixed(2), pixel);
+            $.ajax({
+                    type:'POST',
+                    url:"{{ url_for('main.pixel_lightcurve') }}",
+                    data: {
+                        init: 0,
+                        time: array_update_time,
+                        cts: Number(data.points[0].z).toFixed(2),
+                        pix_x: data.points[0].x,
+                        pix_y: data.points[0].y
+                    },
+                    success:function(d){
+                        Plotly.react('pixel_lightcurve', JSON.parse(d))
+                    }
+                })
         })
 
     </script>
