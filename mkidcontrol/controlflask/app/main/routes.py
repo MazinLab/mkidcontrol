@@ -114,8 +114,9 @@ def index():
     Processes requests from the magnet cycle form (start/abort/cancel/schedule cooldown) and magnet form (ramp rates/
     soak settings) and publishes them to be interpreted by the necessary agents.
     Initializes sensor plot data to send for plotting.
+    TODO: Make robust to redis not being up and running
+    TODO: Handle 'post' requests
     """
-    # TODO: Make robust to redis not being up and running
     try:
         redis.read(KEYS)
     except RedisError:
@@ -150,7 +151,6 @@ def other_plots():
     """
     Flask endpoint for 'other plots'. This page has ALL sensor plots in one place for convenience (in contrast to index,
     which only has one at a time).
-    # TODO
     """
 
     form = FlaskForm()
@@ -177,7 +177,6 @@ def settings():
     if request.method == 'POST':
         return handle_validation(request, submission=True)
 
-
     return render_template('settings.html', title=_('Settings'))
 
 
@@ -185,6 +184,7 @@ def settings():
 def log_viewer():
     """
     Flask endpoint for log viewer. This page is solely for observing the journalctl output from each agent.
+    # TODO: Update html
     """
     form = FlaskForm()
     return render_template('log_viewer.html', title=_('Log Viewer'), form=form)
