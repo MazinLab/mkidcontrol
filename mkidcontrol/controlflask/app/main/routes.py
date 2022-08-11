@@ -195,7 +195,6 @@ def heater(device, channel):
     from ....commands import LakeShoreCommand
 
     if request.method == 'POST':
-        print(f"Form: {request.form}")
         for key in request.form.keys():
             print(f"{key} : {request.form.get(key)}")
             try:
