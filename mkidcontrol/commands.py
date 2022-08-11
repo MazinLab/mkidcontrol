@@ -86,7 +86,7 @@ class LakeShoreCommand:
         if schema_key not in COMMAND_DICT.keys():
             raise ValueError(f'Unknown command: {schema_key}')
 
-        if schema_key[-5:] == 'limit' and limit_vals:
+        if schema_key[-5:] == 'limit' and not limit_vals:
             raise ValueError(f"Cannot handle command for {schema_key} without the existing limit values")
 
         self.range = None
