@@ -56,9 +56,9 @@
 
 
     <script>
-        var plots = {{ plots | safe }};
-        var ids = {{ ids | safe }};
-        var rediskeys = {{ sensorkeys | safe }};
+        var plots = {{ plots | safe }}
+        var ids = {{ ids | safe }}
+        var rediskeys = {{ sensorkeys | safe }}
 
         for (let i = 0; i < ids.length; i++) {
             console.log(i, ids[i]);
