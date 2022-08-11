@@ -14,6 +14,9 @@ switch too tightly.
 
 Note: Documentation for zaber python library exists at https://www.zaber.com/software/docs/motion-library/
 Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdf
+
+TODO: Clean up
+TODO: Test hysteresis
 """
 
 import sys
@@ -128,6 +131,10 @@ class HeatswitchMotor:
         # Initializes the heatswitch to
         self._initialize_position()
 
+        self.hs.generic_command(CommandCode.SET_TARGET_SPEED, DEFAULT_MAX_VELOCITY)
+        self.hs.generic_command(CommandCode.SET_RUNNING_CURRENT, DEFAULT_RUNNING_CURRENT)
+        self.hs.generic_command(CommandCode.SET_ACCELERATION, DEFAULT_ACCELERATION)
+
         self.running_current = self.hs.settings.get(BinarySettings.RUNNING_CURRENT)
         self.acceleration = self.hs.settings.get(BinarySettings.ACCELERATION)
         self.max_position = min(self.hs.settings.get(BinarySettings.MAXIMUM_POSITION), FULL_CLOSE_POSITION)
@@ -184,6 +191,51 @@ class HeatswitchMotor:
                 return position
             except Exception as e:
                 log.debug(f"Error in querying heat switch motor. Attempt {i+1} of 5 failed. Trying again.")
+
+    def move_to(self, pos, error_on_disallowed=False):
+        """
+        TODO: Test and validate
+        :param pos:
+        :param error_on_disallowed:
+        :return:
+        """
+        last_pos = self.last_recorded_position
+        if (last_pos < self.min_position) or (last_pos > self.max_position):
+            if last_pos < self.min_position:
+                log.warning(f"Requested move to {last_pos} not allowed. Attempting to restrict to FULL_OPEN_POSITION: {self.min_position}")
+            elif last_pos > self.max_position:
+                log.warning(f"Requested move to {last_pos} not allowed. Attempting to restrict to FULL_CLOSE_POSITION: {self.max_position}")
+
+        if error_on_disallowed:
+            raise Exception(f"Move requested from {last_pos} to {pos} not allowed. Out of range")
+        else:
+            if (last_pos < self.min_position) or (last_pos > self.max_position):
+                if last_pos < self.min_position:
+                    log.warning(f"Restricting move to FULL_OPEN_POSITION: {self.min_position}. Cannot move to {pos}")
+                    pos = self.min_position
+                elif last_pos > self.max_position:
+                    log.warning(f"Restricting move to FULL_CLOSE_POSITION: {self.max_position}. Cannot move to {pos}")
+                    pos = self.max_position
+                try:
+                    log.info(f"Move requested to {pos} from {last_pos}")
+                    self.hs.move_absolute(pos)
+                    self.last_move = pos - last_pos
+                    self.last_recorded_position = pos
+                    log.info(f"Successfully moved to {self.last_recorded_position}")
+                except:
+                    log.error(f"Move failed!!")
+            else:
+                try:
+                    log.info(f"Move requested to {pos} from {last_pos}")
+                    self.hs.move_absolute(pos)
+                    self.last_move = pos - last_pos
+                    self.last_recorded_position = pos
+                    log.info(f"Successfully moved to {self.last_recorded_position}")
+                except:
+                    log.error(f"Move failed!!")
+
+        return self.last_recorded_position
+
 
     def move_by(self, dist, error_on_disallowed=False):
         """
@@ -352,11 +404,11 @@ class HeatswitchController(LockedMachine):
         self.start_main()
 
     def open_heatswitch(self, event):
-        new_pos = self.hs.move_by(-30000)
+        new_pos = self.hs.move_by(-100000)
         return new_pos
 
     def close_heatswitch(self, event):
-        new_pos = self.hs.move_by(30000)
+        new_pos = self.hs.move_by(100000)
         return new_pos
 
     def hs_is_opened(self, event):
