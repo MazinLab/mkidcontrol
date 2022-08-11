@@ -206,15 +206,16 @@ def heater(device, channel):
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
                 log.debug(f"Unrecognized field to send as command: {key}")
+            time.sleep(0.15)
 
     if device == "ls372":
-        from ....lakeshore372Agent import HeaterForm
+        from ....lakeshore372Agent import OutputHeaterForm, DisabledOutputHeaterForm
         from ....commands import LS372HeaterOutput, ALLOWED_372_OUTPUT_CHANNELS
         heater = LS372HeaterOutput(channel, redis)
 
         if channel == "0":
             title = "Sample Heater"
-            form = HeaterForm(**vars(heater))
+            form = OutputHeaterForm(**vars(heater))
         elif channel == "1":
             title = "Warm-Up Heater"
             return redirect(url_for('main.page_not_found'))
