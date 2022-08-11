@@ -249,6 +249,7 @@ def thermometry(device, channel):
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
                 log.debug(f"Unrecognized field to send as command: {key}")
+            time.sleep(.15)
 
     if device == 'ls336':
         from ....lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
@@ -279,8 +280,25 @@ def thermometry(device, channel):
 @bp.route('/ls625', methods=['POST', 'GET'])
 # @login_required
 def ls625():
-    form = FlaskForm()
-    return render_template('ls625.html', title=_("Magnet Power Supply Setup"), form=form)
+    from ....lakeshore625Agent import Lakeshore625ControlForm
+    from ....commands import LakeShoreCommand
+
+    if request.method == 'POST':
+        for key in request.form.keys():
+            print(f"{key} : {request.form.get(key)}")
+            try:
+                x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_','-')}", request.form.get(key))
+                log.info(f"Sending command:{x.setting}' -> {x.value} ")
+                redis.publish(f"command:{x.setting}", x.value)
+                log.info(f"Command sent successfully")
+            except ValueError as e:
+                log.warning(f"Value error: {e} in parsing commands")
+                log.debug(f"Unrecognized field to send as command: {key}")
+            time.sleep(0.15)
+
+    form = Lakeshore625ControlForm()
+
+    return render_template('ls625.html', title=_("Magnet Power Supply Control"), form=form)
 
 
 @bp.route('/heatswitch/<mode>', methods=['POST', 'GET'])

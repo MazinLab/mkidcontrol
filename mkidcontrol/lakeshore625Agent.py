@@ -80,6 +80,16 @@ from serial import SerialException
 
 class Lakeshore625ControlForm(FlaskForm):
     desired_current = FloatField("Desired Current", default=0, validators=[NumberRange(0, 9.4)])
+    magnetic_field_parameter = FloatField("Magnetic Field Parameter (kG/A)", default=4.0609, validators=[NumberRange(0, 10)])
+    ramp_rate = FloatField("Ramp Rate (A/s)", default=0.005, validators=[NumberRange(0, 0.020)])
+    compliance_voltage = FloatField("Compliance Voltage", default=2.5, validators=[NumberRange(0.1, 5.0)])
+    control_mode = SelectField("Control Mode", choices=["Internal", "External", "Sum"])
+    quench_ramp_rate = FloatField("Quench Ramp Rate (A/s)", default=0.020, validators=[NumberRange(0.01, 10)])
+    baud_rate = SelectField("Baud Rate", choices=["9600", "19200", "38400", "57600"], render_kw={'disabled': True})
+    current_limit = FloatField("Current Limit", default=9.4, validators=[NumberRange(0, 9.44)])
+    compliance_voltage_limit = FloatField("Comliance Voltage Limit", default=2.5, validators=[NumberRange(0.1, 5.0)])
+    rate_limit = FloatField("Ramp Rate Limit (A/s)", default=0.015, validators=[NumberRange(0, 0.050)])
+    update = SubmitField("Update")
 
 
 def firmware_pull(device):
