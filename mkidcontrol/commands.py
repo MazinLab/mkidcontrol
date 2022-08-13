@@ -390,6 +390,22 @@ COMMANDS372.update({f'device-settings:ls372:curve-{cu}:temperature-limit': {'com
 COMMANDS372.update({f'device-settings:ls372:curve-{cu}:coefficient': {'command': 'CRVHDR', 'vals': LS372_CURVE_COEFFICIENTS} for cu in np.arange(21, 60)})
 
 
+class LS625MagnetSettings:
+    def __init__(self, redis):
+        values = redis.read(redis.redis_keys('device-settings:ls625:*'))
+
+        self.baud_rate = values['device-settings:ls625:baud-rate']
+        self.current_limit = values['device-settings:ls625:current-limit']
+        self.compliance_voltage_limit = values['device-settings:ls625:compliance-voltage-limit']
+        self.rate_limit = values['device-settings:ls625:rate-limit']
+        self.magnetic_field_parameter = values['device-settings:ls625:magnetic-field-parameter']
+        self.quench_ramp_rate = values['device-settings:ls625:quench-ramp-rate']
+        self.ramp_rate = values['device-settings:ls625:ramp-rate']
+        self.desired_current = values['device-settings:ls625:desired-current']
+        self.compliance_voltage = values['device-settings:ls625:compliance-voltage']
+        self.control_mode = values['device-settings:ls625:control-mode']
+
+
 # ---- Lake Shore 625 Commands ----
 COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'9600': '0', '19200': '1',
                                                                                '38400': '2', '57600': '3'}},

@@ -281,7 +281,7 @@ def thermometry(device, channel):
 # @login_required
 def ls625():
     from ....lakeshore625Agent import Lakeshore625ControlForm
-    from ....commands import LakeShoreCommand
+    from ....commands import LakeShoreCommand, LS625MagnetSettings
 
     if request.method == 'POST':
         for key in request.form.keys():
@@ -296,7 +296,8 @@ def ls625():
                 log.debug(f"Unrecognized field to send as command: {key}")
             time.sleep(0.15)
 
-    form = Lakeshore625ControlForm()
+    ls625settings = LS625MagnetSettings(redis)
+    form = Lakeshore625ControlForm(**vars(ls625settings))
 
     return render_template('ls625.html', title=_("Magnet Power Supply Control"), form=form)
 
