@@ -17,6 +17,7 @@ Command syntax exists at (lower level comms): https://www.zaber.com/documents/Za
 
 TODO: Clean up
 TODO: Test hysteresis
+TODO: Manage functionality (make more granular and open up all engineering functions to the user?)
 """
 
 import sys
@@ -31,6 +32,7 @@ from transitions.extensions import LockedMachine
 from mkidcontrol.mkidredis import MKIDRedis, RedisError
 import mkidcontrol.util as util
 from mkidcontrol.devices import HeatswitchPosition, write_persisted_state, load_persisted_state
+from mkidcontrol.commands import COMMANDSHS, SimCommand
 from zaber_motion import Library
 from zaber_motion.binary import Connection, BinarySettings, CommandCode
 
@@ -38,12 +40,14 @@ QUERY_INTERVAL = 1
 
 log = logging.getLogger(__name__)
 
-DEFAULT_MAX_VELOCITY = 3e3
-DEFAULT_RUNNING_CURRENT = 13
-DEFAULT_ACCELERATION = 2
+SETTING_KEYS = tuple(COMMANDSHS.keys())
 
-FULL_OPEN_POSITION = 0
-FULL_CLOSE_POSITION = 4194303
+DEFAULT_MAX_VELOCITY = 3e3  # Maximum velocity empirically found with ARCONS
+DEFAULT_RUNNING_CURRENT = 13  # Current can be set between 10 (highest) and 127 (lowest). Lower current will avoid
+# damaging the heat switch if limit is reached by mistake
+DEFAULT_ACCELERATION = 2  # Default acceleration from ARCONS
+FULL_OPEN_POSITION = 0  # Hard limit of the motor opening
+FULL_CLOSE_POSITION = 4194303  # Halfway point for motor position, physical hard stop with clamps closed on heat sinks
 
 STATUS_KEY = 'status:device:heatswitch:status'  # OK | ERROR | OFF
 HEATSWITCH_POSITION_KEY = "status:device:heatswitch:position"  # OPENED | OPENING | CLOSED | CLOSING
@@ -120,7 +124,7 @@ def compute_initial_state(heatswitch):
 
 
 class HeatswitchMotor:
-    def __init__(self, port, timeout=(4194303 * 1.25)/3e3, set_mode=False):
+    def __init__(self, port, timeout=(4194303 * 1.25)/3e3, set_mode=True):
         c = Connection.open_serial_port(port)
         self.hs = c.detect_devices()[0]
 
@@ -131,9 +135,9 @@ class HeatswitchMotor:
         # Initializes the heatswitch to
         self._initialize_position()
 
-        self.hs.generic_command(CommandCode.SET_TARGET_SPEED, DEFAULT_MAX_VELOCITY)
-        self.hs.generic_command(CommandCode.SET_RUNNING_CURRENT, DEFAULT_RUNNING_CURRENT)
-        self.hs.generic_command(CommandCode.SET_ACCELERATION, DEFAULT_ACCELERATION)
+        self.update_max_velocity(DEFAULT_MAX_VELOCITY)
+        self.update_running_current(DEFAULT_RUNNING_CURRENT)
+        self.update_acceleration(DEFAULT_ACCELERATION)
 
         self.running_current = self.hs.settings.get(BinarySettings.RUNNING_CURRENT)
         self.acceleration = self.hs.settings.get(BinarySettings.ACCELERATION)
@@ -148,7 +152,6 @@ class HeatswitchMotor:
 
     def _initialize_position(self):
         """
-        TODO
         :return:
         """
         reported_position = int(self.motor_position())
@@ -236,7 +239,6 @@ class HeatswitchMotor:
 
         return self.last_recorded_position
 
-
     def move_by(self, dist, error_on_disallowed=False):
         """
         TODO
@@ -294,6 +296,15 @@ class HeatswitchMotor:
                 log.error(f"Move failed!!")
 
         return self.last_recorded_position
+
+    def update_max_velocity(self, value):
+        self.hs.settings.set(BinarySettings.TARGET_SPEED, value)
+
+    def update_running_current(self, value):
+        self.hs.settings.set(BinarySettings.RUNNING_CURRENT, value)
+
+    def update_acceleration(self, value):
+        self.hs.settings.set(BinarySettings.ACCELERATION, value)
 
     def _set_position_value(self, value):
         """
@@ -490,8 +501,8 @@ if __name__ == "__main__":
         hs = HeatswitchMotor('/dev/heatswitch')
         redis.store({STATUS_KEY: "OK"})
     except Exception as e:
-        # TODO: There is a trivial exception that will trigger this: If you change a redis DB key that is necessary for
-        #  the heatswitch to connect, then you will error out.
+        # TODO: There is a trivial exception that will trigger this: If you change a the name of a redis key that is
+        #  necessary for the heatswitch to connect, then you will error out.
         log.critical(f"Could not connect to the heatswitch!")
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
@@ -503,30 +514,48 @@ if __name__ == "__main__":
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
-                log.debug(f"Redis listened to something! Key: {key} -- Val: {val}")
-                try:
-                    if key == HEATSWITCH_MOVE_KEY:
-                        hspos = val.lower()
-                        if hspos == 'open':
-                            controller.open()
-                        elif hspos == 'close':
-                            controller.close()
-                    elif key == HEATSWITCH_ENGINEERING_MODE_KEY:
-                        log.info(f"Entering engineering mode: be warned you are in manual territory!")
-                        controller.stop()
-                    elif key == HEATSWITCH_SET_POSITION_KEY:
-                        log.info(f"Setting registered position of the heatswitch motor to {val}")
-                        pos = val
-                        hs._set_position_value(pos)
-                    elif key == HEATSWITCH_MOVE_BY_KEY:
-                        log.info(f"Attempting to move heatswitch motor by {val} steps")
-                        dist = val
-                        hs.move_by(dist)
-                    else:
-                        log.warning(f"Heard: '{key} -- {val}, not supported commands")
-                    redis.store({STATUS_KEY: "OK"})
-                except (IOError, MachineError) as e:
-                    redis.store({STATUS_KEY: f"Error: {e}"})
+                log.debug(f"HeatswitchAgent received {key}, {val}.")
+                key = key.removeprefix('command:')
+                if key in SETTING_KEYS:
+                    try:
+                        cmd = SimCommand(key, val)
+                    except ValueError as e:
+                        log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
+                        continue
+                    try:
+                        log.info(f"Processing command '{cmd}'")
+                        # TODO: Process command here
+                        redis.store({cmd.setting: cmd.value})
+                        redis.store({STATUS_KEY: "OK"})
+                    except IOError as e:
+                        redis.store({STATUS_KEY: f"Error {e}"})
+                        log.error(f"Comm error: {e}")
+        # while True:
+        #     for key, val in redis.listen(COMMAND_KEYS):
+        #         log.debug(f"Redis listened to something! Key: {key} -- Val: {val}")
+        #         try:
+        #             if key == HEATSWITCH_MOVE_KEY:
+        #                 hspos = val.lower()
+        #                 if hspos == 'open':
+        #                     controller.open()
+        #                 elif hspos == 'close':
+        #                     controller.close()
+        #             elif key == HEATSWITCH_ENGINEERING_MODE_KEY:
+        #                 log.info(f"Entering engineering mode: be warned you are in manual territory!")
+        #                 controller.stop()
+        #             elif key == HEATSWITCH_SET_POSITION_KEY:
+        #                 log.info(f"Setting registered position of the heatswitch motor to {val}")
+        #                 pos = val
+        #                 hs._set_position_value(pos)
+        #             elif key == HEATSWITCH_MOVE_BY_KEY:
+        #                 log.info(f"Attempting to move heatswitch motor by {val} steps")
+        #                 dist = val
+        #                 hs.move_by(dist)
+        #             else:
+        #                 log.warning(f"Heard: '{key} -- {val}, not supported commands")
+        #             redis.store({STATUS_KEY: "OK"})
+        #         except (IOError, MachineError) as e:
+        #             redis.store({STATUS_KEY: f"Error: {e}"})
     except RedisError as e:
         log.error(f"Redis server error! {e}")
         sys.exit(1)

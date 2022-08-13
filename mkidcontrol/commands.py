@@ -454,7 +454,17 @@ COMMANDS960 = {'device-settings:sim960:vout-min-limit': {'command': 'LLIM', 'val
 
 # ---- HPD Heat Switch Commands ----
 # COMMANDS HS (Heatswitch) are only included so that we can use the SimCommand class to check the legality of a command.
-COMMANDSHS = {'device-settings:currentduino:heatswitch': {'command': '', 'vals': {'open': 'open', 'close': 'close'}}}
+# COMMANDSHS = {'device-settings:currentduino:heatswitch': {'command': '', 'vals': {'open': 'open', 'close': 'close'}}}
+
+# ---- Zaber Motor Heat Switch Commands ----
+COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {'open': 'open', 'close': 'close'}},
+              'device-settings:heatswitch:operating-mode': {'command': '', 'vals': {'regular': 'regular', 'engineering': 'engineering'}},
+              'device-settings:heatswitch:max-velocity': {'command': '', 'vals': [0, 1e4]},
+              'device-settings:heatswitch:running-current': {'command': '', 'vals': [10, 127]},
+              'device-settings:heatswitch:acceleration': {'command': '', 'vals': [0, 100]},
+              'device-settings:heatswitch:motor:desired-position': {'command': '', 'vals': [0, 4194303]}, # N.B. This is an engineering key and can become stale based on open/close action
+              'device-settings:heatswitch:motor:reset-position': {'command': '', 'vals': [0, 4194303]}
+              }
 
 # ---- PICTURE-C Magnet Commands ----
 CALIBRATION_CURVE = 1
@@ -472,5 +482,5 @@ COMMAND_DICT.update(COMMANDS336)
 COMMAND_DICT.update(COMMANDS372)
 # COMMAND_DICT.update(COMMANDS960)
 # COMMAND_DICT.update(COMMANDS921)
-# COMMAND_DICT.update(COMMANDSHS)
+COMMAND_DICT.update(COMMANDSHS)
 COMMAND_DICT.update(COMMANDS625)
