@@ -406,18 +406,10 @@ COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'
 
 
 # ---- SRS SIM 921 Commands ----
-COMMANDS921 = {'device-settings:sim921:resistance-range': {'command': 'RANG', 'vals': {'20e-3': '0', '200e-3': '1', '2': '2',
-                                                                                       '20': '3', '200': '4', '2e3': '5',
-                                                                                       '20e3': '6', '200e3': '7',
-                                                                                       '2e6': '8', '20e6': '9'}},
-               'device-settings:sim921:excitation-value': {'command': 'EXCI', 'vals': {'0': '-1', '3e-6': '0', '10e-6': '1',
-                                                                                       '30e-6': '2', '100e-6': '3',
-                                                                                       '300e-6': '4', '1e-3': '5',
-                                                                                       '3e-3': '6', '10e-3': '7', '30e-3': '8'}},
-               'device-settings:sim921:excitation-mode': {'command': 'MODE', 'vals': {'passive': '0', 'current': '1',
-                                                                                      'voltage': '2', 'power': '3'}},
-               'device-settings:sim921:time-constant': {'command': 'TCON', 'vals': {'0.3': '0', '1': '1', '3': '2', '10': '3',
-                                                                                    '30': '4', '100': '5', '300': '6'}},
+COMMANDS921 = {'device-settings:sim921:resistance-range': {'command': 'RANG', 'vals': {'20e-3': '0', '200e-3': '1', '2': '2', '20': '3', '200': '4', '2e3': '5', '20e3': '6', '200e3': '7', '2e6': '8', '20e6': '9'}},
+               'device-settings:sim921:excitation-value': {'command': 'EXCI', 'vals': {'0': '-1', '3e-6': '0', '10e-6': '1', '30e-6': '2', '100e-6': '3', '300e-6': '4', '1e-3': '5', '3e-3': '6', '10e-3': '7', '30e-3': '8'}},
+               'device-settings:sim921:excitation-mode': {'command': 'MODE', 'vals': {'passive': '0', 'current': '1', 'voltage': '2', 'power': '3'}},
+               'device-settings:sim921:time-constant': {'command': 'TCON', 'vals': {'0.3': '0', '1': '1', '3': '2', '10': '3', '30': '4', '100': '5', '300': '6'}},
                'device-settings:sim921:temp-offset': {'command': 'TSET', 'vals': [0, 40]},
                'device-settings:sim921:resistance-offset': {'command': 'RSET', 'vals': [0, 63765.1]},
                'device-settings:sim921:temp-slope': {'command': 'VKEL', 'vals': [0, 1e-2]},
