@@ -30,7 +30,7 @@ from transitions.extensions import LockedMachine
 
 from mkidcontrol.mkidredis import MKIDRedis, RedisError
 import mkidcontrol.util as util
-from mkidcontrol.devices import HeatswitchPosition, write_persisted_state, load_persisted_state
+from mkidcontrol.devices import HeatswitchPosition, write_persisted_state, HeatswitchMotor, load_persisted_state
 from mkidcontrol.commands import COMMANDSHS, SimCommand
 
 QUERY_INTERVAL = 1
