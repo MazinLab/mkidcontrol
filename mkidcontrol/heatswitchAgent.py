@@ -15,10 +15,7 @@ switch too tightly.
 Note: Documentation for zaber python library exists at https://www.zaber.com/software/docs/motion-library/
 Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdf
 
-TODO: Clean up
 TODO: Test hysteresis
-TODO: Manage functionality (make more granular and open up all engineering functions to the user?)
-TODO: Rework command syntax
 TODO: Serial error handling
 """
 
