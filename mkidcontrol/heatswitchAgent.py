@@ -396,16 +396,16 @@ class HeatswitchController(LockedMachine):
             {'trigger': 'next', 'source': 'closing', 'dest': None, 'unless': 'hs_is_closed', 'after': 'close_heatswitch'},
 
             {'trigger': 'stop', 'source': '*', 'dest': 'off'},
-            {'trigger': 'next', 'source': 'engineering', 'dest': None},
-            {'trigger': 'open', 'source': 'engineering', 'dest': 'opening'},
-            {'trigger': 'close', 'source': 'engineering', 'dest': 'closing'}
+            {'trigger': 'next', 'source': 'off', 'dest': None},
+            {'trigger': 'open', 'source': 'off', 'dest': 'opening'},
+            {'trigger': 'close', 'source': 'off', 'dest': 'closing'}
         ]
 
         states = (State('opened', on_enter='record_entry'),
                   State('opening', on_enter='record_entry'),
                   State('closed', on_enter='record_entry'),
                   State('closing', on_enter='record_entry'),
-                  State('engineering', on_enter='record_entry'))
+                  State('off', on_enter='record_entry'))
 
         self.hs = heatswitch
         self.lock = threading.RLock()
@@ -507,8 +507,6 @@ if __name__ == "__main__":
         hs = HeatswitchMotor('/dev/heatswitch')
         redis.store({STATUS_KEY: "OK"})
     except Exception as e:
-        # TODO: There is a trivial exception that will trigger this: If you change a the name of a redis key that is
-        #  necessary for the heatswitch to connect, then you will error out.
         log.critical(f"Could not connect to the heatswitch! Error {e}")
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
@@ -549,6 +547,7 @@ if __name__ == "__main__":
                                             f"regular operation mode! Ignoring")
                         elif key == OPERATING_MODE_KEY:
                             if val == "engineering":
+                                controller.off()
                                 controller = None
                             elif val == "regular":
                                 controller = HeatswitchController(heatswitch=hs)
