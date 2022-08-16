@@ -457,13 +457,16 @@ COMMANDS960 = {'device-settings:sim960:vout-min-limit': {'command': 'LLIM', 'val
 # COMMANDSHS = {'device-settings:currentduino:heatswitch': {'command': '', 'vals': {'open': 'open', 'close': 'close'}}}
 
 # ---- Zaber Motor Heat Switch Commands ----
-COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {'open': 'open', 'close': 'close'}},
-              'device-settings:heatswitch:operating-mode': {'command': '', 'vals': {'regular': 'regular', 'engineering': 'engineering'}},
+COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {'Open': 'open', 'Close': 'close'}},
+              'device-settings:heatswitch:step-size': {'command': '', 'vals': [0, 4194303]},
+              'device-settings:heatswitch:operating-mode': {'command': '', 'vals': {'Regular': 'regular', 'Engineering': 'engineering'}},
               'device-settings:heatswitch:max-velocity': {'command': '', 'vals': [0, 1e4]},
               'device-settings:heatswitch:running-current': {'command': '', 'vals': [10, 127]},
               'device-settings:heatswitch:acceleration': {'command': '', 'vals': [0, 100]},
               'device-settings:heatswitch:motor:desired-position': {'command': '', 'vals': [0, 4194303]}, # N.B. This is an engineering key and can become stale based on open/close action
-              'device-settings:heatswitch:motor:reset-position': {'command': '', 'vals': [0, 4194303]}
+              'device-settings:heatswitch:motor:desired-move': {'command': '', 'vals': [-4194303, 4194303]},
+              'device-settings:heatswitch:motor:reset-position': {'command': '', 'vals': [0, 4194303]},
+              'device-settings:heatswitch:reset-state': {'command': '', 'vals': {'Opened': 'opened', 'Opening': 'opening', 'Closing': 'closing', 'Closed': 'closed'}}
               }
 
 # ---- PICTURE-C Magnet Commands ----
