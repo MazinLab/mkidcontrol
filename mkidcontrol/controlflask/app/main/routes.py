@@ -47,6 +47,8 @@ from .forms import *
 
 # TODO: Turn all graphs/plots into plotly graph objects
 
+# TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
+
 
 CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
               'Device R': 'status:temps:device-stage:resistance',
