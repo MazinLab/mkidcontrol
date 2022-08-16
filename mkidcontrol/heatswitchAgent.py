@@ -233,11 +233,17 @@ from serial import SerialException
 class HeatSwitchForm(FlaskForm):
     open = SubmitField("Open")
     close = SubmitField("Close")
-    engineering_mode = SubmitField("Engineering Mode")
-    move_by = IntegerField("Move By", default=0, validators=[number_range(-1 * FULL_CLOSE_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
-    current_position = IntegerField("Current Position", default=FULL_CLOSE_POSITION, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
-    set_position = IntegerField("Set Position To:", default=FULL_CLOSE_POSITION, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
-
+    stop = SubmitField("Stop Controller")
+    step_size = IntegerField("Step Size", default=0, validators=[NumberRange(0, FULL_CLOSE_POSITION)])
+    operating_mode = SelectField("Operation Mode", choices=list(COMMANDSHS['device-settings:heatswitch:operating-mode']['vals'].keys()))
+    max_velocity = IntegerField("Max Velocity", default=DEFAULT_MAX_VELOCITY, validators=[NumberRange(0, 1e4)])
+    running_current = IntegerField("Running Current", default=DEFAULT_RUNNING_CURRENT, validators=[NumberRange(10, 127)])
+    acceleration = IntegerField("Acceleration", default=DEFAULT_ACCELERATION, validators=[NumberRange(0, 100)])
+    desired_position = IntegerField("Move Motor To:", default=0, validators=[NumberRange(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
+    desired_move = IntegerField("Move Motor By:", default=0, validators=[NumberRange(-1 * FULL_CLOSE_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
+    reset_position = IntegerField("Set Motor Position To:", default=0, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
+    reset_state = IntegerField("Set Motor State To:", default=0, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
+    update = SubmitField("Update")
 
 class HeatSwitchForm2(FlaskForm):
     open = SubmitField("Open")
@@ -247,10 +253,17 @@ class HeatSwitchForm2(FlaskForm):
 class HeatSwitchEngineeringModeForm(FlaskForm):
     open = SubmitField("Open")
     close = SubmitField("Close")
-    engineering_mode = SubmitField("Engineering Mode", render_kw={'disabled': True})
-    move_by = IntegerField("Move By", default=0, validators=[number_range(-1 * FULL_CLOSE_POSITION, FULL_CLOSE_POSITION)])
-    current_position = IntegerField("Current Position", default=FULL_CLOSE_POSITION, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
-    set_position = IntegerField("Set Position To:", default=FULL_CLOSE_POSITION, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
+    stop = SubmitField("Stop Controller")
+    step_size = IntegerField("Step Size", default=0, validators=[NumberRange(0, FULL_CLOSE_POSITION)])
+    operating_mode = SelectField("Operation Mode", choices=list(COMMANDSHS['device-settings:heatswitch:operating-mode']['vals'].keys()))
+    max_velocity = IntegerField("Max Velocity", default=DEFAULT_MAX_VELOCITY, validators=[NumberRange(0, 1e4)])
+    running_current = IntegerField("Running Current", default=DEFAULT_RUNNING_CURRENT, validators=[NumberRange(10, 127)])
+    acceleration = IntegerField("Acceleration", default=DEFAULT_ACCELERATION, validators=[NumberRange(0, 100)])
+    desired_position = IntegerField("Move Motor To:", default=0, validators=[NumberRange(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
+    desired_move = IntegerField("Move Motor By:", default=0, validators=[NumberRange(-1 * FULL_CLOSE_POSITION, FULL_CLOSE_POSITION)])
+    reset_position = IntegerField("Set Motor Position To:", default=0, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
+    reset_state = IntegerField("Set Motor State To:", default=0, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
+    update = SubmitField("Update")
 
 
 if __name__ == "__main__":

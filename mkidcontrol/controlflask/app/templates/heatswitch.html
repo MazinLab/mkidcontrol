@@ -4,10 +4,8 @@
     {{ super() }}
     <div class="container-fluid">
         <div class="row">
-            <main role="main" class="col-12">
-                <div class="d-flex justify-content-center flex-wrap flex-md-nowrap align-items-center pb-2 mt-3 mr-0 border-bottom">
-                    {{ render_form(form) }}
-                </div>
+            <main role="main" class="col-10 py-2 mb-3">
+                {{ render_form(form, form_type='horizontal', horizontal_columns=('lg', 3, 9)) }}
             </main>
         </div>
     </div>
