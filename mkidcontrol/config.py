@@ -723,7 +723,18 @@ REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                          'device-settings:ls625:ramp-rate': 0.005,
                          'device-settings:ls625:desired-current': 0.0,
                          'device-settings:ls625:compliance-voltage': 2.0,
-                         'device-settings:ls625:control-mode': 'Internal'}
+                         'device-settings:ls625:control-mode': 'Internal',
+                         'device-settings:heatswitch:position': 'Close',
+                         'device-settings:heatswitch:step-size': '50000',
+                         'device-settings:heatswitch:operating-mode': 'Engineering',
+                         'device-settings:heatswitch:max-velocity': '3000.0',
+                         'device-settings:heatswitch:running-current': '18',
+                         'device-settings:heatswitch:acceleration': '2',
+                         'device-settings:heatswitch:motor:desired-position': '4194303',
+                         'device-settings:heatswitch:motor:desired-move': '0',
+                         'device-settings:heatswitch:motor:reset-position': '4194303',
+                         'device-settings:heatswitch:reset-state': 'Closed'
+                         }
                 }
 # REDIS_SCHEMA['keys'].update(effects)
 
