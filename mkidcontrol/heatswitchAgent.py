@@ -16,6 +16,8 @@ Note: Documentation for zaber python library exists at https://www.zaber.com/sof
 Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdf
 
 TODO: Serial error handling
+
+TODO: Update to make sure machine works and uses proper command syntax
 """
 
 import sys
@@ -35,6 +37,7 @@ from zaber_motion import Library
 from zaber_motion.binary import Connection, BinarySettings, CommandCode
 
 QUERY_INTERVAL = 1
+TIMEOUT = 4194303 * 1.25 / 1e3  # Default timeout value is the number of steps + 25% divided by the slowest speed we run at
 
 log = logging.getLogger(__name__)
 
@@ -53,14 +56,9 @@ MOTOR_POS = "status:device:heatswitch:motor:position"  # Integer between 0 and 4
 
 HEATSWITCH_MOVE_KEY = "device-settings:heatswitch:position"
 STEP_SIZE_KEY = "device-settings:heatswitch:step-size"
-OPERATING_MODE_KEY = "device-settings:heatswitch:operating-mode"
 VELOCITY_KEY = "device-settings:heatswitch:max-velocity"
 RUNNING_CURRENT_KEY = "device-settings:heatswitch:running-current"
 ACCELERATION_KEY = "device-settings:heatswitch:acceleration"
-MOVE_BY_KEY = f"device:heatswitch:motor:desired-move"
-MOVE_TO_KEY = f"device:heatswitch:motor:desired-position"
-SET_POSITION_KEY = f"device:heatswitch:motor:reset-position"
-SET_STATE_KEY = f"device:heatswitch:reset-state"
 
 # TODO: Add stop command to arrest motion?
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
@@ -76,7 +74,7 @@ def open():
 
 
 def is_opened():
-    return (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENED) or (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENING)
+    return redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENED
 
 
 def is_closed():
@@ -129,7 +127,7 @@ def compute_initial_state(heatswitch):
 
 
 class HeatswitchMotor:
-    def __init__(self, port, timeout=(4194303 * 1.25)/3e3, set_mode=True):
+    def __init__(self, port, set_mode=True):
         c = Connection.open_serial_port(port)
         self.hs = c.detect_devices()[0]
 
@@ -199,7 +197,7 @@ class HeatswitchMotor:
             except Exception as e:
                 log.debug(f"Error in querying heat switch motor. Attempt {i+1} of 5 failed. Trying again.")
 
-    def move_to(self, pos, error_on_disallowed=False):
+    def move_to(self, pos, timeout=TIMEOUT, error_on_disallowed=False):
         """
         TODO: Test and validate
         :param pos:
@@ -225,7 +223,7 @@ class HeatswitchMotor:
                     pos = self.max_position
                 try:
                     log.info(f"Move requested to {pos} from {last_pos}")
-                    self.hs.move_absolute(pos)
+                    self.hs.move_absolute(pos, timeout=timeout)
                     self.last_move = pos - last_pos
                     self.last_recorded_position = pos
                     log.info(f"Successfully moved to {self.last_recorded_position}")
@@ -234,7 +232,7 @@ class HeatswitchMotor:
             else:
                 try:
                     log.info(f"Move requested to {pos} from {last_pos}")
-                    self.hs.move_absolute(pos)
+                    self.hs.move_absolute(pos, timeout=timeout)
                     self.last_move = pos - last_pos
                     self.last_recorded_position = pos
                     log.info(f"Successfully moved to {self.last_recorded_position}")
@@ -243,7 +241,7 @@ class HeatswitchMotor:
 
         return self.last_recorded_position
 
-    def move_by(self, dist, error_on_disallowed=False):
+    def move_by(self, dist, timeout=TIMEOUT, error_on_disallowed=False):
         """
         TODO
         :param dist:
@@ -270,7 +268,7 @@ class HeatswitchMotor:
                 log.warning(f"Move requested from {pos} to {final_pos} ({dist} steps) is not "
                          f"allowed, restricting move to furthest allowed position of {new_final_pos} ({new_dist} steps).")
                 try:
-                    new_pos = self.hs.move_relative(new_dist)
+                    new_pos = self.hs.move_relative(new_dist, timeout=timeout)
                     if new_pos == self.motor_position():
                         self.last_recorded_position = new_pos
                         self.last_move = new_dist
@@ -285,7 +283,7 @@ class HeatswitchMotor:
         else:
             log.info(f"Move requested from {pos} to {final_pos} ({dist} steps). Moving now...")
             try:
-                new_pos = self.hs.move_relative(dist)
+                new_pos = self.hs.move_relative(dist, timeout=timeout)
                 if new_pos == self.motor_position():
                     self.last_recorded_position = new_pos
                     self.last_move = dist
@@ -476,39 +474,18 @@ from serial import SerialException
 
 
 class HeatSwitchForm(FlaskForm):
-    open = SubmitField("Open")
-    close = SubmitField("Close")
-    stop = SubmitField("Stop Controller")
     step_size = IntegerField("Step Size", default=0, validators=[NumberRange(0, FULL_CLOSE_POSITION)])
-    operating_mode = SelectField("Operation Mode", choices=list(COMMANDSHS['device-settings:heatswitch:operating-mode']['vals'].keys()))
     max_velocity = IntegerField("Max Velocity", default=DEFAULT_MAX_VELOCITY, validators=[NumberRange(0, 1e4)])
     running_current = IntegerField("Running Current", default=DEFAULT_RUNNING_CURRENT, validators=[NumberRange(10, 127)])
     acceleration = IntegerField("Acceleration", default=DEFAULT_ACCELERATION, validators=[NumberRange(0, 100)])
-    desired_position = IntegerField("Move Motor To:", default=0, validators=[NumberRange(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
-    desired_move = IntegerField("Move Motor By:", default=0, validators=[NumberRange(-1 * FULL_CLOSE_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
-    reset_position = IntegerField("Set Motor Position To:", default=0, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
-    reset_state = IntegerField("Set Motor State To:", default=0, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)], render_kw={'disabled': True})
+    open = SubmitField("Open")
+    close = SubmitField("Close")
     update = SubmitField("Update")
+
 
 class HeatSwitchForm2(FlaskForm):
     open = SubmitField("Open")
     close = SubmitField("Close")
-
-
-class HeatSwitchEngineeringModeForm(FlaskForm):
-    open = SubmitField("Open")
-    close = SubmitField("Close")
-    stop = SubmitField("Stop Controller")
-    step_size = IntegerField("Step Size", default=0, validators=[NumberRange(0, FULL_CLOSE_POSITION)])
-    operating_mode = SelectField("Operation Mode", choices=list(COMMANDSHS['device-settings:heatswitch:operating-mode']['vals'].keys()))
-    max_velocity = IntegerField("Max Velocity", default=DEFAULT_MAX_VELOCITY, validators=[NumberRange(0, 1e4)])
-    running_current = IntegerField("Running Current", default=DEFAULT_RUNNING_CURRENT, validators=[NumberRange(10, 127)])
-    acceleration = IntegerField("Acceleration", default=DEFAULT_ACCELERATION, validators=[NumberRange(0, 100)])
-    desired_position = IntegerField("Move Motor To:", default=0, validators=[NumberRange(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
-    desired_move = IntegerField("Move Motor By:", default=0, validators=[NumberRange(-1 * FULL_CLOSE_POSITION, FULL_CLOSE_POSITION)])
-    reset_position = IntegerField("Set Motor Position To:", default=0, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
-    reset_state = IntegerField("Set Motor State To:", default=0, validators=[number_range(FULL_OPEN_POSITION, FULL_CLOSE_POSITION)])
-    update = SubmitField("Update")
 
 
 if __name__ == "__main__":
@@ -529,17 +506,13 @@ if __name__ == "__main__":
 
     hs.monitor(QUERY_INTERVAL, (hs.motor_position,), value_callback=monitor_callback)
 
-    if redis.read(OPERATING_MODE_KEY).lower() == "regular":
-        controller = HeatswitchController(heatswitch=hs)
-    else:
-        controller = None
+    controller = HeatswitchController(heatswitch=hs)
 
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"HeatswitchAgent received {key}, {val}.")
                 key = key.removeprefix('command:')
-                # TODO: Better handling of commands in this loop (clean up the if/else statements a la LS372/SIM921/LS625)
                 if key in SETTING_KEYS:
                     try:
                         cmd = SimCommand(key, val)
@@ -549,36 +522,14 @@ if __name__ == "__main__":
                     try:
                         log.info(f"Processing command '{cmd}'")
                         if key == HEATSWITCH_MOVE_KEY:
-                            if redis.read(OPERATING_MODE_KEY) == "regular":
-                                if val == "open":
-                                    controller.open()
-                                elif val == "close":
-                                    controller.close()
-                                else:
-                                    log.warning("Illegal command that was not previously handled!")
+                            if val.lower() == "open":
+                                controller.open()
+                            elif val.lower() == "close":
+                                controller.close()
                             else:
-                                log.warning(f"Trying to perform a normal command on heatswitch outside of "
-                                            f"regular operation mode! Ignoring")
-                        elif key == OPERATING_MODE_KEY:
-                            if val == "engineering":
-                                controller.off()
-                                controller = None
-                            elif val == "regular":
-                                controller = HeatswitchController(heatswitch=hs)
+                                log.warning("Illegal command that was not previously handled!")
                         elif key in [VELOCITY_KEY, RUNNING_CURRENT_KEY, ACCELERATION_KEY]:
                             hs.update_binary_setting(key, val)
-                        elif key in [MOVE_BY_KEY, MOVE_TO_KEY, SET_POSITION_KEY, SET_STATE_KEY]:
-                            if redis.read(OPERATING_MODE_KEY) == "regular":
-                                log.warning(f"Trying to perform an engineering command on heatswitch outside of engineering mode! Ignoring")
-                            else:
-                                if key == MOVE_BY_KEY:
-                                    hs.move_by(val)
-                                elif key == MOVE_TO_KEY:
-                                    hs.move_to(val)
-                                elif key == SET_POSITION_KEY:
-                                    hs._set_position_value(val)
-                                elif key == SET_STATE_KEY:
-                                    redis.store({HEATSWITCH_POSITION_KEY: val})
                         else:
                             log.warning(f"Unknown command! Ignoring")
                         redis.store({cmd.setting: cmd.value})
