@@ -405,6 +405,8 @@ class LS625MagnetSettings:
         self.compliance_voltage = values['device-settings:ls625:compliance-voltage']
         self.control_mode = values['device-settings:ls625:control-mode']
 
+        self.limits = {'current':  self.current_limit, 'voltage':  self.compliance_voltage_limit, 'rate':  self.rate_limit}
+
 
 # ---- Lake Shore 625 Commands ----
 COMMANDS625 = {'device-settings:ls625:baud-rate': {'command': 'BAUD', 'vals': {'9600': '0', '19200': '1',

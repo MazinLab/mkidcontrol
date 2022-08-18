@@ -21,8 +21,7 @@ N.B. (19 July 2022): The limiting values are as follows (and remember, the limit
                    (di/dt)_desired is tunable, we don't recommend higher than 10 mA/s
 - Ramp rate: 20 mA/s (you want this to be about double + 10% of the max rate you expect to use)
 
-
-# TODO: Add 'pause' command
+# TODO: Add 'pause current' command
 # TODO: Clean code
 """
 
@@ -164,19 +163,17 @@ if __name__ == "__main__":
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.current, lakeshore.field, lakeshore.output_voltage),
                       value_callback=callback)
+    
     # main loop, listen for commands and handle them
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"lakeshore625agent received {key}, {val}. Trying to send a command")
                 key = key.removeprefix('command:')
+                # TODO: Handle STOP ramp
                 if key in SETTING_KEYS:
                     try:
-                        # TODO: Make sure that handling limits works
-                        if key[-5:] == 'limit':
-                            limits = lakeshore.limits
-                        else:
-                            limits = None
+                        limits = lakeshore.limits  # N.B. This is a fast call and if the command needs it it will have it, otherwise it will be ignored
                         cmd = LakeShoreCommand(key, val, limit_vals=limits)
                     except ValueError:
                         log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")

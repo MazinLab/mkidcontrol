@@ -44,7 +44,6 @@ from mkidcontrol.hemttempAgent import HEMTTEMP_KEYS
 from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
 from .forms import *
 
-
 # TODO: Turn all graphs/plots into plotly graph objects
 
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
@@ -286,11 +285,13 @@ def ls625():
     from ....lakeshore625Agent import Lakeshore625ControlForm
     from ....commands import LakeShoreCommand, LS625MagnetSettings
 
+    ls625settings = LS625MagnetSettings(redis)
+
     if request.method == 'POST':
         for key in request.form.keys():
             print(f"{key} : {request.form.get(key)}")
             try:
-                x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_','-')}", request.form.get(key))
+                x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_','-')}", request.form.get(key), limit_vals=ls625settings.limits)
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
                 redis.publish(f"command:{x.setting}", x.value)
                 log.info(f"Command sent successfully")
@@ -299,7 +300,6 @@ def ls625():
                 log.debug(f"Unrecognized field to send as command: {key}")
             time.sleep(0.15)
 
-    ls625settings = LS625MagnetSettings(redis)
     form = Lakeshore625ControlForm(**vars(ls625settings))
 
     return render_template('ls625.html', title=_("Magnet Power Supply Control"), form=form)
