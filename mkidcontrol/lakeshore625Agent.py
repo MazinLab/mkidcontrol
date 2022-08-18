@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
     lakeshore.monitor(QUERY_INTERVAL, (lakeshore.current, lakeshore.field, lakeshore.output_voltage),
                       value_callback=callback)
-    
+
     # main loop, listen for commands and handle them
     try:
         while True:
