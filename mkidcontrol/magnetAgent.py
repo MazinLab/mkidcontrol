@@ -4,9 +4,6 @@ Author: Noah Swimmer
 
 Program for controlling the magnet. The magnet controller itself is a statemachine but requires no instruments to run.
 It will run even with no lakeshore/heatswitch/etc., although it will not allow anything to actually happen.
-
-TODO: Quench detection values, and limit values. Theory for  value choice exists at npage 48 of the LakeShore 625 manual
- (V_LS625compliance,max = 5V, V_max,magnet=125 mV,  L=~35H, I_max=9.4A)
 """
 
 import sys
@@ -19,7 +16,7 @@ from transitions import MachineError, State, Transition
 from transitions.extensions import LockedMachine
 import pkg_resources
 
-from mkidcontrol.devices import LakeShore625, MagnetState, write_persisted_state, load_persisted_state
+from mkidcontrol.devices import MagnetState, write_persisted_state, load_persisted_state
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.util as util
 import mkidcontrol.mkidredis as redis
@@ -30,15 +27,10 @@ import mkidcontrol.lakeshore372Agent as ls372
 QUERY_INTERVAL = 1
 MAX_PERSISTED_STATE_LIFE_SECONDS = 3600
 
-DEVICE = '/dev/ls625'
-VALID_MODELS = ('MODEL625', )
-
 SOAK_TIME_KEY = 'device-settings:ls625:soak-time'
 SOAK_CURRENT_KEY = 'device-settings:ls625:soak-current'
 RAMP_RATE_KEY = 'device-settings:ls625:ramp-rate'
 COOLDOWN_SCHEDULED_KEY = 'device-settings:ls625:cooldown-scheduled'
-
-DESIRED_CURRENT_KEY = 'device-settings:ls625:desired-current'
 
 IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY = 'device-settings:ls625:enable-temperature-regulation-upper-limit'
 STATEFILE_PATH_KEY = 'device-settings:ls625:statefile'  # /mkidcontrol/mkidcontrol/logs/statefile.txt
@@ -52,27 +44,19 @@ QUENCH_KEY = 'event:quenching'
 
 MAGNET_COMMAND_KEYS = (COLD_AT_CMD, COLD_NOW_CMD, ABORT_CMD, CANCEL_COOLDOWN_CMD, STOP_RAMP_KEY, DESIRED_CURRENT_KEY)
 
-SETTING_KEYS = tuple(COMMANDS625.keys())
-
-STATUS_KEY = "status:device:ls625:status"
-FIRMWARE_KEY = "status:device:ls625:firmware"
-MODEL_KEY = 'status:device:ls625:model'
-SN_KEY = 'status:device:ls625:sn'
-
-MAGNET_STATE_KEY = 'status:magnet:state' # OFF | RAMPING | SOAKING | QUENCH (DON'T QUENCH!)
+MAGNET_STATE_KEY = 'status:magnet:state'  # OFF | RAMPING | SOAKING | QUENCH (DON'T QUENCH!)
 MAGNET_CURRENT_KEY = 'status:magnet:current'
 MAGNET_FIELD_KEY = 'status:magnet:field'
 OUTPUT_VOLTAGE_KEY = 'status:device:ls625:output-voltage'
 
 TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY]
 
-COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS + MAGNET_COMMAND_KEYS]
+COMMAND_KEYS = [f"command:{k}" for k in MAGNET_COMMAND_KEYS]
 
 DEVICE_TEMP_KEY = 'status:temps:device-stage:temp'
 REGULATION_TEMP_KEY = "device-settings:device-stage:regulating-temp"
 
-LS625KEYS = TS_KEYS + [STATUS_KEY, FIRMWARE_KEY, MODEL_KEY, SN_KEY, SOAK_TIME_KEY, SOAK_CURRENT_KEY,
-                       COOLDOWN_SCHEDULED_KEY, STOP_RAMP_KEY, RAMP_RATE_KEY]
+MAGNETKEYS = TS_KEYS + [SOAK_TIME_KEY, SOAK_CURRENT_KEY, COOLDOWN_SCHEDULED_KEY, STOP_RAMP_KEY, RAMP_RATE_KEY]
 
 log = logging.getLogger()
 
@@ -81,16 +65,8 @@ class StateError(Exception):
     pass
 
 
-def monitor_callback(cur, field, ov):
-    d = {k: x for k, x in zip((MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY), (cur, field, ov)) if x}
-    try:
-        redis.store(d, timeseries=True)
-    except RedisError:
-        log.warning('Storing magnet status to redis failed')
-
-
 def compute_initial_state(lakeshore, statefile):
-    # TODO: Check all logic here
+    # TODO: Rework
     initial_state = 'deramping'  # always safe to start here
     redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
     try:
@@ -150,7 +126,7 @@ class MagnetCycleForm(FlaskForm):
     start = SubmitField("Start Cooldown")
     abort = SubmitField("Abort Cooldown")
     cancel_scheduled = SubmitField("Cancel Scheduled Cooldown")
-    soak_current = FloatField("Soak Current (A)", default=9.4, validators=[NumberRange(0,9.4)])
+    soak_current = FloatField("Soak Current (A)", default=7.88, validators=[NumberRange(0, 8.0)])
     soak_time = IntegerField("Soak Time (minutes)", default=30, validators=[NumberRange(0, 240)])
     update = SubmitField("Update")
 
@@ -232,16 +208,7 @@ class MagnetController(LockedMachine):
             # Entering ramping MUST succeed
             State('deramping', on_enter='record_entry'))
 
-        lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=self.initialize_lakeshore)
-        # NB If the settings are manufacturer defaults then the ls625 had a major upset, generally initialize_sim
-        # will not be called
-
-        # Kick off a thread to run forever and just log data into redis
-        lakeshore.monitor(QUERY_INTERVAL, (lakeshore.current, lakeshore.field, lakeshore.output_voltage),
-                          value_callback=monitor_callback)
-
         self.statefile = statefile
-        self.lakeshore = lakeshore
         self.lock = threading.RLock()
         self.scheduled_cooldown = None
         self._run = False  # Set to false to kill the main loop
@@ -251,10 +218,6 @@ class MagnetController(LockedMachine):
         self.state_entry_time = {initial: time.time()}
         LockedMachine.__init__(self, transitions=transitions, initial=initial, states=states, machine_context=self.lock,
                                send_event=True)
-
-        if lakeshore.initialized_at_last_connect:
-            self.firmware_pull()
-            self.set_redis_settings(init_blocked=False)  #allow IO and Redis errors to shut things down.
 
         self.start_main()
 
@@ -269,51 +232,6 @@ class MagnetController(LockedMachine):
         except (RedisError, KeyError) as e:
             raise IOError(e)  # we can't initialize!
 
-    def firmware_pull(self):
-        # Grab and store device info
-        try:
-            info = self.lakeshore.device_info
-            d = {FIRMWARE_KEY: info['firmware'], MODEL_KEY: info['model'], SN_KEY: info['sn']}
-        except IOError as e:
-            log.error(f"When checking device info: {e}")
-            d = {FIRMWARE_KEY: '', MODEL_KEY: '', SN_KEY: ''}
-        try:
-            redis.store(d)
-        except RedisError:
-            log.warning('Storing device info to redis failed')
-
-    def set_redis_settings(self, init_blocked=False):
-        """may raise IOError, if so sim can be in a partially configured state"""
-        try:
-            settings_to_load = redis.read(SETTING_KEYS, error_missing=True)
-        except RedisError:
-            log.critical('Unable to pull settings from redis to initialize ls625')
-            raise
-        except KeyError as e:
-            log.critical('Unable to pull setting {e} from redis to initialize ls625')
-            raise
-
-        blocks = self.BLOCKS[self.state]
-        blocked_init = blocks.intersection(settings_to_load.keys())
-
-        current_settings = {}
-        if blocked_init:
-            if init_blocked:
-                # TODO: Error below? (11 March 2020: Not sure what error we want here, N.S.)
-                for_logging = "\n\t".join(blocked_init)
-                log.warning(f'Initializing \n\t{for_logging}\n despite being blocked by current state.')
-            else:
-                for_logging = "\n\t".join(blocked_init)
-                log.warning(f'Skipping settings \n\t{for_logging}\n as they are blocked by current state.')
-                settings_to_load = {k: v for k, v in settings_to_load if k not in blocks}
-                current_settings = self.lakeshore.read_schema_settings(blocked_init)  #keep redis in sync
-
-        initialized_settings = self.lakeshore.apply_schema_settings(settings_to_load)
-        initialized_settings.update(current_settings)
-        try:
-            redis.store(initialized_settings)
-        except RedisError:
-            log.warning('Storing device settings to redis failed')
 
     def start_main(self):
         self._run = True  # Set to false to kill the main loop
@@ -334,15 +252,6 @@ class MagnetController(LockedMachine):
                 log.info(exc_info=True)
             finally:
                 time.sleep(self.LOOP_INTERVAL)
-
-    def ls_command(self, cmd):
-        """ Directly execute a SimCommand if if possible. May raise IOError or StateError"""
-        with self.lock:
-            if cmd.setting in self.BLOCKS.get(self.state, tuple()):
-                msg = f'Command {cmd} not supported while in state {self.state}'
-                log.error(msg)
-                raise StateError(msg)
-            self.lakeshore.send(cmd.ls_string)
 
     @property
     def min_time_until_cool(self):
@@ -429,8 +338,10 @@ class MagnetController(LockedMachine):
 
     def current_off(self, event):
         try:
-            return self.lakeshore.mode == MagnetState.MANUAL and self.current() <= 0.002
-        except IOError:
+            return redis.read('device-settings:ls625:control-mode') == "Internal" and \
+                   float(redis.read('device-settings:ls625:desired-current')) == 0.0 and \
+                   abs(float(redis.read(MAGNET_CURRENT_KEY)[1])) <= 0.003
+        except RedisError:
             return False
 
     def heatswitch_closed(self, event):
@@ -466,14 +377,22 @@ class MagnetController(LockedMachine):
             return False
 
     def current_ready_to_soak(self, event):
+        # Test if the current is within 2% of the soak value, typically values are WELL within this limit
         try:
-            return self.lakeshore.current() >= float(redis.read(SOAK_CURRENT_KEY))
+            current = float(redis.read(MAGNET_CURRENT_KEY)[1])
+            soak_current = float(redis.read(SOAK_CURRENT_KEY))
+            diff = (current - soak_current) / soak_current
+            return diff <= 0.02
         except RedisError:
             return False
 
     def current_at_soak(self, event):
+        # Test if the current is within 2% of the soak value, typically values are WELL within this limit
         try:
-            return self.lakeshore.current() >= .98 * float(redis.read(SOAK_CURRENT_KEY))
+            current = float(redis.read(MAGNET_CURRENT_KEY)[1])
+            soak_current = float(redis.read(SOAK_CURRENT_KEY))
+            diff = (current - soak_current) / soak_current
+            return diff <= 0.02
         except RedisError:
             return False
 
@@ -490,37 +409,12 @@ class MagnetController(LockedMachine):
         self.lakeshore.mode = MagnetState.MANUAL
 
     def start_current_ramp(self, event):
-        limit = self.lakeshore.MAX_CURRENT
-        try:
-            desired_current = redis.read(SOAK_CURRENT_KEY)
-        except RedisError:
-            log.warning(f"Unable to pull {SOAK_CURRENT_KEY}, using {limit} A")
-            desired_current = limit
-
-        if desired_current > limit:
-            log.info(f"Desired soak current too high, overwriting")
-            try:
-                redis.store({SOAK_CURRENT_KEY: limit})
-            except RedisError:
-                log.info("Overwriting failed")
-
-        if not desired_current:
-            log.warning("No current requested, there cannot be a ramp with no set current")
-
-        try:
-            self.lakeshore.set_desired_current(desired_current)
-            redis.store({'device-settings:ls625:desired-current': desired_current})
-        except IOError:
-            log.warning('Failed to start ramp, lakeshore 625 is offline')
+        # TODO
+        pass
 
     def start_current_deramp(self, event):
-        # TODO: Consider if the best way to do this is send a command to the lakeshore rather
-        #  than a setter. Mostly to make sure that the redis DB stays in sync with everything
-        try:
-            self.lakeshore.set_desired_current(0)
-            redis.store({'device-settings:ls625:desired-current': 0})
-        except IOError:
-            log.warning('Failed to start deramp, lakeshore 625 is offline')
+        # TODO:
+        pass
 
     def ramp_ok(self, event):
         # TODO: Is there a better way to do this?
@@ -568,14 +462,6 @@ class MagnetController(LockedMachine):
         except IOError:
             return False
 
-    def ls_command(self, cmd):
-        """ Directly execute a SimCommand if if possible. May raise IOError or StateError"""
-        with self.lock:
-            if cmd.setting in self.BLOCKS.get(self.state, tuple()):
-                msg = f'Command {cmd} not supported while in state {self.state}'
-                log.error(msg)
-                raise StateError(msg)
-            self.lakeshore.send(cmd.ls_string)
 
     def record_entry(self, event):
         self.state_entry_time[self.state] = time.time()
@@ -586,7 +472,7 @@ class MagnetController(LockedMachine):
 
 if __name__ == "__main__":
     util.setup_logging('lakeshore625Agent')
-    redis.setup_redis(create_ts_keys=TS_KEYS)
+    redis.setup_redis(ts_keys=TS_KEYS)
     MAX_REGULATE_TEMP = 1.50 * float(redis.read(REGULATION_TEMP_KEY))
 
     try:
