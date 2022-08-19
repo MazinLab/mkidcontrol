@@ -1319,6 +1319,7 @@ class LakeShore625(LakeShoreDevice):
                 self.send("XPGM 1")
 
     def kill_current(self):
+        # TODO: Also increase the ramp rate super highly?
         self.send("SETI 0.000")
 
     def stop_ramp(self):
