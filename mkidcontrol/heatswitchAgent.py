@@ -496,12 +496,12 @@ if __name__ == "__main__":
     try:
         hs = HeatswitchMotor('/dev/heatswitch')
         redis.store({STATUS_KEY: "OK"})
+    except RedisError as e:
+        log.error(f"Redis server error! {e}")
+        sys.exit(1)
     except Exception as e:
         log.critical(f"Could not connect to the heatswitch! Error {e}")
         redis.store({STATUS_KEY: f"Error: {e}"})
-        sys.exit(1)
-    except RedisError as e:
-        log.error(f"Redis server error! {e}")
         sys.exit(1)
 
     hs.monitor(QUERY_INTERVAL, (hs.motor_position,), value_callback=monitor_callback)
