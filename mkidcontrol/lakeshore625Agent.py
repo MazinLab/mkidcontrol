@@ -43,13 +43,7 @@ SETTING_KEYS = tuple(COMMANDS625.keys())
 DEVICE = '/dev/ls625'
 VALID_MODELS = ('MODEL625', )
 
-SOAK_TIME_KEY = 'device-settings:ls625:soak-time'
-SOAK_CURRENT_KEY = 'device-settings:ls625:soak-current'
-RAMP_RATE_KEY = 'device-settings:ls625:ramp-rate'
-
 DESIRED_CURRENT_KEY = 'device-settings:ls625:desired-current'
-
-IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY = 'device-settings:ls625:enable-temperature-regulation-upper-limit'
 
 STATUS_KEY = "status:device:ls625:status"
 FIRMWARE_KEY = "status:device:ls625:firmware"
@@ -63,8 +57,6 @@ OUTPUT_VOLTAGE_KEY = 'status:device:ls625:output-voltage'
 TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY]
 
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
-
-LS625KEYS = TS_KEYS + [STATUS_KEY, FIRMWARE_KEY, MODEL_KEY, SN_KEY, SOAK_TIME_KEY, SOAK_CURRENT_KEY, RAMP_RATE_KEY]
 
 
 import wtforms
@@ -85,7 +77,7 @@ class Lakeshore625ControlForm(FlaskForm):
     control_mode = SelectField("Control Mode", choices=list(COMMANDS625['device-settings:ls625:control-mode']['vals'].keys()))
     quench_ramp_rate = FloatField("Quench Ramp Rate (A/s)", default=0.020, validators=[NumberRange(0.01, 10)])
     baud_rate = SelectField("Baud Rate", choices=list(COMMANDS625['device-settings:ls625:baud-rate']['vals'].keys()), render_kw={'disabled': True})
-    current_limit = FloatField("Current Limit", default=9.4, validators=[NumberRange(0, 9.44)])
+    current_limit = FloatField("Current Limit", default=7.88, validators=[NumberRange(0, 8.0)])
     compliance_voltage_limit = FloatField("Comliance Voltage Limit", default=2.5, validators=[NumberRange(0.1, 5.0)])
     rate_limit = FloatField("Ramp Rate Limit (A/s)", default=0.015, validators=[NumberRange(0, 0.050)])
     update = SubmitField("Update")
