@@ -59,6 +59,14 @@ TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY]
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
 
 
+def is_initialized():
+    return redis.read(STATUS_KEY) == "OK"
+
+
+def lakeshore_current():
+    return float(redis.read(MAGNET_CURRENT_KEY)[1])
+
+
 import wtforms
 from wtforms.fields import *
 from wtforms.widgets import HiddenInput

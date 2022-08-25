@@ -23,6 +23,7 @@ import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMANDS625, LakeShoreCommand
 import mkidcontrol.heatswitchAgent as heatswitch
 import mkidcontrol.lakeshore372Agent as ls372
+import mkidcontrol.lakeshore625Agent as ls625
 
 QUERY_INTERVAL = 1
 MAX_PERSISTED_STATE_LIFE_SECONDS = 3600
@@ -65,14 +66,13 @@ class StateError(Exception):
     pass
 
 
-def compute_initial_state(lakeshore, statefile):
+def compute_initial_state(statefile):
     # TODO: Rework
     initial_state = 'deramping'  # always safe to start here
     redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
     try:
-        if lakeshore.initialized_at_last_connect:
-            mag_state = lakeshore.mode
-            if mag_state == MagnetState.PID:
+        if ls625.is_initialized():
+            if ls372.in_pid_output():
                 initial_state = 'regulating'  # NB if HS in wrong position (closed) device won't stay cold and we'll transition to deramping
             else:
                 state_time, persisted_state = load_persisted_state(statefile)
@@ -80,8 +80,8 @@ def compute_initial_state(lakeshore, statefile):
                     return initial_state
                 else:
                     initial_state = persisted_state
-                current = lakeshore.current
-                if initial_state == 'soaking' and (current >= 0.98 * float(redis.read(SOAK_CURRENT_KEY))) and (current <= 1.02 * float(redis.read(SOAK_CURRENT_KEY))):
+                current = ls625.lakeshore_current()
+                if initial_state == 'soaking' and (current >= 0.97 * float(redis.read(SOAK_CURRENT_KEY))) and (current <= 1.03 * float(redis.read(SOAK_CURRENT_KEY))):
                     initial_state = 'ramping'  # we can recover
 
                 # be sure the command is sent
