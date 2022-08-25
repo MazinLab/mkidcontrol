@@ -20,7 +20,7 @@ from mkidcontrol.devices import MagnetState, write_persisted_state, load_persist
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.util as util
 import mkidcontrol.mkidredis as redis
-from mkidcontrol.commands import COMMANDS625, LakeShoreCommand
+from mkidcontrol.commands import LakeShoreCommand, COMMANDSMAGNET
 import mkidcontrol.heatswitchAgent as heatswitch
 import mkidcontrol.lakeshore372Agent as ls372
 import mkidcontrol.lakeshore625Agent as ls625
@@ -28,13 +28,13 @@ import mkidcontrol.lakeshore625Agent as ls625
 QUERY_INTERVAL = 1
 MAX_PERSISTED_STATE_LIFE_SECONDS = 3600
 
-SOAK_TIME_KEY = 'device-settings:ls625:soak-time'
-SOAK_CURRENT_KEY = 'device-settings:ls625:soak-current'
-RAMP_RATE_KEY = 'device-settings:ls625:ramp-rate'
-COOLDOWN_SCHEDULED_KEY = 'device-settings:ls625:cooldown-scheduled'
+SOAK_TIME_KEY = 'device-settings:magnet:soak-time'
+SOAK_CURRENT_KEY = 'device-settings:magnet:soak-current'
+RAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
+COOLDOWN_SCHEDULED_KEY = 'device-settings:magnet:cooldown-scheduled'
 
-IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY = 'device-settings:ls625:enable-temperature-regulation-upper-limit'
-STATEFILE_PATH_KEY = 'device-settings:ls625:statefile'  # /mkidcontrol/mkidcontrol/logs/statefile.txt
+IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY = 'device-settings:magnet:enable-temperature-regulation-upper-limit'
+STATEFILE_PATH_KEY = 'device-settings:magnet:statefile'  # /mkidcontrol/mkidcontrol/logs/statefile.txt
 
 STOP_RAMP_KEY = 'command:device-settings:ls625:stop-current-ramp'
 COLD_AT_CMD = 'be-cold-at'
@@ -126,7 +126,7 @@ class MagnetCycleForm(FlaskForm):
     start = SubmitField("Start Cooldown")
     abort = SubmitField("Abort Cooldown")
     cancel_scheduled = SubmitField("Cancel Scheduled Cooldown")
-    soak_current = FloatField("Soak Current (A)", default=7.88, validators=[NumberRange(0, 8.0)])
+    soak_current = FloatField("Soak Current (A)", default=7.88, validators=[NumberRange(0, 10.0)])
     soak_time = IntegerField("Soak Time (minutes)", default=30, validators=[NumberRange(0, 240)])
     update = SubmitField("Update")
 
