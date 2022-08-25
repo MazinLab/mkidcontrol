@@ -12,6 +12,7 @@ REDIS_DB = 0
 
 REDIS_TS_RETENTION = 60 * 60 * 1000  # 30 min
 
+#TODO: Concatenate all ts keys
 REDIS_TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
                  'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
                  'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current',
