@@ -53,10 +53,11 @@ SN_KEY = 'status:device:ls625:sn'
 MAGNET_CURRENT_KEY = 'status:magnet:current'
 MAGNET_FIELD_KEY = 'status:magnet:field'
 OUTPUT_VOLTAGE_KEY = 'status:device:ls625:output-voltage'
+STOP_RAMP_KEY = 'device-settings:ls625:stop-current-ramp'
 
 TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY]
 
-COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
+COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS + (STOP_RAMP_KEY, )]
 
 
 def is_initialized():
@@ -186,6 +187,14 @@ if __name__ == "__main__":
                         lakeshore.send(cmd.ls_string)
                         redis.store({cmd.setting: cmd.value})
                         redis.store({STATUS_KEY: "OK"})
+                    except IOError as e:
+                        redis.store({STATUS_KEY: f"Error {e}"})
+                        log.error(f"Comm error: {e}")
+                elif key == STOP_RAMP_KEY:
+                    try:
+                        log.info(f"Processing stop ramp command!")
+                        lakeshore.stop_ramp()
+                        log.warning(f"Ramp is stopped, current will remain unchanged until a new current is selected")
                     except IOError as e:
                         redis.store({STATUS_KEY: f"Error {e}"})
                         log.error(f"Comm error: {e}")
