@@ -470,11 +470,21 @@ COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {'O
 CALIBRATION_CURVE = 1
 
 # COMMANDS MAGNET are only included so that we can use the SimCommand class to check the legality of a magnet command.
-COMMANDSMAGNET = {'device-settings:sim960:ramp-rate': {'command': '', 'vals': [0, 0.015]},
-                  'device-settings:sim960:deramp-rate': {'command': '', 'vals': [-0.015, 0]},
-                  'device-settings:sim960:soak-time': {'command': '', 'vals': [0, np.inf]},
-                  'device-settings:sim960:soak-current': {'command': '', 'vals': [0, 9.4]},
-                  'device-settings:mkidarray:regulating-temp': {'command': '', 'vals': load_tvals(CALIBRATION_CURVE)}}
+# COMMANDSMAGNET = {'device-settings:sim960:ramp-rate': {'command': '', 'vals': [0, 0.015]},
+#                   'device-settings:sim960:deramp-rate': {'command': '', 'vals': [-0.015, 0]},
+#                   'device-settings:sim960:soak-time': {'command': '', 'vals': [0, np.inf]},
+#                   'device-settings:sim960:soak-current': {'command': '', 'vals': [0, 9.4]},
+#                   'device-settings:mkidarray:regulating-temp': {'command': '', 'vals': load_tvals(CALIBRATION_CURVE)}}
+
+
+# COMMANDSMAGNET
+COMMANDSMAGNET = {'device-settings:magnet:ramp-rate': {'command': '', 'vals': [0, 0.050]},
+                  'device-settings:magnet:deramp-rate': {'command': '', 'vals': [-0.050, 0]},
+                  'device-settings:magnet:soak-time': {'command': '', 'vals': [0, np.inf]},
+                  'device-settings:magnet:soak-current': {'command': '', 'vals': [0, 10.0]},
+                  'device-settings:mkidarray:regulating-temp': {'command': '', 'vals': [0, 4]}}
+
+
 
 # ---- Full command dict ----
 COMMAND_DICT = {}
@@ -482,5 +492,6 @@ COMMAND_DICT.update(COMMANDS336)
 COMMAND_DICT.update(COMMANDS372)
 # COMMAND_DICT.update(COMMANDS960)
 # COMMAND_DICT.update(COMMANDS921)
+COMMAND_DICT.update(COMMANDSMAGNET)
 COMMAND_DICT.update(COMMANDSHS)
 COMMAND_DICT.update(COMMANDS625)
