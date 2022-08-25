@@ -74,7 +74,7 @@ def open():
 
 
 def is_opened():
-    return redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENED
+    return redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENED or (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENING and float(redis.read(MOTOR_POS)[1]) <= FULL_CLOSE_POSITION/2)
 
 
 def is_closed():
