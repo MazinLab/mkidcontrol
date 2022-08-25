@@ -1319,7 +1319,17 @@ class LakeShore625(LakeShoreDevice):
                 self.send("XPGM 1")
 
     def kill_current(self):
-        # TODO: Also increase the ramp rate super highly?
+        """
+        Commands the lakeshore 625 to have a preposterously high ramp rate, then sets the current to 0A
+        Until we can verify the safety of this, it has the same effect as the zero_current() function
+        """
+        # self.send("RATE 10")  # TODO: This requires more handholding where the rate limit value is also changed
+        self.send("SETI 0.000")
+
+    def zero_current(self):
+        """
+        Sends a command to the lakeshore 625 to set its current back to 0A
+        """
         self.send("SETI 0.000")
 
     def stop_ramp(self):
