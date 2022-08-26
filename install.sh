@@ -42,6 +42,11 @@ conda config --add channels conda-forge
 conda install pip
 #conda install pip3
 
+# Clone the MKID Control Repo and create the mkidcontrol environment
+git clone https://github.com/MazinLab/mkidcontrol.git ~/mkidcontrol
+cd ~/mkidcontrol
+conda env create -f conda.yml
+
 # Install redis server (NOTE: This will install the redis server, but will not configure it. The configuration will be
 # done when installing the mkidcontrol repo and the custom redis config is moved to the proper location.)
 sudo apt install redis-server
@@ -61,11 +66,6 @@ sudo cp bin/redistimeseries.so /usr/local/lib/redistimeseries.so
 sudo npm install -g redis-commander
 
 pip3 install redistimeseries redis
-
-# Clone the MKID Control Repo and create the mkidcontrol environment
-git clone https://github.com/MazinLab/mkidcontrol.git ~/mkidcontrol
-cd ~/mkidcontrol
-conda env create -f conda.yml
 
 # Make sure all necessary repositories are installed
 #git clone https://github.com/MazinLab/mkidcore.git ~/src/mkidcore
@@ -117,11 +117,11 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 
 # Get flask up and running to start (this can be added to the .zshrc file for ease and permanence)
+# TODO: Get flask set up and running in a production FLASK_ENV
 export FLASK_APP=/home/kids/mkidcontrol/mkidcontrol/controlflask/mkidDirector.py
-export FLASK_ENV=develop
+export FLASK_ENV=develop # TODO: It may be good enough to just use FLASK_ENV=production instead of a whole WSGI setup
 flask db init
 
-# TODO: Get flask set up and running
 
 cp ~/mkidcontrol/bin/mkid-service-control ~/.local/bin/
 # Manually do the following
