@@ -479,7 +479,7 @@ CALIBRATION_CURVE = 1
 
 # COMMANDSMAGNET
 COMMANDSMAGNET = {'device-settings:magnet:ramp-rate': {'command': '', 'vals': [0, 0.050]},
-                  'device-settings:magnet:deramp-rate': {'command': '', 'vals': [-0.050, 0]},
+                  'device-settings:magnet:deramp-rate': {'command': '', 'vals': [0, 0.050]},
                   'device-settings:magnet:soak-time': {'command': '', 'vals': [0, np.inf]},
                   'device-settings:magnet:soak-current': {'command': '', 'vals': [0, 10.0]},
                   'device-settings:mkidarray:regulating-temp': {'command': '', 'vals': [0, 4]}}
