@@ -1,4 +1,3 @@
-import os
 import subprocess
 from datetime import datetime
 import plotly.graph_objects as go
@@ -9,40 +8,30 @@ from mkidcontrol.util import setup_logging
 from mkidcontrol.util import get_service as mkidcontrol_service
 from mkidcontrol.util import get_services as mkidcontrol_services
 
-import numpy as np
-import flask
-from flask import render_template, flash, redirect, url_for, request, g, \
-    jsonify, current_app, Response, copy_current_request_context
+from flask import render_template, flash, redirect, url_for, g, \
+    jsonify, current_app, Response
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
-from flask_wtf import FlaskForm
 
 from .. import db
 # from .forms import *
-from ..models import User, Post, Message, Notification
+from ..models import Notification
 from . import bp
 from .helpers import *
 from ..api.errors import bad_request
-import time, json, threading
+import time
 import plotly
 from datetime import timedelta
 import datetime
 import json
 from rq.job import Job, NoSuchJobError
-import pytz
 import select
 
-from mkidcontrol.controlflask.config import Config
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMAND_DICT, SimCommand
 from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
 
 # TODO: Follow something similar to pipeline.py in mkidpipeline for smarter importation of big blocks of stuff like below
-from mkidcontrol.sim960Agent import SIM960_KEYS
-from mkidcontrol.sim921Agent import SIM921_KEYS
-from mkidcontrol.lakeshore240Agent import LAKESHORE240_KEYS
-from mkidcontrol.hemttempAgent import HEMTTEMP_KEYS
-from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
 from .forms import *
 
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
@@ -137,8 +126,8 @@ def index():
     except KeyError:
         return flash(f"Redis keys are missing!")
 
-    from mkidcontrol.magnetAgent import MagnetCycleForm, ScheduleForm
-    from mkidcontrol.heatswitchAgent import HeatSwitchForm2
+    from mkidcontrol.agents.xkid.magnetAgent import MagnetCycleForm, ScheduleForm
+    from mkidcontrol.agents.xkid.heatswitchAgent import HeatSwitchForm2
     magnetform = MagnetCycleForm()
     schedule = ScheduleForm()
     hsform = HeatSwitchForm2()
@@ -221,8 +210,8 @@ def heater(device, channel):
             time.sleep(0.15)
 
     if device == "ls372":
-        from ....lakeshore372Agent import OutputHeaterForm, DisabledOutputHeaterForm
-        from ....commands import LS372HeaterOutput, ALLOWED_372_OUTPUT_CHANNELS
+        from mkidcontrol.agents.lakeshore372Agent import OutputHeaterForm
+        from ....commands import LS372HeaterOutput
         heater = LS372HeaterOutput(channel, redis)
 
         if channel == "0":
@@ -265,8 +254,8 @@ def thermometry(device, channel):
             time.sleep(.15)
 
     if device == 'ls336':
-        from ....lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
-        from ....commands import LS336InputSensor, ALLOWED_336_CHANNELS
+        from mkidcontrol.agents.lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
+        from ....commands import LS336InputSensor
 
         sensor = LS336InputSensor(channel=channel, redis=redis)
         if sensor.sensor_type == "NTC RTD":
@@ -277,7 +266,7 @@ def thermometry(device, channel):
             form = DisabledInputForm(**vars(sensor))
     elif device == 'ls372':
         # TODO: Not all fields are being properly filled out (Delay, Pause, etc.)
-        from ....lakeshore372Agent import ControlSensorForm, InputSensorForm
+        from mkidcontrol.agents.lakeshore372Agent import ControlSensorForm, InputSensorForm
         from ....commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS
         sensor = LS372InputSensor(channel=channel, redis=redis)
         # TODO: Enable/disable
@@ -294,7 +283,7 @@ def thermometry(device, channel):
 @bp.route('/ls625', methods=['POST', 'GET'])
 # @login_required
 def ls625():
-    from ....lakeshore625Agent import Lakeshore625ControlForm
+    from mkidcontrol.agents.lakeshore625Agent import Lakeshore625ControlForm
     from ....commands import LakeShoreCommand, LS625MagnetSettings
 
     ls625settings = LS625MagnetSettings(redis)
@@ -320,7 +309,7 @@ def ls625():
 @bp.route('/heatswitch/<mode>', methods=['POST', 'GET'])
 # @login_required
 def heatswitch(mode):
-    from ....heatswitchAgent import HeatSwitchForm, HeatSwitchEngineeringModeForm
+    from mkidcontrol.agents.xkid.heatswitchAgent import HeatSwitchForm, HeatSwitchEngineeringModeForm
     if request.method == "POST":
         print(f"Form: {request.form}")
         for key in request.form.keys():

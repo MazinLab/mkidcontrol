@@ -1,6 +1,4 @@
 import logging
-from logging.handlers import SMTPHandler, RotatingFileHandler
-import os
 from flask import Flask, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -12,15 +10,12 @@ from flask_babel import Babel, lazy_gettext as _l
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.util import setup_logging
 import threading
-import rq
-import rq_scheduler
 import queue
-import numpy as np
-from mkidcontrol.heatswitchAgent import TS_KEYS as TS_KEYS_hs
-from mkidcontrol.lakeshore336Agent import TS_KEYS as TS_KEYS_ls336
-from mkidcontrol.lakeshore372Agent import TS_KEYS as TS_KEYS_ls372
-from mkidcontrol.lakeshore625Agent import TS_KEYS as TS_KEYS_ls625
-from mkidcontrol.magnetAgent import TS_KEYS as TS_KEYS_magnet
+from mkidcontrol.agents.xkid.heatswitchAgent import TS_KEYS as TS_KEYS_hs
+from mkidcontrol.agents.lakeshore336Agent import TS_KEYS as TS_KEYS_ls336
+from mkidcontrol.agents.lakeshore372Agent import TS_KEYS as TS_KEYS_ls372
+from mkidcontrol.agents.lakeshore625Agent import TS_KEYS as TS_KEYS_ls625
+from mkidcontrol.agents.xkid.magnetAgent import TS_KEYS as TS_KEYS_magnet
 # try:
 from ...config import Config
 # from ...config import schema_keys
@@ -56,7 +51,6 @@ class MessageAnnouncer:
     def announce(self, msg):
         # We go in reverse order because we might have to delete an element, which will shift the
         # indices backward
-        from logging import getLogger
         # getLogger(__name__).info(f'Announcing {msg}')
         for i in reversed(range(len(self.listeners))):
             try:
@@ -66,7 +60,7 @@ class MessageAnnouncer:
 
 
 def datagen(redis, announcer):
-    import json, time
+    import json
     for k, v in redis.listen(schema_keys()):
 
         event = 'update'

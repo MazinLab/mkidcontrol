@@ -12,18 +12,18 @@ import logging
 import threading
 from datetime import datetime, timedelta
 from collections import defaultdict
-from transitions import MachineError, State, Transition
+from transitions import MachineError, State
 from transitions.extensions import LockedMachine
 import pkg_resources
 
-from mkidcontrol.devices import MagnetState, write_persisted_state, load_persisted_state
+from mkidcontrol.devices import write_persisted_state, load_persisted_state
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.util as util
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import LakeShoreCommand, COMMANDSMAGNET
-import mkidcontrol.heatswitchAgent as heatswitch
-import mkidcontrol.lakeshore372Agent as ls372
-import mkidcontrol.lakeshore625Agent as ls625
+import mkidcontrol.agents.xkid.heatswitchAgent as heatswitch
+import mkidcontrol.agents.lakeshore372Agent as ls372
+import mkidcontrol.agents.lakeshore625Agent as ls625
 
 QUERY_INTERVAL = 1
 MAX_PERSISTED_STATE_LIFE_SECONDS = 3600
@@ -111,14 +111,10 @@ def compute_initial_state(statefile):
     return initial_state
 
 
-import wtforms
 from wtforms.fields import *
-from wtforms.widgets import HiddenInput
 from wtforms.fields.html5 import *
 from wtforms.validators import *
-from wtforms import Form
 from flask_wtf import FlaskForm
-from serial import SerialException
 
 
 class ScheduleForm(FlaskForm):

@@ -10,7 +10,7 @@ from logging import getLogger
 import time
 from datetime import datetime, timedelta
 import threading
-from transitions import MachineError, State, Transition
+from transitions import MachineError, State
 from transitions.extensions import LockedMachine
 import pkg_resources
 
@@ -19,8 +19,8 @@ from mkidcontrol.devices import SIM960, MagnetState
 from mkidcontrol.commands import COMMANDS960, SimCommand
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.mkidredis import RedisError
-import mkidcontrol.currentduinoAgent as heatswitch
-import mkidcontrol.sim921Agent as sim921
+import mkidcontrol.agents.picturec.currentduinoAgent as heatswitch
+import mkidcontrol.agents.picturec.sim921Agent as sim921
 
 
 DEVICE = '/dev/sim960'
