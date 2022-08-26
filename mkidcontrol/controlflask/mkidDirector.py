@@ -7,6 +7,8 @@ TODO: Incorporate power on/off into the monitoring/control panel
  - Related: Fix errors if redis range is empty (i.e. no values reported since the device was off)
 
 TODO (FOR ALL DEVICES): Enable graceful power on/off handling (i.e. don't error out if device is purposely switched off)
+
+Note to the user, the actual body of the app and the stuff that makes everything 'go' is in /mkidcontrol/controlflask/app/
 """
 from .app import create_app, db, cli
 from .app.models import User, Post, Message, Notification, Task
