@@ -127,6 +127,7 @@ class ScheduleForm(FlaskForm):
 
 
 class MagnetCycleForm(FlaskForm):
+    # TODO: Ramp dropdown (standard ramp/fast ramp/custom ramp?)
     # TODO: make validators a function of the limits? We can just read them in from redis with no issue
     # TODO: ensure these are all the things we want from the magnet cycle. (Include scheduling here too?)
     start = SubmitField("Start Cooldown")
