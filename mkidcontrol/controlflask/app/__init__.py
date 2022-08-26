@@ -85,6 +85,7 @@ def datagen(redis, announcer):
 
 
 def create_app(config_class=Config):
+    # TODO: Login db stuff and mail stuff can reasonably go
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -112,6 +113,7 @@ def create_app(config_class=Config):
     from .main import bp as main_bp
     app.register_blueprint(main_bp)
 
+    # TODO: Axe if not used, a half finished feature is worse than not having it at all. If we don't need
     from .api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
 
