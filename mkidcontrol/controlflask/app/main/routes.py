@@ -37,6 +37,7 @@ import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMAND_DICT, SimCommand
 from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
 
+# TODO: Follow something similar to pipeline.py in mkidpipeline for smarter importation of big blocks of stuff like below
 from mkidcontrol.sim960Agent import SIM960_KEYS
 from mkidcontrol.sim921Agent import SIM921_KEYS
 from mkidcontrol.lakeshore240Agent import LAKESHORE240_KEYS
@@ -44,11 +45,20 @@ from mkidcontrol.hemttempAgent import HEMTTEMP_KEYS
 from mkidcontrol.currentduinoAgent import CURRENTDUINO_KEYS
 from .forms import *
 
+# TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
+#  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
+
 # TODO: Turn all graphs/plots into plotly graph objects
 
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
 
+# TODO: MUST TEST FOR CONCURRENCY ISSUES (Controlling the instrument from multiple tabs, does it work, does it stay in sync?)
 
+# TODO: Work with auto-discovery where possible (for keys/programs/etc)
+
+# TODO: Rework sidebar, no need for 'ok' statuses or 'enabled' for services, just flash an error along the top of screen
+
+# TODO: Move all these key definitions to config.py where all the other redis db and key stuff lives
 CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
               'Device R': 'status:temps:device-stage:resistance',
               '1k Stage T': 'status:temps:1k-stage:temp',
@@ -66,6 +76,7 @@ DERAMP_SLOPE_KEY = 'device-settings:sim960:deramp-rate'
 SOAK_TIME_KEY = 'device-settings:sim960:soak-time'
 SOAK_CURRENT_KEY = 'device-settings:sim960:soak-current'
 
+# TODO: status:*:status is not super useful, consider renaming
 KEYS = list(COMMAND_DICT.keys()) + list(TS_KEYS) + ['status:device:heatswitch:position',
                                                     'status:device:ls336:status',
                                                     'status:device:ls372:status',
@@ -102,6 +113,7 @@ def add_header(response):
 
 
 class ObsControlForm(FlaskForm):
+    # TODO more clearly name buttons and talk about their functionality, also space them better
     start_stop = SubmitField("Start")
     wavecal = SubmitField("Wavecal")
     flat = SubmitField("Take Flat")
