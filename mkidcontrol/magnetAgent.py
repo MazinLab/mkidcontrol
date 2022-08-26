@@ -71,7 +71,7 @@ class StateError(Exception):
 
 
 def compute_initial_state(statefile):
-    # TODO: Rework
+    # TODO: Check legality and test funtions
     initial_state = 'deramping'  # always safe to start here
     redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
     try:
@@ -127,15 +127,20 @@ class ScheduleForm(FlaskForm):
 
 
 class MagnetCycleForm(FlaskForm):
+    # TODO: make validators a function of the limits? We can just read them in from redis with no issue
+    # TODO: ensure these are all the things we want from the magnet cycle. (Include scheduling here too?)
     start = SubmitField("Start Cooldown")
     abort = SubmitField("Abort Cooldown")
     cancel_scheduled = SubmitField("Cancel Scheduled Cooldown")
     soak_current = FloatField("Soak Current (A)", default=7.88, validators=[NumberRange(0, 10.0)])
     soak_time = IntegerField("Soak Time (minutes)", default=30, validators=[NumberRange(0, 240)])
+    ramp_rate = FloatField("Ramp rate (A/s)", default=0.015, validators=[NumberRange(0, 0.100)])
+    deramp_rate = FloatField("Deramp rate (A/s)", default=0.020, validators=[NumberRange(0, 0.100)])
     update = SubmitField("Update")
 
 
 class MagnetController(LockedMachine):
+
     LOOP_INTERVAL = 1
     BLOCKS = defaultdict(set)  # This holds the ls625 commands that are blocked out in a given state i.e.
                                #  'regulating':('device-settings:ls625:setpoint-mode',)

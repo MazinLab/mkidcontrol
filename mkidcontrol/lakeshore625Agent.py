@@ -104,10 +104,12 @@ def start_cycle_ramp(current=None):
     redis.publish(DESIRED_CURRENT_KEY, current)
 
 
-def start_cycle_deramp():
+def start_cycle_deramp(current=None):
     ramp_rate = redis.read(CYCLE_DERAMP_RATE_KEY)
     redis.publish(RAMP_RATE_KEY, ramp_rate)
-    redis.publish(DESIRED_CURRENT_KEY, 0)
+    if current is None:
+        current = 0
+    redis.publish(DESIRED_CURRENT_KEY, current)
 
 
 import wtforms
