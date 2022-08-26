@@ -9,6 +9,7 @@ After=redis-server.service
 [Install]
 WantedBy=multi-user.target
 
+# TODO: This won't run as is, we need to run 'flask run' (or some equivalent)
 [Service]
 Type=simple
 ExecStart=/home/mazinlab/anaconda3/envs/control/bin/mkidDirector.py
