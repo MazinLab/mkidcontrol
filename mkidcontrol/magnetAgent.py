@@ -28,9 +28,12 @@ import mkidcontrol.lakeshore625Agent as ls625
 QUERY_INTERVAL = 1
 MAX_PERSISTED_STATE_LIFE_SECONDS = 3600
 
+SETTING_KEYS = tuple(COMMANDSMAGNET.keys())
+
 SOAK_TIME_KEY = 'device-settings:magnet:soak-time'
 SOAK_CURRENT_KEY = 'device-settings:magnet:soak-current'
 RAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
+DERAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
 COOLDOWN_SCHEDULED_KEY = 'device-settings:magnet:cooldown-scheduled'
 
 IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY = 'device-settings:magnet:enable-temperature-regulation-upper-limit'
@@ -48,11 +51,12 @@ MAGNET_COMMAND_KEYS = (COLD_AT_CMD, COLD_NOW_CMD, ABORT_CMD, CANCEL_COOLDOWN_CMD
 MAGNET_STATE_KEY = 'status:magnet:state'  # OFF | RAMPING | SOAKING | QUENCH (DON'T QUENCH!)
 MAGNET_CURRENT_KEY = 'status:magnet:current'
 MAGNET_FIELD_KEY = 'status:magnet:field'
+CONTROLLER_STATUS_KEY = 'status:magnet:status'
 OUTPUT_VOLTAGE_KEY = 'status:device:ls625:output-voltage'
 
 TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY]
 
-COMMAND_KEYS = [f"command:{k}" for k in MAGNET_COMMAND_KEYS]
+COMMAND_KEYS = [f"command:{k}" for k in MAGNET_COMMAND_KEYS + SETTING_KEYS]
 
 DEVICE_TEMP_KEY = 'status:temps:device-stage:temp'
 REGULATION_TEMP_KEY = "device-settings:device-stage:regulating-temp"
@@ -377,55 +381,74 @@ class MagnetController(LockedMachine):
             return False
 
     def current_ready_to_soak(self, event):
-        # Test if the current is within 2% of the soak value, typically values are WELL within this limit
+        # Test if the current is within 3% of the soak value, typically values are WELL within this limit
         try:
             current = float(redis.read(MAGNET_CURRENT_KEY)[1])
             soak_current = float(redis.read(SOAK_CURRENT_KEY))
             diff = (current - soak_current) / soak_current
-            return diff <= 0.02
+            return diff <= 0.03
         except RedisError:
             return False
 
     def current_at_soak(self, event):
-        # Test if the current is within 2% of the soak value, typically values are WELL within this limit
+        # Test if the current is within 3% of the soak value, typically values are WELL within this limit
         try:
             current = float(redis.read(MAGNET_CURRENT_KEY)[1])
             soak_current = float(redis.read(SOAK_CURRENT_KEY))
             diff = (current - soak_current) / soak_current
-            return diff <= 0.02
+            return diff <= 0.03
         except RedisError:
             return False
 
     def in_pid_mode(self, event):
-        return self.lakeshore.mode == MagnetState.PID
+        try:
+            return ls625.in_pid_mode()
+        except RedisError:
+            return False
 
     def to_pid_mode(self, event):
-        self.lakeshore.mode = MagnetState.PID
+        try:
+            ls625.to_pid_mode()
+        except RedisError:
+            return False
 
     def in_manual_mode(self, event):
-        return self.lakeshore.mode == MagnetState.MANUAL
+        try:
+            return ls625.in_manual_mode()
+        except RedisError:
+            return False
 
     def to_manual_mode(self, event):
-        self.lakeshore.mode = MagnetState.MANUAL
+        try:
+            ls625.to_manual_mode()
+        except RedisError:
+            return False
 
     def start_current_ramp(self, event):
-        # TODO
-        pass
+        try:
+            ls625.start_cycle_ramp()
+        except RedisError:
+            return False
 
     def start_current_deramp(self, event):
-        # TODO:
-        pass
+        try:
+            ls625.start_cycle_deramp()
+        except RedisError:
+            return False
 
     def ramp_ok(self, event):
-        # TODO: Is there a better way to do this?
-        if self.state == 'ramping' and self.lakeshore.last_current_read >= 0 and self.lakeshore.last_current_read <= redis.read(SOAK_CURRENT_KEY):
+        # TODO
+
+        # if self.state == 'ramping' and self.lakeshore.last_current_read >= 0 and self.lakeshore.last_current_read <= redis.read(SOAK_CURRENT_KEY):
+        if self.state == 'ramping':
             return True
         else:
             return False
 
     def deramp_ok(self, event):
         # TODO
-        if self.state == 'deramping' and self.lakeshore.last_current_read >= 0 and self.lakeshore.last_current_read <= redis.read(SOAK_CURRENT_KEY):
+        # if self.state == 'deramping' and self.lakeshore.last_current_read >= 0 and self.lakeshore.last_current_read <= redis.read(SOAK_CURRENT_KEY):
+        if self.state == 'deramping':
             return True
         else:
             return False
@@ -457,11 +480,10 @@ class MagnetController(LockedMachine):
     def kill_current(self, event):
         """Kill the current if possible, return False if fail"""
         try:
-            self.lakeshore.kill_current()
+            ls625.kill_current()
             return True
         except IOError:
             return False
-
 
     def record_entry(self, event):
         self.state_entry_time[self.state] = time.time()
@@ -528,7 +550,7 @@ if __name__ == "__main__":
                         pass
                 else:
                     log.info(f'Ignoring {key}:{val}')
-                redis.store({STATUS_KEY: controller.status})
+                redis.store({CONTROLLER_STATUS_KEY: controller.status})
 
     except RedisError as e:
         log.critical(f"Redis server error! {e}", exc_info=True)

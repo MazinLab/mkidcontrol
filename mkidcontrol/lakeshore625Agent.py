@@ -44,6 +44,7 @@ DEVICE = '/dev/ls625'
 VALID_MODELS = ('MODEL625', )
 
 DESIRED_CURRENT_KEY = 'device-settings:ls625:desired-current'
+RAMP_RATE_KEY = 'device-settings:ls625:ramp-rate'
 
 STATUS_KEY = "status:device:ls625:status"
 FIRMWARE_KEY = "status:device:ls625:firmware"
@@ -53,12 +54,19 @@ SN_KEY = 'status:device:ls625:sn'
 MAGNET_CURRENT_KEY = 'status:magnet:current'
 MAGNET_FIELD_KEY = 'status:magnet:field'
 OUTPUT_VOLTAGE_KEY = 'status:device:ls625:output-voltage'
+
 STOP_RAMP_KEY = 'device-settings:ls625:stop-current-ramp'
+KILL_CURRENT_KEY = 'device-settings:ls625:stop-current-ramp'
 
 TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY]
 
-COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS + (STOP_RAMP_KEY, )]
+COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS + (STOP_RAMP_KEY, KILL_CURRENT_KEY)]
 
+OUTPUT_MODE_KEY = 'device-settings:ls625:control-mode'
+OUTPUT_MODE_COMMAND_KEY = f"command:{OUTPUT_MODE_KEY}"
+SOAK_CURRENT_KEY = 'device-settings:magnet:soak-current'
+CYCLE_RAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
+CYCLE_DERAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
 
 def is_initialized():
     return redis.read(STATUS_KEY) == "OK"
@@ -66,6 +74,40 @@ def is_initialized():
 
 def lakeshore_current():
     return float(redis.read(MAGNET_CURRENT_KEY)[1])
+
+
+def kill_current():
+    redis.publish(f"command:{KILL_CURRENT_KEY}", 0)
+
+
+def in_pid_mode():
+    return redis.read(OUTPUT_MODE_KEY) == "External"
+
+
+def in_manual_mode():
+    return redis.read(OUTPUT_MODE_KEY) == "Internal"
+
+
+def to_pid_mode():
+    redis.publish(OUTPUT_MODE_COMMAND_KEY, "External")
+
+
+def to_manual_mode():
+    redis.publish(OUTPUT_MODE_COMMAND_KEY, "Internal")
+
+
+def start_cycle_ramp(current=None):
+    ramp_rate = redis.read(CYCLE_RAMP_RATE_KEY)
+    redis.publish(RAMP_RATE_KEY, ramp_rate)
+    if current is None:
+        current = float(redis.read(SOAK_CURRENT_KEY))
+    redis.publish(DESIRED_CURRENT_KEY, current)
+
+
+def start_cycle_deramp():
+    ramp_rate = redis.read(CYCLE_DERAMP_RATE_KEY)
+    redis.publish(RAMP_RATE_KEY, ramp_rate)
+    redis.publish(DESIRED_CURRENT_KEY, 0)
 
 
 import wtforms
@@ -195,6 +237,14 @@ if __name__ == "__main__":
                         log.info(f"Processing stop ramp command!")
                         lakeshore.stop_ramp()
                         log.warning(f"Ramp is stopped, current will remain unchanged until a new current is selected")
+                    except IOError as e:
+                        redis.store({STATUS_KEY: f"Error {e}"})
+                        log.error(f"Comm error: {e}")
+                elif key == KILL_CURRENT_KEY:
+                    try:
+                        log.info(f"Killing current from lakeshore 625!")
+                        lakeshore.kill_current()
+                        log.warning(f"Current is being killed")
                     except IOError as e:
                         redis.store({STATUS_KEY: f"Error {e}"})
                         log.error(f"Comm error: {e}")
