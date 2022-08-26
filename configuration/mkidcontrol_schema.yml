@@ -125,7 +125,7 @@ device-settings:
     soak-current: 9.4
     cooldown-scheduled: 'no'
     enable-temperature-regulation-upper-limit: 'on'
-    statefile: '/pictrec/picturec/logs/statefile.txt'
+    statefile: '/mkidcontrol/mkidcontrol/logs/statefile.txt'
 
 command:
   be-cold-at: 0000000000
@@ -138,7 +138,7 @@ command:
 site:
   observatory: 'Las Campanas Observatory'
   telescope: 'Magellan Clay 6.5-m'
-  instrument: 'MagAO-X+PICTURE-C'
+  instrument: 'XKID'
   lat: -29.00'54"
   long: -70.41'30"
   elevation: 2516
