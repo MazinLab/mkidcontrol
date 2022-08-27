@@ -318,7 +318,6 @@ LS372_CURVE_COEFFICIENTS = {key: val.value for key, val in zip(['Negative', 'Pos
 LS372_INPUT_SENSOR_RANGE = {}
 LS372_INPUT_SENSOR_RANGE.update(LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE)
 LS372_INPUT_SENSOR_RANGE.update(LS372_MEASUREMENT_INPUT_CURRENT_RANGE)
-LS372_INPUT_SENSOR_RANGE.update(LS372_CONTROL_INPUT_CURRENT_RANGE)
 
 
 class LS372InputSensor:
@@ -362,7 +361,8 @@ class LS372HeaterOutput:
 COMMANDS372 = {}
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:name': {'command': 'INNAME', 'vals': ''} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:mode': {'command': 'INTYPE', 'vals': LS372_SENSOR_MODE} for ch in ALLOWED_372_INPUT_CHANNELS})
-COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:excitation-range': {'command': 'INTYPE', 'vals': LS372_INPUT_SENSOR_RANGE} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:excitation-range': {'command': 'INTYPE', 'vals': LS372_INPUT_SENSOR_RANGE} for ch in ALLOWED_372_INPUT_CHANNELS[1:]})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:excitation-range': {'command': 'INTYPE', 'vals': LS372_CONTROL_INPUT_CURRENT_RANGE} for ch in ALLOWED_372_INPUT_CHANNELS[0]})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:auto-range': {'command': 'INTYPE', 'vals': LS372_AUTORANGE_VALUES} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:current-source-shunted': {'command': 'INTYPE', 'vals': LS372_CURRENT_SOURCE_SHUNTED_VALUES} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:units': {'command': 'INTYPE', 'vals': LS372_INPUT_SENSOR_UNITS} for ch in ALLOWED_372_INPUT_CHANNELS})
