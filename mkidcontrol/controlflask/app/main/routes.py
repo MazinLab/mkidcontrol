@@ -46,6 +46,7 @@ from .forms import *
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
 
 # TODO: Rework sidebar, no need for 'ok' statuses or 'enabled' for services, just flash an error along the top of screen
+#  Maybe make it so it can pop up from the side
 
 # TODO: Move all these key definitions to config.py where all the other redis db and key stuff lives
 CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
