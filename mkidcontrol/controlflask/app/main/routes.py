@@ -266,7 +266,6 @@ def thermometry(device, channel):
         elif sensor.sensor_type == "Disabled":
             form = DisabledInputForm(**vars(sensor))
     elif device == 'ls372':
-        # TODO: Not all fields are being properly filled out (Delay, Pause, etc.)
         from mkidcontrol.agents.lakeshore372Agent import ControlSensorForm, InputSensorForm
         from ....commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS
         sensor = LS372InputSensor(channel=channel, redis=redis)

@@ -333,8 +333,8 @@ class LS372InputSensor:
         self.units = values[f'device-settings:ls372:input-channel-{channel.lower()}:units']
         self.resistance_range = values[f'device-settings:ls372:input-channel-{channel.lower()}:resistance-range']
         self.enable = values[f'device-settings:ls372:input-channel-{channel.lower()}:enable']
-        self.dwell_time = values[f'device-settings:ls372:input-channel-{channel.lower()}:dwell-time']
-        self.pause_time = values[f'device-settings:ls372:input-channel-{channel.lower()}:pause-time']
+        self.dwell_time = float(values[f'device-settings:ls372:input-channel-{channel.lower()}:dwell-time'])
+        self.pause_time = float(values[f'device-settings:ls372:input-channel-{channel.lower()}:pause-time'])
         self.curve_number = values[f'device-settings:ls372:input-channel-{channel.lower()}:curve-number']
         self.temperature_coefficient = values[f'device-settings:ls372:input-channel-{channel.lower()}:temperature-coefficient']
 
@@ -349,7 +349,7 @@ class LS372HeaterOutput:
         self.input_channel = values[f'device-settings:ls372:heater-channel-{channel}:input-channel']
         self.powerup_enable = values[f'device-settings:ls372:heater-channel-{channel}:powerup-enable']
         self.reading_filter = values[f'device-settings:ls372:heater-channel-{channel}:reading-filter']
-        self.delay = values[f'device-settings:ls372:heater-channel-{channel}:delay']
+        self.delay = float(values[f'device-settings:ls372:heater-channel-{channel}:delay'])
         self.polarity = values[f'device-settings:ls372:heater-channel-{channel}:polarity']
         self.setpoint = values[f'device-settings:ls372:heater-channel-{channel}:setpoint']
         self.gain = values[f'device-settings:ls372:heater-channel-{channel}:gain']
