@@ -122,17 +122,24 @@ class ScheduleForm(FlaskForm):
     schedule = SubmitField("Schedule")
 
 
-class MagnetCycleForm(FlaskForm):
-    # TODO: Ramp dropdown (standard ramp/fast ramp/custom ramp?)
-    # TODO: make validators a function of the limits? We can just read them in from redis with no issue
-    # TODO: ensure these are all the things we want from the magnet cycle. (Include scheduling here too?)
-    start = SubmitField("Start Cooldown")
-    abort = SubmitField("Abort Cooldown")
-    cancel_scheduled = SubmitField("Cancel Scheduled Cooldown")
+class MagnetCycleSettingsForm(FlaskForm):
+    # TODO: Turn this into something that can be used to either modify the standard/fast cycle OR run a custom cycle
     soak_current = FloatField("Soak Current (A)", default=7.88, validators=[NumberRange(0, 10.0)])
     soak_time = IntegerField("Soak Time (minutes)", default=30, validators=[NumberRange(0, 240)])
     ramp_rate = FloatField("Ramp rate (A/s)", default=0.015, validators=[NumberRange(0, 0.100)])
     deramp_rate = FloatField("Deramp rate (A/s)", default=0.020, validators=[NumberRange(0, 0.100)])
+    update = SubmitField("Update")
+    start = SubmitField("Start")
+
+
+class MagnetCycleForm(FlaskForm):
+    # TODO: Ramp dropdown (standard ramp/fast ramp/custom ramp?)
+    # TODO: make validators a function of the limits? We can just read them in from redis with no issue
+    start = SubmitField("Start Standard Cycle")
+    fast = SubmitField("Start Fast Cycle")
+    custom = SubmitField("Start Custom Ramp")
+    abort = SubmitField("Abort Cooldown")
+    cancel_scheduled = SubmitField("Cancel Scheduled Cooldown")
     update = SubmitField("Update")
 
 
