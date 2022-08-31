@@ -40,6 +40,8 @@ from .forms import *
 
 # TODO: Turn all graphs/plots into plotly graph objects
 
+# TODO: Axe login stuff?
+
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
 
 # TODO: MUST TEST FOR CONCURRENCY ISSUES (Controlling the instrument from multiple tabs, does it work, does it stay in sync?)
