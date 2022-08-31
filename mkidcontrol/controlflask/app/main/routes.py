@@ -8,8 +8,8 @@ from mkidcontrol.util import setup_logging
 from mkidcontrol.util import get_service as mkidcontrol_service
 from mkidcontrol.util import get_services as mkidcontrol_services
 
-from flask import render_template, flash, redirect, url_for, g, \
-    jsonify, current_app, Response
+from flask import render_template, flash, redirect, url_for, g, request, \
+    jsonify, current_app, Response, copy_current_request_context
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 
@@ -27,6 +27,7 @@ import json
 from rq.job import Job, NoSuchJobError
 import select
 
+from mkidcontrol.controlflask.config import Config
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMAND_DICT, SimCommand
 from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
