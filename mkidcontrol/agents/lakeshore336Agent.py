@@ -13,9 +13,7 @@ TODO: Figure out how to 'block' settings if other settings are in place (e.g. In
 
 TODO: Long term -> support adding curves
 
-TODO: We will need 2 statuses in the flask app, the FIRST will be 'LS336 Status' which will either be good/bad/error/off/etc.
- The SECOND will be 'lakeshore336.service Status' which will be on/off/etc. To *ever* restart, one will need to restart
- the service, not anything within the program
+TODO: Gracefully handle restarts
 """
 
 import sys
