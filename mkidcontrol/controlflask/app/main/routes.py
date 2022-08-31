@@ -317,10 +317,7 @@ def heatswitch(mode):
         for key in request.form.keys():
             print(f"{key} : {request.form.get(key)}")
 
-    if mode == 'engineering':
-        form = HeatSwitchEngineeringModeForm()
-    else:
-        form = HeatSwitchForm()
+    form = HeatSwitchForm()
 
     return render_template('heatswitch.html', title=_('Heat Switch'), form=form)
 
@@ -499,7 +496,7 @@ def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
 
 def create_fig(name):
     since = None
-    first_tval = int((datetime.datetime.now() - timedelta(hours=0.5)).timestamp() * 1000) if not since else since
+    first_tval = int((datetime.datetime.now() - timedelta(hours=24)).timestamp() * 1000) if not since else since
     timestream = np.array(redis.mkr_range(CHART_KEYS[name], f"{first_tval}"))
     if timestream[0][0] is not None:
         times = [datetime.datetime.fromtimestamp(t / 1000).strftime("%H:%M:%S") for t in timestream[:, 0]]
