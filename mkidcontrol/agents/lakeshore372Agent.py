@@ -15,6 +15,8 @@ N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/mod
 TODO: 'Block' settings (e.g. excitation cannot be in V if mode is Current)
 
 TODO: Output voltage key value to report the control voltage to the lakeshore 625 magnet current control
+
+TODO: Gracefully handle serial disconnects/reconnects
 """
 
 import sys
