@@ -463,31 +463,6 @@ class HeatswitchController(LockedMachine):
         write_persisted_state(self.statefile, self.state)
 
 
-import wtforms
-from wtforms.fields import *
-from wtforms.widgets import HiddenInput
-from wtforms.fields.html5 import *
-from wtforms.validators import *
-from wtforms import Form
-from flask_wtf import FlaskForm
-from serial import SerialException
-
-
-class HeatSwitchForm(FlaskForm):
-    step_size = IntegerField("Step Size", default=0, validators=[NumberRange(0, FULL_CLOSE_POSITION)])
-    max_velocity = IntegerField("Max Velocity", default=DEFAULT_MAX_VELOCITY, validators=[NumberRange(0, 1e4)])
-    running_current = IntegerField("Running Current", default=DEFAULT_RUNNING_CURRENT, validators=[NumberRange(10, 127)])
-    acceleration = IntegerField("Acceleration", default=DEFAULT_ACCELERATION, validators=[NumberRange(0, 100)])
-    open = SubmitField("Open")
-    close = SubmitField("Close")
-    update = SubmitField("Update")
-
-
-class HeatSwitchForm2(FlaskForm):
-    open = SubmitField("Open")
-    close = SubmitField("Close")
-
-
 if __name__ == "__main__":
 
     redis = MKIDRedis(ts_keys=TS_KEYS)

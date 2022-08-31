@@ -112,30 +112,6 @@ def start_cycle_deramp(current=None):
     redis.publish(DESIRED_CURRENT_KEY, current)
 
 
-import wtforms
-from wtforms.fields import *
-from wtforms.widgets import HiddenInput
-from wtforms.fields.html5 import *
-from wtforms.validators import *
-from wtforms import Form
-from flask_wtf import FlaskForm
-from serial import SerialException
-
-
-class Lakeshore625ControlForm(FlaskForm):
-    desired_current = FloatField("Set Current (Manual)", default=0, validators=[NumberRange(0, 7.88)])
-    magnetic_field_parameter = FloatField("Magnetic Field Parameter (kG/A)", default=4.0609, validators=[NumberRange(0, 10)])
-    ramp_rate = FloatField("Ramp Rate (A/s)", default=0.005, validators=[NumberRange(0, 0.020)])
-    compliance_voltage = FloatField("Compliance Voltage", default=2.5, validators=[NumberRange(0.1, 5.0)])
-    control_mode = SelectField("Control Mode", choices=list(COMMANDS625['device-settings:ls625:control-mode']['vals'].keys()))
-    quench_ramp_rate = FloatField("Quench Ramp Rate (A/s)", default=0.020, validators=[NumberRange(0.01, 10)])
-    baud_rate = SelectField("Baud Rate", choices=list(COMMANDS625['device-settings:ls625:baud-rate']['vals'].keys()), render_kw={'disabled': True})
-    current_limit = FloatField("Current Limit", default=7.88, validators=[NumberRange(0, 10.0)])
-    compliance_voltage_limit = FloatField("Comliance Voltage Limit", default=2.5, validators=[NumberRange(0.1, 5.0)])
-    rate_limit = FloatField("Ramp Rate Limit (A/s)", default=0.015, validators=[NumberRange(0, 0.050)])
-    update = SubmitField("Update")
-
-
 def firmware_pull(device):
     # Grab and store device info
     try:

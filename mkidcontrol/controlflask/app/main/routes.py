@@ -130,8 +130,7 @@ def index():
     except KeyError:
         return flash(f"Redis keys are missing!")
 
-    from mkidcontrol.agents.xkid.magnetAgent import MagnetCycleForm, ScheduleForm
-    from mkidcontrol.agents.xkid.heatswitchAgent import HeatSwitchForm2
+    # from mkidcontrol.controlflask.app.main.forms import MagnetCycleForm, ScheduleForm, HeatSwitchForm2
     magnetform = MagnetCycleForm()
     schedule = ScheduleForm()
     hsform = HeatSwitchForm2()
@@ -258,7 +257,7 @@ def thermometry(device, channel):
             time.sleep(.15)
 
     if device == 'ls336':
-        from mkidcontrol.agents.lakeshore336Agent import RTDForm, DiodeForm, DisabledInputForm
+        from mkidcontrol.controlflask.app.main.forms import RTDForm, DiodeForm, DisabledInputForm
         from ....commands import LS336InputSensor
 
         sensor = LS336InputSensor(channel=channel, redis=redis)
@@ -269,7 +268,7 @@ def thermometry(device, channel):
         elif sensor.sensor_type == "Disabled":
             form = DisabledInputForm(**vars(sensor))
     elif device == 'ls372':
-        from mkidcontrol.agents.lakeshore372Agent import ControlSensorForm, InputSensorForm
+        from mkidcontrol.controlflask.app.main.forms import ControlSensorForm, InputSensorForm
         from ....commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS
         sensor = LS372InputSensor(channel=channel, redis=redis)
         # TODO: Enable/disable
@@ -286,7 +285,7 @@ def thermometry(device, channel):
 @bp.route('/ls625', methods=['POST', 'GET'])
 # @login_required
 def ls625():
-    from mkidcontrol.agents.lakeshore625Agent import Lakeshore625ControlForm
+    # from mkidcontrol.controlflask.app.main.forms import Lakeshore625ControlForm
     from ....commands import LakeShoreCommand, LS625MagnetSettings
 
     ls625settings = LS625MagnetSettings(redis)
@@ -312,7 +311,7 @@ def ls625():
 @bp.route('/heatswitch/<mode>', methods=['POST', 'GET'])
 # @login_required
 def heatswitch(mode):
-    from mkidcontrol.agents.xkid.heatswitchAgent import HeatSwitchForm, HeatSwitchEngineeringModeForm
+    # from mkidcontrol.controlflask.app.main.forms import HeatSwitchForm, HeatSwitchEngineeringModeForm
     if request.method == "POST":
         print(f"Form: {request.form}")
         for key in request.form.keys():
