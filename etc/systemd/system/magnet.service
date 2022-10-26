@@ -2,6 +2,7 @@
 Description=MKIDControl Magnet Agent
 Wants=heatswitch.service
 Wants=lakeshore372.service
+Wants=lakeshore625.service
 
 [Install]
 WantedBy=mkidcontrol.service
@@ -9,7 +10,7 @@ WantedBy=mkidcontrol.service
 [Service]
 Type=simple
 ExecStart=/home/kids/anaconda3/envs/control/bin/magnetAgent.py
-WorkingDirectory=/home/kids/mkidcontrol
+WorkingDirectory=/home/kids/mkidcontrol/agents/xkid
 User=kids
 RestartSec=100ms
 Restart=always

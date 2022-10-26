@@ -113,6 +113,12 @@ sudo modprobe -r cp210x # Unload old
 sudo modprobe cp210x # Reload new
 # You can test this worked by running `lsmod | grep cp210x` to see if the module is running and also `modinfo cp210x` to get info about the module
 
+# From https://indilib.org/individuals/devices/cameras/fli-ccd-filter-wheel.html
+# How to install the drivers for the FLI (Finger Lakes Instruments) Filter Wheel for linux distro
+sudo add-apt-repository ppa:mutlaqja/ppa
+sudo apt-get update
+sudo apt-get install indi-fli
+
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 

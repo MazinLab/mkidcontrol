@@ -8,7 +8,7 @@ WantedBy=lakeshore625.service
 [Service]
 Type=simple
 ExecStart=/home/kids/anaconda3/envs/control/bin/lakeshore372Agent.py
-WorkingDirectory=/home/kids/mkidcontrol
+WorkingDirectory=/home/kids/mkidcontrol/agents
 User=kids
 RestartSec=100ms
 Restart=always
