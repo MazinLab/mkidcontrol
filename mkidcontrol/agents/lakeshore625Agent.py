@@ -23,6 +23,7 @@ N.B. (19 July 2022): The limiting values are as follows (and remember, the limit
 
 # TODO: Add 'pause current' command
 # TODO: Clean code
+# TODO: Handle disconnects nicely
 """
 
 import sys
@@ -171,7 +172,8 @@ if __name__ == "__main__":
 
     try:
         log.debug(f"Connecting to LakeShore 625")
-        lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=initializer)
+        lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS)
+        # lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=initializer)
         log.info(f"LakeShore 625 connection successful!")
         redis.store({STATUS_KEY: "OK"})
     except IOError as e:
