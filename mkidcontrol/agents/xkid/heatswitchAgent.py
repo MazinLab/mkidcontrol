@@ -14,10 +14,6 @@ switch too tightly.
 
 Note: Documentation for zaber python library exists at https://www.zaber.com/software/docs/motion-library/
 Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdf
-
-TODO: Serial error handling
-
-TODO: Update to make sure machine works and uses proper command syntax
 """
 
 import sys
@@ -56,7 +52,6 @@ VELOCITY_KEY = "device-settings:heatswitch:max-velocity"
 RUNNING_CURRENT_KEY = "device-settings:heatswitch:running-current"
 ACCELERATION_KEY = "device-settings:heatswitch:acceleration"
 
-# TODO: Add stop command to arrest motion?
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
 TS_KEYS = (MOTOR_POS,)
 
