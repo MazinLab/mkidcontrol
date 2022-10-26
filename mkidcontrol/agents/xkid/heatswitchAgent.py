@@ -37,7 +37,7 @@ from zaber_motion import Library
 from zaber_motion.binary import Connection, BinarySettings, CommandCode
 
 QUERY_INTERVAL = 1
-TIMEOUT = 4194303 * 1.25 / 1e3  # Default timeout value is the number of steps + 25% divided by the slowest speed we run at
+TIMEOUT = 4194303 * 1.25 / 0.5e3  # Default timeout value is the number of steps + 25% divided by half the slowest speed we run at
 
 log = logging.getLogger(__name__)
 
@@ -55,7 +55,6 @@ HEATSWITCH_POSITION_KEY = "status:device:heatswitch:position"  # opened | openin
 MOTOR_POS = "status:device:heatswitch:motor:position"  # Integer between 0 and 4194303
 
 HEATSWITCH_MOVE_KEY = "device-settings:heatswitch:position"
-STEP_SIZE_KEY = "device-settings:heatswitch:step-size"
 VELOCITY_KEY = "device-settings:heatswitch:max-velocity"
 RUNNING_CURRENT_KEY = "device-settings:heatswitch:running-current"
 ACCELERATION_KEY = "device-settings:heatswitch:acceleration"
@@ -74,7 +73,7 @@ def open():
 
 
 def is_opened():
-    return redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENED or (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENING and float(redis.read(MOTOR_POS)[1]) <= FULL_CLOSE_POSITION/2)
+    return (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENED) or (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENING)
 
 
 def is_closed():
@@ -369,100 +368,6 @@ class HeatswitchMotor:
         self._monitor_thread.start()
 
 
-class HeatswitchController(LockedMachine):
-    LOOP_INTERVAL = 1
-    BLOCKS = defaultdict(set)
-
-    def __init__(self, heatswitch, statefile='./heatswitchmotorstate.txt'):
-        transitions = [
-            # NOTE: Heatswitch will not allow the user to start reopening while closing or start reclosing while opening
-            {'trigger': 'open', 'source': 'closed', 'dest': 'opening'},
-            {'trigger': 'open', 'source': 'opening', 'dest': None, 'unless': 'hs_is_opened', 'after': 'open_heatswitch'},
-            {'trigger': 'open', 'source': 'opened', 'dest': None, 'conditions': 'hs_is_opened'},
-
-            {'trigger': 'next', 'source': 'closed', 'dest': None},
-            {'trigger': 'next', 'source': 'opened', 'dest': None},
-
-            {'trigger': 'next', 'source': 'opening', 'dest': 'opened', 'conditions': 'hs_is_opened'},
-            {'trigger': 'next', 'source': 'opening', 'dest': None, 'unless': 'hs_is_opened', 'after': 'open_heatswitch'},
-
-            {'trigger': 'close', 'source': 'opened', 'dest': 'closing'},
-            {'trigger': 'close', 'source': 'closing', 'dest': None, 'unless': 'hs_is_closed', 'after': 'close_heatswitch'},
-            {'trigger': 'close', 'source': 'closed', 'dest': None, 'conditions': 'hs_is_closed'},
-
-            {'trigger': 'next', 'source': 'closing', 'dest': 'closed', 'conditions': 'hs_is_closed'},
-            {'trigger': 'next', 'source': 'closing', 'dest': None, 'unless': 'hs_is_closed', 'after': 'close_heatswitch'},
-
-            {'trigger': 'stop', 'source': '*', 'dest': 'off'},
-            {'trigger': 'next', 'source': 'off', 'dest': None},
-            {'trigger': 'open', 'source': 'off', 'dest': 'opening'},
-            {'trigger': 'close', 'source': 'off', 'dest': 'closing'}
-        ]
-
-        states = (State('opened', on_enter='record_entry'),
-                  State('opening', on_enter='record_entry'),
-                  State('closed', on_enter='record_entry'),
-                  State('closing', on_enter='record_entry'),
-                  State('off', on_enter='record_entry'))
-
-        self.hs = heatswitch
-        self.lock = threading.RLock()
-        self._run = False  # Set to false to kill the main loop
-        self._mainthread = None
-        self.statefile = statefile
-
-        initial = compute_initial_state(self.hs)
-        self.state_entry_time = {initial: time.time()}
-        LockedMachine.__init__(self, transitions=transitions, initial=initial, states=states,
-                               machine_context=self.lock, send_event=True)
-
-        self.start_main()
-
-    def open_heatswitch(self, event):
-        new_pos = self.hs.move_by(-1 * redis.read(STEP_SIZE_KEY))
-        return new_pos
-
-    def close_heatswitch(self, event):
-        new_pos = self.hs.move_by(redis.read(STEP_SIZE_KEY))
-        return new_pos
-
-    def hs_is_opened(self, event):
-        return self.hs.last_recorded_position == FULL_OPEN_POSITION
-
-    def hs_is_closed(self, event):
-        return self.hs.last_recorded_position == FULL_CLOSE_POSITION
-
-    def _main(self):
-        while self._run:
-            try:
-                self.next()
-                log.debug(f"Heatswitch state is: {self.state}")
-            except IOError:
-                print("IOError")
-                log.error(exc_info=True)
-            except MachineError:
-                print("MachineError")
-                log.error(exc_info=True)
-            except RedisError:
-                print("RedisError")
-                log.error(exc_info=True)
-            finally:
-                time.sleep(self.LOOP_INTERVAL)
-
-    def start_main(self):
-        self._run = True  # Set to false to kill the m
-        self._mainthread = threading.Thread(target=self._main)
-        self._mainthread.daemon = True
-        self._mainthread.start()
-
-    def record_entry(self, event):
-        self.state_entry_time[self.state] = time.time()
-        log.info(f"Recorded entry: {self.state}")
-        redis.store({HEATSWITCH_POSITION_KEY: self.state})
-        redis.store({STATUS_KEY: 'OK'})
-        write_persisted_state(self.statefile, self.state)
-
-
 if __name__ == "__main__":
 
     redis = MKIDRedis(ts_keys=TS_KEYS)
@@ -481,7 +386,7 @@ if __name__ == "__main__":
 
     hs.monitor(QUERY_INTERVAL, (hs.motor_position,), value_callback=monitor_callback)
 
-    controller = HeatswitchController(heatswitch=hs)
+    # controller = HeatswitchController(heatswitch=hs)
 
     try:
         while True:
@@ -498,9 +403,9 @@ if __name__ == "__main__":
                         log.info(f"Processing command '{cmd}'")
                         if key == HEATSWITCH_MOVE_KEY:
                             if val.lower() == "open":
-                                controller.open()
+                                hs.open()
                             elif val.lower() == "close":
-                                controller.close()
+                                hs.close()
                             else:
                                 log.warning("Illegal command that was not previously handled!")
                         elif key in [VELOCITY_KEY, RUNNING_CURRENT_KEY, ACCELERATION_KEY]:
