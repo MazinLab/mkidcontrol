@@ -38,6 +38,8 @@ from .forms import *
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
 
+# TODO: Turn sidebar with statuses into a more useful layout (maybe in a box somewhere instead or make it toggleable?)
+
 # TODO: Turn all graphs/plots into plotly graph objects
 
 # TODO: Axe login stuff?
@@ -50,6 +52,10 @@ from .forms import *
 
 # TODO: Rework sidebar, no need for 'ok' statuses or 'enabled' for services, just flash an error along the top of screen
 #  Maybe make it so it can pop up from the side
+
+# TODO: 'Dash' Doesn't need pixel numbers (tick labels) to be shown and should take up more of the screen (its the most important thing!)
+
+# TODO: Where is TCS data on the home screen?
 
 # TODO: Move all these key definitions to config.py where all the other redis db and key stuff lives
 CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
