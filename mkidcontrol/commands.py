@@ -52,7 +52,7 @@ class SimCommand:
                 raise ValueError(f'Invalid value {value}, must in {self.range}.')
 
     def __str__(self):
-        return f"{self.setting}->{self.value}: {self.sim_string}"
+        return f"{self.setting}->{self.value}"
 
     @property
     def is_query(self):
