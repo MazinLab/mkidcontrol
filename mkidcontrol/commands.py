@@ -344,6 +344,12 @@ class LS372HeaterOutput:
         # N.B. Heater channels are numbers, no need to match lower/upper-case
         values = redis.read(redis.redis_keys(f'device-settings*ls372:heater-channel-{channel}*'))
         self.channel = channel
+        if int(channel) == 0:
+            self.name = "Device (Sample Heater)"
+        elif int(channel) == 1:
+            self.name = "Warm-up Heater"
+        elif int(channel) == 2:
+            self.name = "Analog/Still Heater"
 
         self.output_mode = values[f'device-settings:ls372:heater-channel-{channel}:output-mode']
         self.input_channel = values[f'device-settings:ls372:heater-channel-{channel}:input-channel']
@@ -460,7 +466,6 @@ COMMANDS960 = {'device-settings:sim960:vout-min-limit': {'command': 'LLIM', 'val
 
 # ---- Zaber Motor Heat Switch Commands ----
 COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {'Open': 'open', 'Close': 'close'}},
-              'device-settings:heatswitch:step-size': {'command': '', 'vals': [0, 4194303]},
               'device-settings:heatswitch:max-velocity': {'command': '', 'vals': [0, 1e4]},
               'device-settings:heatswitch:running-current': {'command': '', 'vals': [10, 127]},
               'device-settings:heatswitch:acceleration': {'command': '', 'vals': [0, 100]},
