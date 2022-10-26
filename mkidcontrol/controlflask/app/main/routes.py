@@ -70,12 +70,9 @@ CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
               'Magnet Field': 'status:magnet:field',
               'LS625 Output V': 'status:device:ls625:output-voltage'}
 
-RAMP_SLOPE_KEY = 'device-settings:sim960:ramp-rate'
-DERAMP_SLOPE_KEY = 'device-settings:sim960:deramp-rate'
-SOAK_TIME_KEY = 'device-settings:sim960:soak-time'
-SOAK_CURRENT_KEY = 'device-settings:sim960:soak-current'
 
 # TODO: status:*:status is not super useful, consider renaming
+# TODO: Keys would be useful where the rest of the keys are defined in mkidcontrol.config
 KEYS = list(COMMAND_DICT.keys()) + list(TS_KEYS) + ['status:device:heatswitch:position',
                                                     'status:device:ls336:status',
                                                     'status:device:ls372:status',
