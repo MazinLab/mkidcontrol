@@ -465,9 +465,8 @@ COMMANDS960 = {'device-settings:sim960:vout-min-limit': {'command': 'LLIM', 'val
 # COMMANDSHS = {'device-settings:currentduino:heatswitch': {'command': '', 'vals': {'open': 'open', 'close': 'close'}}}
 
 
-from mkidcontrol.devices import HeatswitchPosition
 # ---- Zaber Motor Heat Switch Commands ----
-COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {HeatswitchPosition.OPEN: HeatswitchPosition.OPEN, HeatswitchPosition.CLOSE: HeatswitchPosition.CLOSE}},
+COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {"Open": "Open", "Close": "Close"}},
               'device-settings:heatswitch:max-velocity': {'command': '', 'vals': [0, 1e4]},
               'device-settings:heatswitch:running-current': {'command': '', 'vals': [10, 127]},
               'device-settings:heatswitch:acceleration': {'command': '', 'vals': [0, 100]},
