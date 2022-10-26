@@ -125,7 +125,7 @@ class OutputHeaterForm(FlaskForm):
         LS372_HEATER_POWERUP_ENABLE, LS372_HEATER_READING_FILTER, LS372_OUTPUT_POLARITY, LS372_HEATER_CURRENT_RANGE
 
     channel = HiddenField("")
-    name = StringField("Name")
+    name = StringField("Name", render_kw={'disabled': True})
     output_mode = SelectField("Output Mode", choices=list(LS372_HEATER_OUTPUT_MODE.keys()))
     input_channel = SelectField("Input Channel", choices=list(LS372_HEATER_INPUT_CHANNEL.keys()))
     powerup_enable = SelectField("Powerup Enable", choices=list(LS372_HEATER_POWERUP_ENABLE.keys()))
@@ -145,7 +145,7 @@ class DisabledOutputHeaterForm(FlaskForm):
     from mkidcontrol.commands import LS372_HEATER_OUTPUT_MODE, LS372_HEATER_INPUT_CHANNEL, \
         LS372_HEATER_POWERUP_ENABLE, LS372_HEATER_READING_FILTER, LS372_OUTPUT_POLARITY, LS372_HEATER_CURRENT_RANGE
     channel = HiddenField("")
-    name = StringField("Name")
+    name = StringField("Name", render_kw={'disabled': True})
     output_modemode = SelectField("Output Mode", choices=list(LS372_HEATER_OUTPUT_MODE.keys()))
     input_channel = SelectField("Input Channel", choices=list(LS372_HEATER_INPUT_CHANNEL.keys()), render_kw={'disabled': True})
     powerup_enable = SelectField("Powerup Enable", choices=list(LS372_HEATER_POWERUP_ENABLE.keys()), render_kw={'disabled': True})
