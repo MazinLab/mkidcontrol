@@ -1266,6 +1266,7 @@ class LakeShore625(LakeShoreDevice):
 
     @property
     def limits(self):
+        # TODO: Cache these values rather than querying?
         current_lim, voltage_lim, rate_limit = self.query("LIMIT?").split(',')
         return {'current': current_lim, 'voltage': voltage_lim, 'rate': rate_limit}
 
