@@ -17,4 +17,5 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="1fb9", ATTRS{idProduct}=="0305", ATTRS{seri
 
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AM00NUCK", SYMLINK+="heatswitch"
 
+#TODO: filterwheel, laserboxandflipperduino, thorlabsslider
 SUBSYSTEM=="usb", ATTR{idProduct}=="0007", ATTR{idVendor}=="0f18", SYMLINK+="filterwheel"
