@@ -216,7 +216,7 @@ def heater(device, channel):
             time.sleep(0.15)
 
     if device == "ls372":
-        from mkidcontrol.agents.lakeshore372Agent import OutputHeaterForm
+        from mkidcontrol.controlflask.app.main.forms import OutputHeaterForm
         from ....commands import LS372HeaterOutput
         heater = LS372HeaterOutput(channel, redis)
 
@@ -413,10 +413,13 @@ def system():
 
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
-    form = FlaskForm()
-    sensorfig = multi_sensor_fig(CHART_KEYS.keys())
 
-    return render_template('test_page.html', title=_('Test Page'), form=form, sensorfig=sensorfig)
+    from ....agents.xkid.magnetAgent import MagnetCycleSettingsForm
+    if request.method == "POST":
+        print(request.form)
+    form = MagnetCycleSettingsForm()
+
+    return render_template('test_page.html', title=_('Test Page'), form=form)
 
 
 @bp.route('/404', methods=['GET', 'POST'])
@@ -509,7 +512,7 @@ def create_fig(name):
         vals = [None]
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=times, y=vals, mode='lines', name=f"{name}"))
-    fig.update_layout(title=f"{name}")
+    fig.update_layout(dict(title=f"{name}", xaxis=dict(tickangle=0, nticks=2)))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
@@ -558,6 +561,7 @@ def view_array_data():
     y = x + noise
     fig = go.Figure()
     fig.add_heatmap(z=y.tolist(), showscale=False)
+    fig.update_layout(dict(xaxis=dict(visible=False, ticks=''), yaxis=dict(visible=False, ticks='')))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
