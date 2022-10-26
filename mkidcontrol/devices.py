@@ -103,12 +103,12 @@ class MagnetState(enum.Enum):
 
 
 class HeatswitchPosition:
-    OPEN = 'open'
-    CLOSE = 'close'
-    OPENED = 'opened'
-    CLOSED = 'closed'
-    OPENING = 'opening'
-    CLOSING = 'closing'
+    OPEN = 'Open'
+    CLOSE = 'Close'
+    OPENED = 'Opened'
+    CLOSED = 'Closed'
+    OPENING = 'Opening'
+    CLOSING = 'Closing'
 
 
 class SerialDevice:

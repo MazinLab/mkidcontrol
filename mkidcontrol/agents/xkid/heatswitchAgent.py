@@ -92,14 +92,14 @@ def compute_initial_state(heatswitch):
         position = redis.read(MOTOR_POS)[1]
 
         if position == heatswitch.FULL_CLOSE_POSITION:
-            initial_state = "closed"
+            initial_state = HeatswitchPosition.CLOSED
         elif position == heatswitch.FULL_OPEN_POSITION:
-            initial_state = "opened"
+            initial_state = HeatswitchPosition.OPENED
         else:
             if redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENING:
-                initial_state = "opening"
+                initial_state = HeatswitchPosition.OPENING
             else:
-                initial_state = "closing"
+                initial_state = HeatswitchPosition.CLOSING
     except IOError:
         log.critical('Lost heatswitch connection during agent startup. defaulting to unknown')
         initial_state = "unknown"
