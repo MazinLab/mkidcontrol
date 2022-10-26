@@ -62,29 +62,31 @@ TS_KEYS = (MOTOR_POS,)
 
 
 def close():
-    redis.publish(HEATSWITCH_MOVE_KEY, HeatswitchPosition.CLOSE, store=False)
+    redis.publish(f"command:{HEATSWITCH_MOVE_KEY}", HeatswitchPosition.CLOSE, store=False)
 
 
 def open():
-    redis.publish(HEATSWITCH_MOVE_KEY, HeatswitchPosition.OPEN, store=False)
+    redis.publish(f"command:{HEATSWITCH_MOVE_KEY}", HeatswitchPosition.OPEN, store=False)
 
 
 def is_opened():
-    return (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENED) or (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.OPENING)
+    return not (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.CLOSED)
 
 
 def is_closed():
     return redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.CLOSED
 
 
-def monitor_callback(mpos):
-    d = {MOTOR_POS: mpos}
+def monitor_callback(mpos, mstate):
+    timeseries_d = {MOTOR_POS: mpos}
+    d = {HEATSWITCH_POSITION_KEY: mstate}
     try:
         if mpos is None:
             # N.B. If there is an error on the query, the value passed is None
             redis.store({STATUS_KEY: "Error"})
         else:
-            redis.store(d, timeseries=True)
+            redis.store(timeseries_d, timeseries=True)
+            redis.store(d)
             redis.store({STATUS_KEY: "OK"})
     except RedisError:
         log.warning('Storing motor position to redis failed')
@@ -172,16 +174,19 @@ class HeatswitchMotor:
         self.initialized = True
         self.last_recorded_position = self.motor_position()
 
-    @property
     def state(self):
         if self.motor_position() == FULL_CLOSE_POSITION:
+            log.debug(f"Motor is {HeatswitchPosition.CLOSED}")
             return HeatswitchPosition.CLOSED
         elif self.motor_position() == FULL_OPEN_POSITION:
+            log.debug(f"Motor is {HeatswitchPosition.OPENED}")
             return HeatswitchPosition.OPENED
         else:
             if self.last_move >= 0:
+                log.debug(f"Motor is {HeatswitchPosition.CLOSING}")
                 return HeatswitchPosition.CLOSING
             else:
+                log.debug(f"Motor is {HeatswitchPosition.OPENING}")
                 return HeatswitchPosition.OPENING
 
     def motor_position(self):
@@ -295,6 +300,30 @@ class HeatswitchMotor:
 
         return self.last_recorded_position
 
+    def open(self):
+        try:
+            log.info(f"Opening heatswitch")
+            self.move_by(-FULL_CLOSE_POSITION)
+            log.info(f"Heatswitch now opened")
+        except (IOError, serial.SerialException) as e:
+            log.error("Could not open heatswitch!")
+            raise Exception(f"Could not communicate with device: {e}")
+        except Exception as e:
+            log.error("Could not open heatswitch!")
+            raise Exception(f"Move failed or illegal move requested: {e}")
+
+    def close(self):
+        try:
+            log.info(f"Closing heatswitch")
+            self.move_by(FULL_CLOSE_POSITION)
+            log.info(f"Heatswitch now closed")
+        except (IOError, serial.SerialException) as e:
+            log.error("Could not close the heatswitch!")
+            raise Exception(f"Could not communicate with device: {e}")
+        except Exception as e:
+            log.error("Could not close the heatswitch!")
+            raise Exception(f"Move failed or illegal move requested: {e}")
+
     def update_binary_setting(self, key:(str, BinarySettings), value):
         if isinstance(key, str):
             key = key.split(':')[-1]
@@ -381,7 +410,7 @@ if __name__ == "__main__":
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
 
-    hs.monitor(QUERY_INTERVAL, (hs.motor_position,), value_callback=monitor_callback)
+    hs.monitor(QUERY_INTERVAL, (hs.motor_position, hs.state), value_callback=monitor_callback)
 
     # controller = HeatswitchController(heatswitch=hs)
 
