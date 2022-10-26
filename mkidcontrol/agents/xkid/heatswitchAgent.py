@@ -21,13 +21,10 @@ TODO: Update to make sure machine works and uses proper command syntax
 """
 
 import sys
-from collections import defaultdict
 import time
 import logging
 import threading
-import numpy as np
-from transitions import MachineError, State
-from transitions.extensions import LockedMachine
+import serial
 
 from mkidcontrol.mkidredis import MKIDRedis, RedisError
 import mkidcontrol.util as util
