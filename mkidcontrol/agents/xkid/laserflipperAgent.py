@@ -17,46 +17,21 @@ log = logging.getLogger(__name__)
 
 names = ['808nm', '920nm', '980nm', '1120nm', '1310nm', 'mirror']
 
+from mkidcontrol.devices import SerialDevice
 
-class Laserduino(object):
-    def __init__(self, port, baudrate=9600, timeout=0.):
-        self.ser = None
-        self.port = port
-        self.baudrate = baudrate
-        self.timeout = timeout
-        self.connect(raise_errors=False)
-        time.sleep(1)
-        self.heat_switch_position = None
+class LaserFlipperduino(SerialDevice):
+    def __init__(self, port, baudrate=9600, timeout=0., connect=True):
+        super().__init__(port, baudrate, timeout, name='laserflipperduino')
+        if connect:
+            self.connect(raise_errors=False)
         self.status = [0, 0, 0, 0, 0, 0]
 
-    def connect(self, reconnect=False, raise_errors=True):
-        if reconnect:
-            self.disconnect()
-
-        try:
-            if self.ser.isOpen():
-                return
-        except Exception:
-            pass
-
-        getLogger(__name__).debug(
-                f"Connecting to {self.port} at {self.baudrate}")
-        try:
-            self.ser = serial.Serial(port=self.port, baudrate=self.baudrate,
-                    timeout=self.timeout)
-            time.sleep(.2)
-            getLogger(__name__).debug(
-                    f"port {self.port} connection established")
-            return True
-        except (SerialException, IOError) as e:
-            self.ser = None
-            getLogger(__name__).error(
-                    f"Connecting to port {self.port} failed: {e}",
-                    exc_info=True)
-            if raise_errors:
-                raise e
-            else:
-                return False
+    def _postconnect(self):
+        """
+        Overwrites serialDevice _postconnect function. Sleeps for an appropriate amount of time to let the arduino get
+        booted up properly so the first queries don't return nonsense (or nothing)
+        """
+        time.sleep(1)
 
     def disconnect(self):
         try:
