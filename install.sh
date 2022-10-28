@@ -119,6 +119,23 @@ sudo add-apt-repository ppa:mutlaqja/ppa
 sudo apt-get update
 sudo apt-get install indi-fli
 
+# FLI SDK install + USB driver setup + Python Distro
+# TODO: USB Driver setup
+wget https://www.flicamera.com/downloads/sdk/libfli-1.104.zip
+unzip libfli-1.104.zip
+cd libfli-1.104
+git clone https://github.com/cversek/python-FLI.git
+cp python-FLI/libfli.so-1.104_Makefile/Makefile .
+make clean
+make
+sudo cp libfli.so /usr/local/lib
+
+cd ~
+git clone https://github.com/SAIL-Labs/python-FLI.git
+cd python-FLI
+python setup.py install
+
+# Reload rules and trigger them to ensure drivers are running
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
