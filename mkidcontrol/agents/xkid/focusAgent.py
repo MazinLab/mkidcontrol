@@ -11,8 +11,14 @@ import mkidcontrol.util as util
 
 TS_KEYS = ()
 
+
+class Focus(TDC001):
+    def __init__(self, name, port=None):
+        self.name = name
+
+
 if __name__ == "__main__":
     redis.setup_redis(ts_keys=TS_KEYS)
     util.setup_logging('tdc001Agent')
 
-    t = TDC001(serial_port='')
+    f = Focus(port='/dev/focus')
