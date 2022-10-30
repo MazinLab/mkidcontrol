@@ -210,9 +210,9 @@ class Lakeshore625ControlForm(FlaskForm):
     control_mode = SelectField("Control Mode", choices=list(COMMANDS625['device-settings:ls625:control-mode']['vals'].keys()))
     quench_ramp_rate = FloatField("Quench Ramp Rate (A/s)", default=0.020, validators=[NumberRange(0.01, 10)])
     baud_rate = SelectField("Baud Rate", choices=list(COMMANDS625['device-settings:ls625:baud-rate']['vals'].keys()), render_kw={'disabled': True})
-    current_limit = FloatField("Current Limit", default=7.88, validators=[NumberRange(0, 10.0)])
+    current_limit = FloatField("Current Limit", default=0.44, validators=[NumberRange(0, 10.0)])
     compliance_voltage_limit = FloatField("Comliance Voltage Limit", default=2.5, validators=[NumberRange(0.1, 5.0)])
-    rate_limit = FloatField("Ramp Rate Limit (A/s)", default=0.015, validators=[NumberRange(0, 0.050)])
+    rate_limit = FloatField("Ramp Rate Limit (A/s)", default=0.250, validators=[NumberRange(0, 0.500)])
     update = SubmitField("Update")
 
 
@@ -225,10 +225,10 @@ class ScheduleForm(FlaskForm):
 class MagnetCycleSettingsForm(FlaskForm):
     # Magnet controller form
     # TODO: Turn this into something that can be used to either modify the standard/fast cycle OR run a custom cycle
-    soak_current = FloatField("Soak Current (A)", default=7.88, validators=[NumberRange(0, 10.0)])
-    soak_time = IntegerField("Soak Time (minutes)", default=30, validators=[NumberRange(0, 240)])
-    ramp_rate = FloatField("Ramp rate (A/s)", default=0.015, validators=[NumberRange(0, 0.100)])
-    deramp_rate = FloatField("Deramp rate (A/s)", default=0.020, validators=[NumberRange(0, 0.100)])
+    soak_current = FloatField("Soak Current (A)", default=9.44, validators=[NumberRange(0, 10.0)])
+    soak_time = IntegerField("Soak Time (minutes)", default=60, validators=[NumberRange(0, 240)])
+    ramp_rate = FloatField("Ramp rate (A/s)", default=0.005, validators=[NumberRange(0, 0.100)])
+    deramp_rate = FloatField("Deramp rate (A/s)", default=0.005, validators=[NumberRange(0, 0.100)])
     update = SubmitField("Update")
     start = SubmitField("Start")
 
