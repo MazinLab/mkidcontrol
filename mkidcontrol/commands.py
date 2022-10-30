@@ -472,6 +472,21 @@ COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {"O
               'device-settings:heatswitch:acceleration': {'command': '', 'vals': [0, 100]},
               }
 
+# ---- Laserflipper Arduino Commands ----
+COMMANDSLASERFLIPPER = {
+
+                       }
+
+# ---- Fitler Wheel Commands ----
+COMMANDSFILTERWHEEL = {
+
+                      }
+
+# ---- Focus Slider Commands ----
+COMMANDSFOCUS = {
+
+                }
+
 # ---- PICTURE-C Magnet Commands ----
 CALIBRATION_CURVE = 1
 
@@ -481,7 +496,6 @@ CALIBRATION_CURVE = 1
 #                   'device-settings:sim960:soak-time': {'command': '', 'vals': [0, np.inf]},
 #                   'device-settings:sim960:soak-current': {'command': '', 'vals': [0, 9.4]},
 #                   'device-settings:mkidarray:regulating-temp': {'command': '', 'vals': load_tvals(CALIBRATION_CURVE)}}
-
 
 # COMMANDSMAGNET
 COMMANDSMAGNET = {'device-settings:magnet:ramp-rate': {'command': '', 'vals': [0, 0.050]},
