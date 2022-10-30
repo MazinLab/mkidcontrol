@@ -1,4 +1,5 @@
 //#include <SPI.h> //one of the arduino library headers
+float FIRMWARE_VERSION = 0.1
 
 //global variables and hard coded settings
 int pin_mirror = 7; // keeping this just to maintain old features, even though it wont be used
@@ -27,15 +28,17 @@ unsigned int pwmByte = 0;
 void print_status(unsigned int *status) {
   for (unsigned int i=0; i<6; i++) {
     Serial.print(i, DEC);
-    Serial.print(": ");
+    Serial.print(":");
     Serial.print(status[i], DEC);
-    Serial.print("\n");
+    if (i < 6) {
+      Serial.print(",");
+    }
   };
 }
 
 
 void setup() {
-  Serial.begin(9600); //set up USB serial settings
+  Serial.begin(115200); //set up USB serial settings
 
   pinMode(pin_mirror, OUTPUT);
   digitalWrite(pin_mirror, LOW);
@@ -49,7 +52,6 @@ void setup() {
   analogWrite(pin1120, 0);
   pinMode(pin1310, OUTPUT);
   analogWrite(pin1310, 0);
-
 }
 
 
@@ -63,21 +65,30 @@ void loop() {
     if (pinByte == 5) { //this is the one pin still set as digital
       if (pwmByte == 0) {
         digitalWrite(pins[pinByte], LOW);
-        Serial.println("digital pin being set low");
-        status[5] = 0;
+//         Serial.print("digital pin being set low");
+        status[pinByte] = 0;
       } else {
         digitalWrite(pins[pinByte], HIGH);
-        Serial.println("digital pin being set high");
-        status[5] = 1;
+//         Serial.print("digital pin being set high");
+        status[pinByte] = 1;
       }
-    } else if (pinByte >= 6) {
+      Serial.print(pinByte, DEC);
+      Serial.print(":");
+      Serial.print(status[pinByte]);
+    } else if (pinByte == 6) {
       //If it does not correspond to a pin, instead requests status return
       print_status(status);
+    else if (pinByte == 7) {
+      //If it does not correspond to a pin, instead requests status return
+      Serial.print(FIRMWARE_VERSION);
     } else { //all other pins are using pwm
-        analogWrite(pins[pinByte], pwmByte);
-        Serial.println("pwm pin being set");
-        status[pinByte] = pwmByte;
+      analogWrite(pins[pinByte], pwmByte);
+      status[pinByte] = pwmByte;
+      Serial.print(pinByte, DEC);
+      Serial.print(":");
+      Serial.print(status[pinByte], DEC);
     }
-  };
+    Serial.println()
+  }
   delay(100);
 }
