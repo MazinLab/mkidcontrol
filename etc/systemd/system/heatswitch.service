@@ -7,8 +7,8 @@ WantedBy=lakeshore625.service
 
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/control/bin/heatswitchAgent.py
+ExecStart=/home/kids/anaconda3/envs/control/bin/heatswitchAgent.py
 #WorkingDirectory=/home/mazinlab/mkidcontrol/agents/xkid
-User=mazinlab
+User=kids
 RestartSec=100ms
 Restart=always
