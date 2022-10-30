@@ -120,7 +120,8 @@ sudo apt-get update
 sudo apt-get install indi-fli
 
 # FLI SDK install + USB driver setup + Python Distro
-# TODO: USB Driver setup
+
+# The following will get the libfli.so that's needed to run FLI code in linux
 wget https://www.flicamera.com/downloads/sdk/libfli-1.104.zip
 unzip libfli-1.104.zip
 cd libfli-1.104
@@ -130,10 +131,30 @@ make clean
 make
 sudo cp libfli.so /usr/local/lib
 
+# The following will install the python FLI library
 cd ~
 git clone https://github.com/SAIL-Labs/python-FLI.git
 cd python-FLI
 python setup.py install
+
+# The following will install the usb driver
+mkdir rts2fliusb
+cd rts2fliusb
+git clone https://github.com/RTS2/fliusb.git
+cd fliusb/fliusb
+# THE STEPS THAT ARE COMMENTED OUT MUST BE DONE MANUALLY OR THE COMPILATION WILL FAIL
+# Modify the fliusb.c file
+# Add '#include <linux/mmap_lock.h>' below the line '#include <linux/slab.h>'
+# Change all instances of 'mmap_sem' to 'mmap_lock' (this driver was for linux-4.x.x kernels, we are using linux-5.15.0)
+# save the changes to the fliusb.c file
+make clean
+sudo make
+
+sudo mkdir /lib/modules/5.15.0-41-generic/extra/
+sudo cp fliusb.ko /lib/modules/5.15.0-41-generic/extra/
+sudo insmod /usr/lib/modules/5.15.0-41-generic/extra/fliusb.ko
+sudo depmod -a
+sudo modprobe fliusb.ko
 
 # Reload rules and trigger them to ensure drivers are running
 sudo udevadm control --reload-rules
