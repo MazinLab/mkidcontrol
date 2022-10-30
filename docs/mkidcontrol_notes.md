@@ -89,3 +89,53 @@
         without manually starting the module.
     - NOTE : If the module is not started up immediately after signing it, you can either reboot (make sure it's in
         the '/etc/modules' file) or run 'sudo modprobe cp210x', which will load it without rebooting
+
+# TODO: How to compile the fliusb.ko file to talk to it
+- Make a directory to store the files you will need
+  - mkdir rts2fliusb
+- First, clone the git repository at https://github.com/RTS2/fliusb.git
+  - Run 'git clone https://github.com/RTS2/fliusb.git'
+- Enter the subdirectory with the fliusb c code
+  - Run cd fliusb/fliusb/
+- Edit the 'fliusb.c' file
+  - The first block of include statements should be modified
+    ```
+    #include <linux/version.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/mutex.h>
+    #include <linux/kernel.h>
+    #include <linux/kref.h>
+    #include <linux/errno.h>
+    #include <linux/usb.h>
+    #include <linux/fs.h>
+    #include <linux/fcntl.h>
+    #include <asm/uaccess.h>
+    #include <linux/slab.h>
+    #include <linux/mmap_lock.h>  /* <- ADD THIS LINE FOR Linux-5.x.x Compatibility */
+    ```
+  - Change the lines
+    '''
+    down_read(&current->mm->mmap_sem); (line 336)
+    ...
+    up_read(&current->mm->mmap_sem); (line 349)
+    '''
+    to
+    '''
+    down_read(&current->mm->mmap_lock); (line 336)
+    ...
+    up_read(&current->mm->mmap_lock); (line 349)
+    '''
+    to account for an update between Linux-3.x.x and Linux-4.x.x and above
+  - Save the file
+  - Run 'make clean'
+  - Run 'sudo make'
+    - You should now have many more files in the directory including 'fliusb.ko'
+  - Run 'mkdir /lib/modules/5.15.0-41-generic/extra/'
+  - Copy the fliusb.ko file into this new directory
+    - Run 'sudo cp fliusb.ko /lib/modules/5.15.0-41-generic/extra/'
+  - Insert the module so it is discoverable
+    - Run 'sudo insmod /usr/lib/modules/5.15.0-41-generic/extra/fliusb.ko'
+  - Run 'sudo depmod -a'
+  - Run 'sudo modprobe fliusb.ko'
+    - This will start the fliusb module and enable communication with the FLI filter wheel
