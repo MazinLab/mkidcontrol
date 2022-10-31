@@ -1,7 +1,9 @@
 """
 Author: Noah Swimmer, 26 October 2022
 
-Agent for controlling the
+Agent for controlling the Thorlabs TDC001 motor slider which will control the focus position
+
+TODO: All
 """
 
 from thorlabs_apt_device.devices.tdc001 import TDC001
