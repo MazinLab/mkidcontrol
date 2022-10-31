@@ -1,7 +1,7 @@
 # Place in /etc/udev/rules.d/
 
 SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0042", ATTRS{serial}=="9573632363235170F002", SYMLINK+="hemtduino"
-SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0043", ATTRS{serial}=="95530343235351808002", SYMLINK+="currentduino"
+# SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0043", ATTRS{serial}=="95530343235351808002", SYMLINK+="currentduino"
 
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AM00IHUS", SYMLINK+="sim921"
 # SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AM00NUCK", SYMLINK+="sim960"
@@ -21,4 +21,4 @@ KERNEL=="fliusb*", MODE="666", GROUP="pugdev", SYMLINK+="filterwheel"
 
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="faf0", ATTRS{serial}=="83825256", SYMLINK+="focus"
 
-#TODO: laserboxandflipperduino
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0043", ATTRS{serial}=="95530343235351808002", SYMLINK+="laserflipper"
