@@ -3,6 +3,8 @@ Author: Joseph Redford Oct 21st 2022
 
 Program to control ArduinoUNO that will turn on and off the laser diodes in the
 calibration box. Code copied and modified from Noah's currentduinoAgent
+
+TODO: Test + update for redis schema
 """
 
 import serial
