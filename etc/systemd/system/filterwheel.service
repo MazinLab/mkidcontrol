@@ -1,0 +1,13 @@
+[Unit]
+Description=MKIDControl Filter Wheel Agent
+
+[Install]
+WantedBy=mkidcontrol.service
+
+[Service]
+Type=simple
+ExecStart=/home/kids/anaconda3/envs/control/bin/filterwheelAgent.py
+#WorkingDirectory=/home/kids/mkidcontrol/agents/
+User=kids
+RestartSec=100ms
+Restart=always
