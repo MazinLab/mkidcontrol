@@ -21,9 +21,9 @@ log = logging.getLogger(__name__)
 
 QUERY_INTERVAL = 1
 
-laser_vals = ['808', '904', '980', '1120', '1310']
-names = [f"{val} nm" for val in laser_vals]
-names.append('mirror')
+LASER_VALS = ['808', '904', '980', '1120', '1310']
+NAMES = [f"{val} nm" for val in LASER_VALS]
+NAMES.append('mirror')
 
 STATUS_KEY = "status:device:laserflipperduino:status"
 FIRMWARE_KEY = "status:device:laserflipperduino:firmware"
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     util.setup_logging('laserflipperAgent')
 
     try:
-        laserduino = Laserflipperduino(port='/dev/laserflipper')
+        laserduino = Laserflipperduino(port='/dev/laserflipper', lasernames=NAMES)
         redis.store({STATUS_KEY: "OK"})
     except RedisError as e:
         log.error(f"Redis server error! {e}")
