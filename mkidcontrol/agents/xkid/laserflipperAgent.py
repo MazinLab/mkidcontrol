@@ -17,22 +17,36 @@ import threading
 from mkidcontrol.devices import SerialDevice
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.mkidredis import RedisError
+from mkidcontrol.commands import COMMANDSLASERFLIPPER, SimCommand
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 
-names = ['808nm', '904nm', '980nm', '1120nm', '1310nm', 'mirror']
+laser_vals = ['808', '904', '980', '1120', '1310']
+names = [f"{val} nm" for val in laser_vals]
+names.append('mirror')
+
+STATUS_KEY = "status:device:laserflipperduino:status"
+FIRMWARE_KEY = "status:device:laserflipperduino:firmware"
+
+SETTING_KEYS = tuple(COMMANDSLASERFLIPPER.keys())
+COMMAND_KEYS = (f"command:{key}" for key in SETTING_KEYS)
 
 
 class Laserflipperduino(SerialDevice):
     VALID_FIRMWARES = (0.0, 0.1)
 
-    def __init__(self, port, baudrate=115200, timeout=0., connect=True):
+    def __init__(self, port, baudrate=115200, timeout=1, connect=True):
         super().__init__(port, baudrate, timeout, name='laserflipperduino')
         if connect:
             self.connect(raise_errors=False)
-        self.status = [0, 0, 0, 0, 0, 0]
+        self.status = {0: 0.0,
+                       1: 0.0,
+                       2: 0.0,
+                       3: 0.0,
+                       4: 0.0,
+                       5: 0.0}
         self.terminator = ''
 
     def _postconnect(self):
@@ -40,7 +54,7 @@ class Laserflipperduino(SerialDevice):
         Overwrites serialDevice _postconnect function. Sleeps for an appropriate amount of time to let the arduino get
         booted up properly so the first queries don't return nonsense (or nothing)
         """
-        time.sleep(1)
+        time.sleep(2)
 
     def format_msg(self, msg):
         """
@@ -73,8 +87,8 @@ class Laserflipperduino(SerialDevice):
         try:
             log.debug(f"Querying currentduino firmware")
             response = self.query((7, 0), connect=True)
-            version = float(response)
-            return version
+            _, version = response.split(':')
+            return float(version)
         except IOError as e:
             log.error(f"Serial error: {e}")
             raise e
@@ -92,20 +106,20 @@ class Laserflipperduino(SerialDevice):
 
         index is the index of the diode going from 0 to 4 with the mapping
             defined by the names global list
-        value is a value from 0 to 1 setting how much current to apply with 1
+        value is a value from 0 to 100 setting how much current to apply with 1
             being the max current defined by the resistors on the board
         """
-        if (value < 0.) or (value > 1.):
+        if (value < 0) or (value > 100):
             raise ValueError('invalid power setting')
         elif not isinstance(index, int) or (index < 0) or (index > 4):
             raise ValueError('invalid laser index')
         else:
-            pwm_byte = int(value * 255)
+            pwm_byte = int(value / 100 * 255)
             message = (index, pwm_byte)
-            self.send(message)
-            self.status[index] = pwm_byte
-            reply = self.receive()
-            getLogger(__name__).debug(reply.decode('utf-8'))
+            pin, val = self.query(message).split(':')
+            val = int(val) / 255 * 100
+            self.status[int(pin)] = val  # Convert from 0-255 bit value to percentage
+            log.info(f"Pin {index} ({names[index]} laser) set to {val:.2f}%")
 
     def set_mirror_position(self, position):
         """sett_mirror_position takes a position argument to move the mirror
@@ -117,13 +131,13 @@ class Laserflipperduino(SerialDevice):
         if position.lower() == 'down':
             log.debug(f"Setting mirror to down")
             byte_val = 0
-        else:
+        elif position.lower() == 'up':
             log.debug(f"Setting mirror to up")
             byte_val = 1
-        message = (5, byte_val)
-        response = self.query(message).split(':')
-        val = response[1]
-        self.status[5] = val
+        else:
+            raise ValueError(f"Illegal mirror position requested: '{position}'. Legal values are ('down', 'up')")
+        pin, val = self.query((5, byte_val)).split(':')
+        self.status[int(pin)] = int(val)
         if val == 0:
             log.info(f"Mirror flipped down")
         else:
@@ -132,15 +146,13 @@ class Laserflipperduino(SerialDevice):
     def statuses(self):
         """get_status takes no arguments, prints the status of all 5 output
         pins"""
-        self.send((6, 0))
-        getLogger(__name__).debug("reading status of the arduino")
-        status_reply = self.receive()
+        log.debug("Reading laser and mirror statuses")
+        status_reply = self.query((6,0))
         status_reply = status_reply.split(',')
         for laser in status_reply:
-            laser_dat = laser.split(':')
-            name = names[int(laser_dat[0])]
-            amp_value = int(laser_dat[1])
-            self.status[int(laser_dat[0])] = amp_value
+            dat = laser.split(':')
+            amp_value = float(dat[1])
+            self.status[int(dat[0])] = amp_value
 
     def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
         """
@@ -193,8 +205,7 @@ class Laserflipperduino(SerialDevice):
 
 
 def callback(vals):
-    keys = LASER_POWER_KEYS + MIRROR_POS_KEY
-    d = {k: x for k, x in zip(keys, vals)}
+    d = {k: x for k, x in zip(SETTING_KEYS, vals)}
     try:
         if all(i is None for i in vals):
             redis.store({STATUS_KEY: "Error"})
@@ -207,10 +218,9 @@ def callback(vals):
 
 if __name__ == "__main__":
 
-    redis.setup_redis(ts_keys=TS_KEYS)
+    # redis.setup_redis(ts_keys=TS_KEYS)
 
-    laserduino = Laserflipperduino(port='/dev/ttyACM0', baudrate=9600, timeout=0.1)
+    laserduino = Laserflipperduino(port='/dev/laserflipper')
+    laserduino.statuses()
 
-    time.sleep(1)
-    laserduino.get_status()
-
+    #TODO: Main code
