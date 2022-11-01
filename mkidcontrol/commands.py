@@ -473,12 +473,22 @@ COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {"O
               }
 
 # ---- Laserflipper Arduino Commands ----
-COMMANDSLASERFLIPPER = {
-
-                       }
+COMMANDSLASERFLIPPER = {'device-settings:laserflipperduino:laserbox:808:power': {'command': '0', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:laserbox:904:power': {'command': '1', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:laserbox:920:power': {'command': '2', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:laserbox:1120:power': {'command': '3', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:laserbox:1310:power': {'command': '4', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:flipper:position': {'command': '', 'vals': {"Up": "Up", "Down": "Down"}}
+                        }
 
 # ---- Fitler Wheel Commands ----
-COMMANDSFILTERWHEEL = {
+COMMANDSFILTERWHEEL = {'device-settings:filterwheel:filter': {'command': '', 'vals': {'0': '0',
+                                                                                      '1': '1',
+                                                                                      '2': '2',
+                                                                                      '3': '3',
+                                                                                      '4': '4',
+                                                                                      '5': '5',
+                                                                                      '6': '6'}}
 
                       }
 
