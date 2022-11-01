@@ -27,6 +27,32 @@ loggers:
       handlers: [ default ]
       level: DEBUG
       propagate: False
+  filterwheelAgent:
+    filterwheelAgent: debug
+    mkidcontrol.mkidredis: info
+    mkidcontrol.devices: debug
+    serial: debug
+    "":
+      handlers: [ default ]
+      level: INFO
+      propagate: False
+    __main__:
+      handlers: [ default ]
+      level: DEBUG
+      propagate: False
+  focusAgent:
+    focusAgent: debug
+    mkidcontrol.mkidredis: info
+    mkidcontrol.devices: debug
+    serial: debug
+    "":
+      handlers: [ default ]
+      level: INFO
+      propagate: False
+    __main__:
+      handlers: [ default ]
+      level: DEBUG
+      propagate: False
   hemttempAgent:
     hemttempAgent: debug
     mkidcontrol.mkidredis: info
@@ -71,6 +97,19 @@ loggers:
       propagate: False
   lakeshore625Agent:
     lakeshore625Agent: debug
+    mkidcontrol.mkidredis: info
+    mkidcontrol.devices: debug
+    serial: debug
+    "":
+      handlers: [ default ]
+      level: INFO
+      propagate: False
+    __main__:
+      handlers: [ default ]
+      level: DEBUG
+      propagate: False
+  laserflipperAgent:
+    laserflipperAgent: debug
     mkidcontrol.mkidredis: info
     mkidcontrol.devices: debug
     serial: debug
