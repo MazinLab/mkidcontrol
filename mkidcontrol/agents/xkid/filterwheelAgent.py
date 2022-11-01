@@ -12,11 +12,10 @@ from serial import SerialException
 import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
 
-TS_KEYS = ()
 
 class FilterWheel(USBFilterWheel):
     def __init__(self, name, port=None):
-        super.__init__(dev_name=port, model="CFW2-7")
+        super().__init__(dev_name=port, model=b"CFW-2-7")
         self.name = name
 
     @property
@@ -53,7 +52,7 @@ class FilterWheel(USBFilterWheel):
 
 if __name__ == "__main__":
 
-    redis.setup_redis(ts_keys=TS_KEYS)
+    redis.setup_redis()
     util.setup_logging('filterwheelAgent')
 
-    fw = FilterWheel('filterwheel', '/dev/filterwheel')
+    fw = FilterWheel('filterwheel', b'/dev/filterwheel')
