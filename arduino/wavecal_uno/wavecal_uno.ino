@@ -1,5 +1,5 @@
 //#include <SPI.h> //one of the arduino library headers
-float FIRMWARE_VERSION = 0.1
+float FIRMWARE_VERSION = 0.1;
 
 //global variables and hard coded settings
 int pin_mirror = 7; // keeping this just to maintain old features, even though it wont be used
@@ -30,14 +30,14 @@ void print_status(unsigned int *status) {
     Serial.print(i, DEC);
     Serial.print(":");
     Serial.print(status[i], DEC);
-    if (i < 6) {
+    if (i < 5) {
       Serial.print(",");
     }
   };
 }
 
-
 void setup() {
+  // setup starts by turning all lasers off and
   Serial.begin(115200); //set up USB serial settings
 
   pinMode(pin_mirror, OUTPUT);
@@ -62,6 +62,7 @@ void loop() {
   if (Serial.available() > 1) {
     pinByte = Serial.read(); // read the pin byte
     pwmByte = Serial.read(); // read the amplitude byte
+
     if (pinByte == 5) { //this is the one pin still set as digital
       if (pwmByte == 0) {
         digitalWrite(pins[pinByte], LOW);
@@ -78,8 +79,10 @@ void loop() {
     } else if (pinByte == 6) {
       //If it does not correspond to a pin, instead requests status return
       print_status(status);
-    else if (pinByte == 7) {
+    } else if (pinByte == 7) {
       //If it does not correspond to a pin, instead requests status return
+      Serial.print(pinByte, DEC);
+      Serial.print(":");
       Serial.print(FIRMWARE_VERSION);
     } else { //all other pins are using pwm
       analogWrite(pins[pinByte], pwmByte);
@@ -88,7 +91,7 @@ void loop() {
       Serial.print(":");
       Serial.print(status[pinByte], DEC);
     }
-    Serial.println()
+    Serial.println();
   }
   delay(100);
 }
