@@ -3,7 +3,7 @@ Author: Noah Swimmer, 28 October 2022
 
 Code to control the Finger Lakes Instrumentation (FLI) CFW2-7 Filter wheel
 
-TODO: All
+TODO: Add forked github repos to the mkidcontrol repository for recreation of FLI software
 """
 
 from FLI.filter_wheel import USBFilterWheel
