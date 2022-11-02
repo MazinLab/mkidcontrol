@@ -482,14 +482,9 @@ COMMANDSLASERFLIPPER = {'device-settings:laserflipperduino:laserbox:808:power': 
                         }
 
 # ---- Fitler Wheel Commands ----
-COMMANDSFILTERWHEEL = {'device-settings:filterwheel:filter': {'command': '', 'vals': {'0': '0',
-                                                                                      '1': '1',
-                                                                                      '2': '2',
-                                                                                      '3': '3',
-                                                                                      '4': '4',
-                                                                                      '5': '5',
-                                                                                      '6': '6'}}
-
+COMMANDSFILTERWHEEL = {'device-settings:filterwheel:position': {'command': '', 'vals': {'0': 0, '1': 1, '2': 2,
+                                                                                        '3': 3, '4': 4, '5': 5,
+                                                                                        '6': 6}}
                       }
 
 # ---- Focus Slider Commands ----
@@ -525,3 +520,6 @@ COMMAND_DICT.update(COMMANDS372)
 COMMAND_DICT.update(COMMANDSMAGNET)
 COMMAND_DICT.update(COMMANDSHS)
 COMMAND_DICT.update(COMMANDS625)
+COMMAND_DICT.update(COMMANDSLASERFLIPPER)
+COMMAND_DICT.update(COMMANDSFILTERWHEEL)
+COMMAND_DICT.update(COMMANDSFOCUS)
