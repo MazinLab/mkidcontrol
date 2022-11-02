@@ -193,41 +193,32 @@ if __name__ == "__main__":
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"lakeshore625agent received {key}, {val}. Trying to send a command")
                 key = key.removeprefix('command:')
-                # TODO: Handle STOP ramp
-                if key in SETTING_KEYS:
-                    try:
-                        limits = lakeshore.limits  # N.B. This is a fast call and if the command needs it it will have it, otherwise it will be ignored
-                        cmd = LakeShoreCommand(key, val, limit_vals=limits)
-                    except ValueError:
-                        log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
-                        continue
-                    except IOError as e:
-                        log.error(f"Comm error: {e}")
-                        redis.store({STATUS_KEY: f"Error {e}"})
-                    try:
+                # TODO: Check limit handling!
+                try:
+                    if key in SETTING_KEYS:
+                        try:
+                            limits = lakeshore.limits  # N.B. This is a fast call and if the command needs it it will have it, otherwise it will be ignored
+                            cmd = LakeShoreCommand(key, val, limit_vals=limits)
+                        except ValueError:
+                            log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
+                            continue
                         log.info(f"Processing command '{cmd}'")
                         lakeshore.send(cmd.ls_string)
                         redis.store({cmd.setting: cmd.value})
                         redis.store({STATUS_KEY: "OK"})
-                    except IOError as e:
-                        redis.store({STATUS_KEY: f"Error {e}"})
-                        log.error(f"Comm error: {e}")
-                elif key == STOP_RAMP_KEY:
-                    try:
+                    elif key == STOP_RAMP_KEY:
                         log.info(f"Processing stop ramp command!")
                         lakeshore.stop_ramp()
                         log.warning(f"Ramp is stopped, current will remain unchanged until a new current is selected")
-                    except IOError as e:
-                        redis.store({STATUS_KEY: f"Error {e}"})
-                        log.error(f"Comm error: {e}")
-                elif key == KILL_CURRENT_KEY:
-                    try:
+                        redis.store({STATUS_KEY: "OK"})
+                    elif key == KILL_CURRENT_KEY:
                         log.info(f"Killing current from lakeshore 625!")
                         lakeshore.kill_current()
                         log.warning(f"Current is being killed")
-                    except IOError as e:
-                        redis.store({STATUS_KEY: f"Error {e}"})
-                        log.error(f"Comm error: {e}")
+                        redis.store({STATUS_KEY: "OK"})
+                except IOError as e:
+                    redis.store({STATUS_KEY: f"Error {e}"})
+                    log.error(f"Comm error: {e}")
     except RedisError as e:
         log.critical(f"Redis server error! {e}", exc_info=True)
         sys.exit(1)
