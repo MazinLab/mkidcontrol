@@ -7,10 +7,13 @@ import json
 import pkg_resources
 import os
 from dotenv import load_dotenv
+#TODO: Make sure all schema keys are accounted for
+
+#TODO: Update schema key default values for LS372 and LS625
 
 REDIS_DB = 0
 
-REDIS_TS_RETENTION = 60 * 60 * 1000  # 30 min
+REDIS_TS_RETENTION = 60 * 60 * 1000  # 60 min
 
 #TODO: Concatenate all ts keys
 REDIS_TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
@@ -718,22 +721,21 @@ REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                          'device-settings:ls625:baud-rate': 9600,
                          'device-settings:ls625:current-limit': 10.0,
                          'device-settings:ls625:compliance-voltage-limit': 2.5,
-                         'device-settings:ls625:rate-limit': 0.100,
+                         'device-settings:ls625:rate-limit': 1.000,
                          'device-settings:ls625:magnetic-field-parameter': 4.0609,
-                         'device-settings:ls625:quench-ramp-rate': 0.150,
-                         'device-settings:ls625:ramp-rate': 0.010,
+                         'device-settings:ls625:quench-ramp-rate': 1.000,
+                         'device-settings:ls625:ramp-rate': 0.005,
                          'device-settings:ls625:desired-current': 0.0,
                          'device-settings:ls625:compliance-voltage': 2.5,
-                         'device-settings:ls625:control-mode': 'Internal',
+                         'device-settings:ls625:control-mode': 'Sum',
                          'device-settings:heatswitch:position': 'Close',
-                         'device-settings:heatswitch:step-size': '50000',
-                         'device-settings:heatswitch:max-velocity': '3000.0',
-                         'device-settings:heatswitch:running-current': '18',
+                         'device-settings:heatswitch:max-velocity': '1000.0',
+                         'device-settings:heatswitch:running-current': '13',
                          'device-settings:heatswitch:acceleration': '2',
-                         'device-settings:magnet:ramp-rate': 0.015,
-                         'device-settings:magnet:deramp-rate': 0.020,
+                         'device-settings:magnet:ramp-rate': 0.005,
+                         'device-settings:magnet:deramp-rate': 0.005,
                          'device-settings:magnet:soak-time': 60,
-                         'device-settings:magnet:soak-current': 7.88,
+                         'device-settings:magnet:soak-current': 9.4,
                          'device-settings:mkidarray:regulating-temp': 0.100,
                          }
                 }
