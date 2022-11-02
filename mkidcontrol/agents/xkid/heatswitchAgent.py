@@ -25,7 +25,7 @@ from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
 from mkidcontrol.devices import HeatswitchMotor, HeatswitchPosition
-from mkidcontrol.commands import COMMANDSHS, SimCommand
+from mkidcontrol.commands import COMMANDSHS, LakeShoreCommand
 from zaber_motion import Library
 
 QUERY_INTERVAL = 1
@@ -135,7 +135,7 @@ if __name__ == "__main__":
                 key = key.removeprefix('command:')
                 if key in SETTING_KEYS:
                     try:
-                        cmd = SimCommand(key, val)
+                        cmd = LakeShoreCommand(key, val)
                     except ValueError as e:
                         log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
                         continue
