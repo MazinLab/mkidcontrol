@@ -14,6 +14,7 @@ import serial
 from serial import SerialException
 from lakeshore import InstrumentException
 from zaber_motion.binary import Connection, BinarySettings, CommandCode
+from FLI.filter_wheel import USBFilterWheel
 
 from mkidcontrol.mkidredis import RedisError
 
@@ -430,6 +431,119 @@ class SimDevice(SerialDevice):
             cmd = SimCommand(setting)
             ret[setting] = self.query(cmd.sim_query_string)
         return ret
+
+
+class FilterWheel(USBFilterWheel):
+    def __init__(self, name, port=None, model=b"CFW-2-7", filters=None):
+        super().__init__(dev_name=port, model=model)
+        self.name = name
+        self.set_filter_pos(0)  # Initialize to the closed position.
+        self.model = model.decode()
+        self.filters = filters
+
+    @property
+    def current_filter_position(self):
+        """
+        Returns the current position of the filter wheel, can be an integer 0 - 6
+        """
+        try:
+            return self.get_filter_pos()
+        except (SerialException, Exception) as e:
+            raise Exception(f"Could not communicate with the filter wheel! {e}")
+
+    @property
+    def current_filter(self):
+        """
+        Returns the name of the current filter if a configuration filter dictionary is given
+        and self.filters is not None. Otherwise returns None
+        """
+        if self.filters is None:
+            return None
+        else:
+            try:
+                return self.filters[self.current_filter_position]
+            except Exception:
+                return None
+
+    @property
+    def filter_count(self):
+        """
+        Returns the number of filters in the filter wheel.
+        For a CFW2-7, it should be 7
+        """
+        try:
+            return self.get_filter_count()
+        except (SerialException, Exception) as e:
+            raise Exception(f"Could not communicate with the filter wheel! {e}")
+
+    @property
+    def serial_number(self):
+        """
+        Returns the serial number of the FLI filter wheel
+        """
+        try:
+            return self.get_serial_number().decode()
+        except (SerialException, Exception) as e:
+            raise Exception(f"Could not communicate with the filter wheel! {e}")
+
+    def move_filter(self, position):
+        """
+        Sends command to move filter to a new position.
+        With the CFW2-7 legal values are 0-6 (for the 7-position wheel)
+        """
+        try:
+            self.set_filter_pos(position)
+        except (SerialException, Exception) as e:
+            raise Exception(f"Could not communicate with the filter wheel! {e}")
+
+    def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
+        """
+        Given a monitoring function (or is of the same) and either one or the same number of optional callback
+        functions call the monitors every interval. If one callback it will get all the values in the order of the
+        monitor funcs, if a list of the same number as of monitorables each will get a single value.
+
+        Monitor functions may not return None.
+
+        When there is a 1-1 correspondence the callback is not called in the event of a monitoring error.
+        If a single callback is present for multiple monitor functions values that had errors will be sent as None.
+        Function must accept as many arguments as monitor functions.
+        """
+        if not isinstance(monitor_func, (list, tuple)):
+            monitor_func = (monitor_func,)
+        if value_callback is not None and not isinstance(value_callback, (list, tuple)):
+            value_callback = (value_callback,)
+        if not (value_callback is None or len(monitor_func) == len(value_callback) or len(value_callback) == 1):
+            raise ValueError('When specified, the number of callbacks must be one or the number of monitor functions')
+
+        def f():
+            while True:
+                vals = []
+                for func in monitor_func:
+                    try:
+                        vals.append(func())
+                    except IOError as e:
+                        log.error(f"Failed to poll {func}: {e}")
+                        vals.append(None)
+
+                if value_callback is not None:
+                    if len(value_callback) > 1 or len(monitor_func) == 1:
+                        for v, cb in zip(vals, value_callback):
+                            try:
+                                cb(v)
+                            except Exception as e:
+                                log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
+                    else:
+                        cb = value_callback[0]
+                        try:
+                            cb(*vals)
+                        except Exception as e:
+                            log.error(f"Callback {cb} error. args={vals}.", exc_info=True)
+
+                time.sleep(interval)
+
+        self._monitor_thread = threading.Thread(target=f, name='Monitor Thread')
+        self._monitor_thread.daemon = True
+        self._monitor_thread.start()
 
 
 class HeatswitchMotor:
@@ -2237,52 +2351,3 @@ class Laserflipperduino(SerialDevice):
             amp_value = float(dat[1])
             self.status[int(dat[0])] = amp_value
         return self.status
-
-    def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
-        """
-        Given a monitoring function (or is of the same) and either one or the same number of optional callback
-        functions call the monitors every interval. If one callback it will get all the values in the order of the
-        monitor funcs, if a list of the same number as of monitorables each will get a single value.
-
-        Monitor functions may not return None.
-
-        When there is a 1-1 correspondence the callback is not called in the event of a monitoring error.
-        If a single callback is present for multiple monitor functions values that had errors will be sent as None.
-        Function must accept as many arguments as monitor functions.
-        """
-        if not isinstance(monitor_func, (list, tuple)):
-            monitor_func = (monitor_func,)
-        if value_callback is not None and not isinstance(value_callback, (list, tuple)):
-            value_callback = (value_callback,)
-        if not (value_callback is None or len(monitor_func) == len(value_callback) or len(value_callback) == 1):
-            raise ValueError('When specified, the number of callbacks must be one or the number of monitor functions')
-
-        def f():
-            while True:
-                vals = []
-                for func in monitor_func:
-                    try:
-                        vals.append(func())
-                    except IOError as e:
-                        log.error(f"Failed to poll {func}: {e}")
-                        vals.append(None)
-
-                if value_callback is not None:
-                    if len(value_callback) > 1 or len(monitor_func) == 1:
-                        for v, cb in zip(vals, value_callback):
-                            try:
-                                cb(v)
-                            except Exception as e:
-                                log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
-                    else:
-                        cb = value_callback[0]
-                        try:
-                            cb(*vals)
-                        except Exception as e:
-                            log.error(f"Callback {cb} error. args={vals}.", exc_info=True)
-
-                time.sleep(interval)
-
-        self._monitor_thread = threading.Thread(target=f, name='Monitor Thread')
-        self._monitor_thread.daemon = True
-        self._monitor_thread.start()

@@ -6,48 +6,51 @@ Code to control the Finger Lakes Instrumentation (FLI) CFW2-7 Filter wheel
 TODO: Add forked github repos to the mkidcontrol repository for recreation of FLI software
 """
 
-from FLI.filter_wheel import USBFilterWheel
-from serial import SerialException
+import logging
+import sys
 
 import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
+from mkidcontrol.mkidredis import RedisError
+from mkidcontrol.devices import FilterWheel
+from mkidcontrol.commands import COMMANDSFILTERWHEEL, LakeShoreCommand
+
+logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger(__name__)
 
 
-class FilterWheel(USBFilterWheel):
-    def __init__(self, name, port=None):
-        super().__init__(dev_name=port, model=b"CFW-2-7")
-        self.name = name
+QUERY_INTERVAL = 1
 
-    @property
-    def current_filter_position(self):
-        """
-        Returns the current position of the filter wheel, can be an integer 0 - 6
-        """
-        try:
-            return self.get_filter_pos()
-        except (SerialException, Exception) as e:
-            raise Exception(f"Could not communicate with the filter wheel! {e}")
+STATUS_KEY = "status:device:filterwheel:status"
+SN_KEY = "status:device:filterwheel:sn"
+MODEL_KEY = "status:device:filterwheel:model"
 
-    @property
-    def filter_count(self):
-        """
-        Returns the number of filters in the filter wheel.
-        For a CFW2-7, it should be 7
-        """
-        try:
-            return self.get_filter_count()
-        except (SerialException, Exception) as e:
-            raise Exception(f"Could not communicate with the filter wheel! {e}")
+SETTING_KEYS = tuple(COMMANDSFILTERWHEEL.keys())
+COMMAND_KEYS = (f"command:{key}" for key in SETTING_KEYS)
 
-    def move_filter(self, position):
-        """
-        Sends command to move filter to a new position.
-        With the CFW2-7 legal values are 0-6 (for the 7-position wheel)
-        """
-        try:
-            self.set_filter_pos(position)
-        except (SerialException, Exception) as e:
-            raise Exception(f"Could not communicate with the filter wheel! {e}")
+FILTERWHEEL_POSITION_KEY = 'device-settings:filterwheel:position'
+FILTERWHEEL_FILTER_KEY = 'status:filterwheel:filter'
+
+FILTERS = {0: 'Closed',
+           1: 'Y',
+           2: 'Zs',
+           3: 'J',
+           4: '220+125',
+           5: '125',
+           6: 'Open'}
+
+def callback(filter, position):
+    vals = [filter, position]
+    keys = [FILTERWHEEL_FILTER_KEY, FILTERWHEEL_POSITION_KEY]
+    d = {k: x for k, x in zip(keys, vals)}
+    try:
+        if all(i is None for i in vals):
+            redis.store({STATUS_KEY: "Error"})
+        else:
+            redis.store(d)
+            redis.store({STATUS_KEY: "OK"})
+    except RedisError:
+        log.warning('Storing filter wheel data to redis failed!')
 
 
 if __name__ == "__main__":
