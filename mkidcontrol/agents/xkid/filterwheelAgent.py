@@ -58,4 +58,42 @@ if __name__ == "__main__":
     redis.setup_redis()
     util.setup_logging('filterwheelAgent')
 
-    fw = FilterWheel('filterwheel', b'/dev/filterwheel')
+    try:
+        fw = FilterWheel('filterwheel', b'/dev/filterwheel', filters=FILTERS)
+        redis.store({MODEL_KEY: fw.model})
+        redis.store({SN_KEY: fw.serial_number})
+        redis.store({STATUS_KEY: "OK"})
+    except RedisError as e:
+        log.error(f"Redis server error! {e}")
+        sys.exit(1)
+    except Exception as e:
+        log.critical(f"Could not connect to the filter wheel! Error {e}")
+        redis.store({STATUS_KEY: f"Error: {e}"})
+        sys.exit(1)
+
+    fw.monitor(QUERY_INTERVAL, (fw.current_filter, fw.current_filter_position), value_callback=callback)
+
+    try:
+        while True:
+            for key, val in redis.listen(COMMAND_KEYS):
+                log.debug(f"filterwheelAgent received {key}: {val}.")
+                key = key.removeprefix("command:")
+                if key in SETTING_KEYS:
+                    try:
+                        cmd = LakeShoreCommand(key, val)
+                    except ValueError as e:
+                        log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
+                        continue
+                    try:
+                        log.info(f"Processing command {cmd}")
+                        if key == FILTERWHEEL_POSITION_KEY:
+                            fw.set_filter_pos(cmd.command_value)
+                            redis.store({cmd.setting: cmd.value})
+                            redis.store({STATUS_KEY: "OK"})
+                    except IOError as e:
+                        redis.store({STATUS_KEY: f"Error {e}"})
+                        log.error(f"Comm error: {e}")
+    except RedisError as e:
+        log.error(f"Redis server error! {e}")
+        sys.exit(1)
+
