@@ -74,7 +74,7 @@ class DiasbledControlSensorForm(FlaskForm):
     update = SubmitField("Update")
 
 
-class InputSensorForm(FlaskForm):
+class Input372SensorForm(FlaskForm):
     # Lakeshore 372 Form
     from mkidcontrol.commands import LS372_SENSOR_MODE, LS372_AUTORANGE_VALUES, LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE, \
         LS372_MEASUREMENT_INPUT_CURRENT_RANGE, LS372_CURRENT_SOURCE_SHUNTED_VALUES, LS372_INPUT_SENSOR_UNITS, \
@@ -95,7 +95,7 @@ class InputSensorForm(FlaskForm):
     update = SubmitField("Update")
 
 
-class DisabledEnabledInputSensorForm(FlaskForm):
+class DisabledInput372SensorForm(FlaskForm):
     # Lakeshore 372 Form
     from mkidcontrol.commands import LS372_SENSOR_MODE, LS372_AUTORANGE_VALUES, LS372_MEASUREMENT_INPUT_VOLTAGE_RANGE, \
         LS372_MEASUREMENT_INPUT_CURRENT_RANGE, LS372_CURRENT_SOURCE_SHUNTED_VALUES, LS372_INPUT_SENSOR_UNITS, \
@@ -158,7 +158,7 @@ class DisabledOutputHeaterForm(FlaskForm):
     update = SubmitField("Update")
 
 
-class InputSensorForm(FlaskForm):
+class Input336SensorForm(FlaskForm):
     # Lakeshore 336 form
     from mkidcontrol.commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_AUTORANGE_VALUES, \
         LS336_COMPENSATION_VALUES
@@ -171,21 +171,21 @@ class InputSensorForm(FlaskForm):
     compensation = SelectField(label="Compensation", choices=list(LS336_COMPENSATION_VALUES.keys()))
 
 
-class DiodeForm(InputSensorForm):
+class DiodeForm(Input336SensorForm):
     # Lakeshore 336 form
     from mkidcontrol.commands import LS336_DIODE_RANGE
     input_range = SelectField("Input Range", choices=list(LS336_DIODE_RANGE.keys()))
     update = SubmitField("Update")
 
 
-class RTDForm(InputSensorForm):
+class RTDForm(Input336SensorForm):
     # Lakeshore 336 form
     from mkidcontrol.commands import LS336_RTD_RANGE
     input_range = SelectField("Input Range", choices=list(LS336_RTD_RANGE.keys()))
     update = SubmitField("Update")
 
 
-class DisabledInputForm(FlaskForm):
+class DisabledInput336Form(FlaskForm):
     # Lakeshore 336 form
     from mkidcontrol.commands import LS336_INPUT_SENSOR_TYPES, LS336_INPUT_SENSOR_UNITS, LS336_INPUT_SENSOR_RANGE, \
         LS336_AUTORANGE_VALUES, LS336_COMPENSATION_VALUES
