@@ -69,6 +69,7 @@ SOAK_CURRENT_KEY = 'device-settings:magnet:soak-current'
 CYCLE_RAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
 CYCLE_DERAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
 
+
 def is_initialized():
     return redis.read(STATUS_KEY) == "OK"
 
@@ -79,22 +80,6 @@ def lakeshore_current():
 
 def kill_current():
     redis.publish(f"command:{KILL_CURRENT_KEY}", 0)
-
-
-def in_pid_mode():
-    return redis.read(OUTPUT_MODE_KEY) == "External"
-
-
-def in_manual_mode():
-    return redis.read(OUTPUT_MODE_KEY) == "Internal"
-
-
-def to_pid_mode():
-    redis.publish(OUTPUT_MODE_COMMAND_KEY, "External")
-
-
-def to_manual_mode():
-    redis.publish(OUTPUT_MODE_COMMAND_KEY, "Internal")
 
 
 def start_cycle_ramp(current=None):
@@ -176,6 +161,7 @@ if __name__ == "__main__":
         # lakeshore = LakeShore625(port=DEVICE, valid_models=VALID_MODELS, initializer=initializer)
         log.info(f"LakeShore 625 connection successful!")
         redis.store({STATUS_KEY: "OK"})
+        time.sleep(1)
     except IOError as e:
         log.critical(f"Error in connecting to LakeShore 625: {e}")
         redis.store({STATUS_KEY: "Error"})
@@ -193,7 +179,6 @@ if __name__ == "__main__":
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"lakeshore625agent received {key}, {val}. Trying to send a command")
                 key = key.removeprefix('command:')
-                # TODO: Check limit handling!
                 try:
                     if key in SETTING_KEYS:
                         try:
@@ -204,6 +189,8 @@ if __name__ == "__main__":
                             continue
                         log.info(f"Processing command '{cmd}'")
                         lakeshore.send(cmd.ls_string)
+                        if 'limit' in key:
+                            lakeshore.limits_cached = False
                         redis.store({cmd.setting: cmd.value})
                         redis.store({STATUS_KEY: "OK"})
                     elif key == STOP_RAMP_KEY:

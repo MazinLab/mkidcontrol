@@ -97,9 +97,10 @@ def initializer(device, setting_keys, redis, firmware_key, model_key, sn_key):
         log.warning('Storing device settings to redis failed')
 
 
-class MagnetState(enum.Enum):
-    PID = enum.auto()
-    MANUAL = enum.auto()
+class MagnetState:
+    MANUAL = 0
+    PID = 1
+    SUM = 2
 
 
 class HeatswitchPosition:
@@ -1654,18 +1655,34 @@ class LakeShore625(LakeShoreDevice):
         self.last_current_read = None
         self.last_field_read = None
         self.last_voltage_read = None
-        self.max_current = None
-        self.max_compliance_voltage = None
-        self.max_ramp_rate = None
+
+        self.current_limit = None  # The max current one can send to the LS625
+        self.voltage_limit = None  # The greatest (magnitude) voltage the LS625 can apply across the magnet
+        self.rate_limit = None  # The greatest (magnitude) current ramp rate the LS625 will allow the user to set
+        self.limits_cached = False
 
         super().__init__("LS625", port, baudrate=baudrate, timeout=timeout, parity=parity, bytesize=bytesize,
                          connect=connect, valid_models=valid_models, initializer=initializer)
 
+        self.send(f"XPGM 2")
+        self.send("SETI 0.000")
+
     @property
     def limits(self):
-        # TODO: Cache these values rather than querying?
-        current_lim, voltage_lim, rate_limit = self.query("LIMIT?").split(',')
-        return {'current': current_lim, 'voltage': voltage_lim, 'rate': rate_limit}
+        if self.limits_cached:
+            log.debug(f"Limits have been cached, not querying device")
+        else:
+            try:
+                log.debug(f"Querying limits from Lake Shore 625")
+                current_limit, voltage_limit, rate_limit = self.query("LIMIT?").split(',')
+            except (IOError, SerialException):
+                log.warning(f"Could not query the limits from the Lake Shore 625!")
+                raise IOError(f"Can't communicate with the Lake Shore 625: {e}")
+            self.current_limit = float(current_limit)
+            self.voltage_limit = float(voltage_limit)
+            self.rate_limit = float(rate_limit)
+            self.limits_cached = True
+        return {'current': self.current_limit, 'voltage': self.voltage_limit, 'rate': self.rate_limit}
 
     def _lsspecificconnect(self):
         # mode = self.query("XPGM?")
@@ -1698,23 +1715,41 @@ class LakeShore625(LakeShoreDevice):
 
     @property
     def mode(self):
-        """ Returns MagnetState or raises IOError (which means we don't know!) """
-        return MagnetState.MANUAL if self.query("XPGM?") == '0' else MagnetState.PID
+        """ Returns MagnetState or raises ValueError (which means we don't know!) """
+        try:
+            mode = self.query(f"XPGM?")
+        except (IOError, SerialException) as e:
+            log.warning(f"Can't communicate with the LS 625: {e}")
+            raise IOError(f"Can't communicate with the LS 625: {e}")
+        if mode == '0':
+            return MagnetState.MANUAL
+        elif mode == '1':
+            return MagnetState.PID
+        elif mode == '2':
+            return MagnetState.SUM
+        else:
+            raise ValueError(f"Invalid external program mode: '{mode}'")
 
     @mode.setter
-    def mode(self, value: MagnetState):
+    def mode(self, value: int):
         """ Set the magnet state, state may not be set of Off directly.
         If transistioning to manual ensure that the manual current doesn't hiccup
         """
         with self._rlock:
-            mode = self.mode
+            mode = int(self.mode)
+            log.debug(f"Setting Lake Shore 625 mode from {mode} to {value}")
             if mode == value:
                 return
-            if value == MagnetState.MANUAL:
+            if value == MagnetState.SUM:
+                self.send("XPGM 2")
+                self.zero_current()
+            elif value == MagnetState.MANUAL:
                 self.send("XPGM 0")
-                self.send("SETI 0.000")
-            else:
+                self.zero_current()
+            elif value == MagnetState.PID:
                 self.send("XPGM 1")
+            else:
+                log.warning(f"Mode {mode} is invalid for the Lake Shore 625. Allowed values are 0, 1, 2")
 
     def kill_current(self):
         """
