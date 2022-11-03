@@ -14,17 +14,18 @@ MTS50/M-Z8 NOTES:
     - Each encode count is 1.0 mm / 34,555 encoder steps = 29 nm / encoder step
     - The device can move from 0 - 1727750 (in encoder step space) or 0 - 50 (in mm space)
 
-TODO: All
+TODO: Does this require a monitor function?
 """
 
 from serial import SerialException
-import time
 import logging
+import sys
 
 from thorlabs_apt_device.devices.tdc001 import TDC001
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
+from mkidcontrol.commands import COMMANDSFOCUS, LakeShoreCommand
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
@@ -34,6 +35,11 @@ QUERY_INTERVAL = 1
 ENCODER_STEPS_PER_MM = 34555
 
 TS_KEYS = ()
+
+STATUS_KEY = "status:device:focus:status"
+
+SETTING_KEYS = tuple(COMMANDSFOCUS.keys())
+COMMAND_KEYS = (f"command:{key}" for key in SETTING_KEYS)
 
 
 class Focus(TDC001):
@@ -66,15 +72,19 @@ class Focus(TDC001):
             raise IOError(f"Error communicating with focus slider: {e}")
 
     @property
-    def position(self):
+    def position_mm(self):
         return self.status['position']
+
+    @property
+    def position_encoder(self):
+        return self.status['enc_count']
 
     def jog(self, direction='forward'):
         """
         Jog the focus stage 'forward' or 'reverse'. This will follow the settings in self.jogparams
         """
         if direction.lower() not in ('forward', 'reverse'):
-            raise ValueError(f"Unknown jog direction, ")
+            raise ValueError(f"Unknown jog direction, '{direction.lower()}'. Usable values are 'forward'/'reverse'")
 
         try:
             self.move_jog(direction=direction)
@@ -123,10 +133,150 @@ class Focus(TDC001):
         except (IOError, SerialException) as e:
             raise IOError(f"Error communicating with focus slider: {e}")
 
+    def move_by(self, dist, units='mm', error_on_disallowed=False):
+        """
+        Perform a relative move by <dist> <units>
+        Position must be provided
+        Default units are 'mm', but 'encoder' can also be used for more granular control
+        Legal values will depend on the current position.
+        If error_on_disallowed = True -> this command will error out without moving the slider
+        If error_on_disallowed = False -> the command will warn the user that they are requesting the farthest possible
+         move in one direction and then make that move
+        Raises a value error if units are in
+        """
+        if units == 'mm':
+            dist_encoder = dist * ENCODER_STEPS_PER_MM
+            dist_mm = dist
+        elif units == 'encoder':
+            dist_mm = dist / ENCODER_STEPS_PER_MM
+            dist_encoder = dist
+        else:
+            raise ValueError(f"Invalid units: '{units}'. Legal values are 'mm' and 'encoder'")
 
+        current_position_enc = self.position_encoder
+        desired_position_enc = current_position_enc + dist
+
+        try:
+            if desired_position_enc >= self.MAXIMUM_POSITION_ENCODER:
+                if error_on_disallowed:
+                    log.debug(
+                        f"Requested a move by {dist_encoder} ({dist_mm}mm), beyond the maximum allowed position ({self.MAXIMUM_POSITION_ENCODER}/{self.MAXIMUM_POSITION_MM} mm)")
+                    raise ValueError(
+                        f"Requested a move by {dist_encoder} ({dist_mm}mm), beyond the maximum allowed position ({self.MAXIMUM_POSITION_ENCODER}/{self.MAXIMUM_POSITION_MM} mm)")
+                else:
+                    log.debug(
+                        f"Requested a move by {dist_encoder} ({dist_mm}mm), beyond the maximum allowed position ({self.MAXIMUM_POSITION_ENCODER}/{self.MAXIMUM_POSITION_MM} mm). "
+                        f"Moving instead to {self.MAXIMUM_POSITION_ENCODER} ({self.MAXIMUM_POSITION_MM} mm)")
+                    dist_encoder = self.MAXIMUM_POSITION_ENCODER - current_position_enc
+                    dist_mm = dist_encoder / ENCODER_STEPS_PER_MM
+            elif desired_position_enc <= self.MINIMUM_POSITION_ENCODER:
+                if error_on_disallowed:
+                    log.debug(
+                        f"Requested a move by {dist_encoder} ({dist_mm}mm), beyond the minimum allowed position ({self.MINIMUM_POSITION_ENCODER}/{self.MINIMUM_POSITION_MM} mm)")
+                    raise ValueError(
+                        f"Requested a move by {dist_encoder} ({dist_mm}mm), beyond the minimum allowed position ({self.MINIMUM_POSITION_ENCODER}/{self.MINIMUM_POSITION_MM} mm)")
+                else:
+                    log.debug(
+                        f"Requested a move by {dist_encoder} ({dist_mm}mm), beyond the minimum allowed position ({self.MINIMUM_POSITION_ENCODER}/{self.MINIMUM_POSITION_MM} mm). "
+                        f"Moving instead to {self.MINIMUM_POSITION_ENCODER} ({self.MINIMUM_POSITION_MM} mm)")
+                    dist_encoder = self.MINIMUM_POSITION_ENCODER - current_position_enc
+                    dist_mm = dist_encoder / ENCODER_STEPS_PER_MM
+            log.info(f"Attempting to move by {dist_encoder} steps ({dist_mm} mm)")
+            self.move_relative(dist_encoder)
+            log.info(f"Move successful")
+        except (IOError, SerialException) as e:
+            raise IOError(f"Error communicating with focus slider: {e}")
+
+    def update_param(self, key, value):
+        _, _, param_type, param = key.split(":")
+        param.replace('-', '_')
+        try:
+            if 'home' in param_type:
+                self.set_home_params(**{param:value})
+            elif 'jog' in param_type:
+                self.set_jog_params(**{param:value})
+            elif 'move' in param_type:
+                self.set_move_params(**{param:value})
+            elif 'velocity' in param_type:
+                self.set_move_params(**{param:value})
+            else:
+                raise ValueError(f"Unknown parameter type to update for focus slider!")
+        except (IOError, SerialException) as e:
+            log.warning(f"Can't communicate with focus slider! {e}")
+            raise IOError(f"Can't communicate with focus slider! {e}")
+
+    def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
+        """
+        Given a monitoring function (or is of the same) and either one or the same number of optional callback
+        functions call the monitors every interval. If one callback it will get all the values in the order of the
+        monitor funcs, if a list of the same number as of monitorables each will get a single value.
+
+        Monitor functions may not return None.
+
+        When there is a 1-1 correspondence the callback is not called in the event of a monitoring error.
+        If a single callback is present for multiple monitor functions values that had errors will be sent as None.
+        Function must accept as many arguments as monitor functions.
+        """
+        if not isinstance(monitor_func, (list, tuple)):
+            monitor_func = (monitor_func,)
+        if value_callback is not None and not isinstance(value_callback, (list, tuple)):
+            value_callback = (value_callback,)
+        if not (value_callback is None or len(monitor_func) == len(value_callback) or len(value_callback) == 1):
+            raise ValueError('When specified, the number of callbacks must be one or the number of monitor functions')
+
+        def f():
+            while True:
+                vals = []
+                for func in monitor_func:
+                    try:
+                        vals.append(func())
+                    except IOError as e:
+                        log.error(f"Failed to poll {func}: {e}")
+                        vals.append(None)
+
+                if value_callback is not None:
+                    if len(value_callback) > 1 or len(monitor_func) == 1:
+                        for v, cb in zip(vals, value_callback):
+                            try:
+                                cb(v)
+                            except Exception as e:
+                                log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
+                    else:
+                        cb = value_callback[0]
+                        try:
+                            cb(*vals)
+                        except Exception as e:
+                            log.error(f"Callback {cb} error. args={vals}.", exc_info=True)
+
+                time.sleep(interval)
+
+        self._monitor_thread = threading.Thread(target=f, name='Monitor Thread')
+        self._monitor_thread.daemon = True
+        self._monitor_thread.start()
+
+
+def callback(position):
+    d = {FOCUS_POSITION_KEY: position}
+    try:
+        if all(i is None for i in vals):
+            redis.store({STATUS_KEY: "Error"})
+        else:
+            redis.store(d)
+            redis.store({STATUS_KEY: "OK"})
+    except RedisError:
+        log.warning('Storing filter wheel data to redis failed!')
 
 if __name__ == "__main__":
     redis.setup_redis(ts_keys=TS_KEYS)
     util.setup_logging('focusAgent')
 
-    f = Focus(name='focus', port='/dev/focus')
+    try:
+        f = Focus(name='focus', port='/dev/focus')
+        redis.store({STATUS_KEY: "OK"})
+    except RedisError as e:
+        log.error(f"Redis server error! {e}")
+        sys.exit(1)
+    except Exception as e:
+        log.critical(f"Could not connect to the filter wheel! Error {e}")
+        redis.store({STATUS_KEY: f"Error: {e}"})
+        sys.exit(1)
