@@ -37,19 +37,6 @@ LASER_KEYS = ('device-settings:laserflipperduino:laserbox:808:power',
               'device-settings:laserflipperduino:laserbox:1310:power'
               )
 
-def callback(values):
-    vals = values.values()
-    d = {k: x for k, x in zip(SETTING_KEYS, vals)}
-    try:
-        if all(i is None for i in vals):
-            redis.store({STATUS_KEY: "Error"})
-        else:
-            redis.store(d)
-            redis.store({STATUS_KEY: "OK"})
-    except RedisError:
-        log.warning('Storing LakeShore336 data to redis failed!')
-
-
 if __name__ == "__main__":
 
     redis.setup_redis()
@@ -65,8 +52,6 @@ if __name__ == "__main__":
         log.critical(f"Could not connect to the laserflipper! Error {e}")
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
-
-    laserduino.monitor(QUERY_INTERVAL, (laserduino.statuses, ), value_callback=callback)
 
     try:
         while True:
