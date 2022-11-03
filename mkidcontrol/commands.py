@@ -168,13 +168,9 @@ class LakeShoreCommand:
         return self.value is None
 
     def _parse_limit_values(self):
-        field_to_change = self.setting.split(":")[:-6]
-        if field_to_change == 'current':
-            self.limit_values['current'] = self.value
-        elif field_to_change == 'compliance-voltage':
-            self.limit_values['voltage'] = self.value
-        elif field_to_change == 'rate':
-            self.limit_values['rate'] = self.value
+        field_to_change = self.setting.split(":")[-1][:-6]
+        if field_to_change in ('current', 'voltage', 'rate'):
+            self.limit_values[field_to_change] = self.value
         else:
             raise ValueError(f"Unknown limit field: {field_to_change}")
 
