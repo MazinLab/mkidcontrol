@@ -12,7 +12,6 @@ import time
 import threading
 import serial
 from serial import SerialException
-from lakeshore import InstrumentException
 from zaber_motion.binary import Connection, BinarySettings, CommandCode
 from FLI.filter_wheel import USBFilterWheel
 
