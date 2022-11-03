@@ -2,8 +2,6 @@
 Author: Noah Swimmer, 28 October 2022
 
 Code to control the Finger Lakes Instrumentation (FLI) CFW2-7 Filter wheel
-
-TODO: Add forked github repos to the mkidcontrol repository for recreation of FLI software
 """
 
 import logging
@@ -29,7 +27,7 @@ SETTING_KEYS = tuple(COMMANDSFILTERWHEEL.keys())
 COMMAND_KEYS = (f"command:{key}" for key in SETTING_KEYS)
 
 FILTERWHEEL_POSITION_KEY = 'device-settings:filterwheel:position'
-FILTERWHEEL_FILTER_KEY = 'status:filterwheel:filter'
+FILTERWHEEL_FILTER_KEY = 'device-settings:filterwheel:filter'
 
 FILTERS = {0: 'Closed',
            1: 'Y',
@@ -38,20 +36,6 @@ FILTERS = {0: 'Closed',
            4: '220+125',
            5: '125',
            6: 'Open'}
-
-def callback(filter, position):
-    vals = [filter, position]
-    keys = [FILTERWHEEL_FILTER_KEY, FILTERWHEEL_POSITION_KEY]
-    d = {k: x for k, x in zip(keys, vals)}
-    try:
-        if all(i is None for i in vals):
-            redis.store({STATUS_KEY: "Error"})
-        else:
-            redis.store(d)
-            redis.store({STATUS_KEY: "OK"})
-    except RedisError:
-        log.warning('Storing filter wheel data to redis failed!')
-
 
 if __name__ == "__main__":
 
@@ -71,8 +55,6 @@ if __name__ == "__main__":
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
 
-    fw.monitor(QUERY_INTERVAL, (fw.current_filter, fw.current_filter_position), value_callback=callback)
-
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
@@ -89,6 +71,7 @@ if __name__ == "__main__":
                         if key == FILTERWHEEL_POSITION_KEY:
                             fw.set_filter_pos(cmd.command_value)
                             redis.store({cmd.setting: cmd.value})
+                            redis.store({FILTERWHEEL_FILTER_KEY: FILTERS[cmd.value]})
                             redis.store({STATUS_KEY: "OK"})
                     except IOError as e:
                         redis.store({STATUS_KEY: f"Error {e}"})
