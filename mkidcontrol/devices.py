@@ -2347,6 +2347,6 @@ class Laserflipperduino(SerialDevice):
         status_reply = status_reply.split(',')
         for laser in status_reply:
             dat = laser.split(':')
-            amp_value = float(dat[1])
+            amp_value = float(dat[1]) / 255 * 100  # Convert to a percentage
             self.status[int(dat[0])] = amp_value
         return self.status
