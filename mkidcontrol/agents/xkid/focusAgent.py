@@ -34,9 +34,12 @@ QUERY_INTERVAL = 1
 
 ENCODER_STEPS_PER_MM = 34555
 
-TS_KEYS = ()
-
 STATUS_KEY = "status:device:focus:status"
+
+FOCUS_POSITION_MM_KEY = 'status:device:focus:position:mm'
+FOCUS_POSITION_ENCODER_KEY = 'status:device:focus:position:encoder'
+
+TS_KEYS = (FOCUS_POSITION_MM_KEY, FOCUS_POSITION_ENCODER_KEY)
 
 SETTING_KEYS = tuple(COMMANDSFOCUS.keys())
 COMMAND_KEYS = (f"command:{key}" for key in SETTING_KEYS)
@@ -255,16 +258,19 @@ class Focus(TDC001):
         self._monitor_thread.start()
 
 
-def callback(position):
-    d = {FOCUS_POSITION_KEY: position}
+def callback(pos_mm, pos_enc):
+    vals = [pos_mm, pos_enc]
+    keys = [FOCUS_POSITION_MM_KEY, FOCUS_POSITION_ENCODER_KEY]
+    d = {k: x for k, x in zip(keys, vals)}
     try:
         if all(i is None for i in vals):
             redis.store({STATUS_KEY: "Error"})
         else:
-            redis.store(d)
+            redis.store(d, timeseries=True)
             redis.store({STATUS_KEY: "OK"})
     except RedisError:
         log.warning('Storing filter wheel data to redis failed!')
+
 
 if __name__ == "__main__":
     redis.setup_redis(ts_keys=TS_KEYS)
@@ -280,3 +286,26 @@ if __name__ == "__main__":
         log.critical(f"Could not connect to the filter wheel! Error {e}")
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
+
+    f.monitor(QUERY_INTERVAL, (f.position_mm, f.position_encoder), value_callback=callback)
+
+    try:
+        while True:
+            for key, val in redis.listen(COMMAND_KEYS):
+                log.debug(f"focusAgent received {key} -> {val}!")
+                try:
+                    cmd = LakeShoreCommand(key.removeprefix('command:'), val)
+                except ValueError as e:
+                    log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
+                    continue
+                try:
+                    f.update_param(key, val)
+                    redis.store({cmd.setting: cmd.value})
+                    redis.store({STATUS_KEY: "OK"})
+                except IOError as e:
+                    redis.store({STATUS_KEY: f"Error {e}"})
+                    log.error(f"Comm error: {e}")
+    except RedisError as e:
+        log.critical(f"Redis server error! {e}")
+        sys.exit(1)
+
