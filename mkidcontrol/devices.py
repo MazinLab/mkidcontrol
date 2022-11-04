@@ -1614,8 +1614,9 @@ class LakeShore625(LakeShoreDevice):
         super().__init__("LS625", port, baudrate=baudrate, timeout=timeout, parity=parity, bytesize=bytesize,
                          connect=connect, valid_models=valid_models, initializer=initializer)
 
-        self.send(f"XPGM 2")
-        self.send("SETI 0.000")
+        self.send(f"XPGM 2")  # Make sure the Lake Shore 625 is always in summing mode
+        # self.send("SETI 0.000") N.B. If a restart happens with current in the magnet, we want it to stay that way and
+        #                                 not cause quenches
 
     @property
     def limits(self):
