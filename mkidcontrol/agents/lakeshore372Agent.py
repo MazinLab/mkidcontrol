@@ -56,6 +56,8 @@ COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
 
 OUTPUT_MODE_KEY = 'device-settings:ls372:heater-channel-0:output-mode'
 OUTPUT_MODE_COMMAND_KEY = f"command:{OUTPUT_MODE_KEY}"
+OUTPUT_RANGE_KEY = 'device-settings:ls372:heater-channel-0:range'
+OUTPUT_RANGE_COMMAND_KEY = f"command:{OUTPUT_RANGE_KEY}"
 
 
 def to_pid_output():
@@ -72,6 +74,14 @@ def in_pid_output():
 
 def in_no_output():
     return redis.read(OUTPUT_MODE_KEY) == "OFF"
+
+
+def turn_on_heater_output(output_range='1 mA'):
+    redis.publish(OUTPUT_RANGE_COMMAND_KEY, output_range, store=False)
+
+
+def heater_output_on():
+    return redis.read(OUTPUT_RANGE_KEY) != '0'
 
 
 def firmware_pull(device):
@@ -138,6 +148,8 @@ if __name__ == "__main__":
             lakeshore = LakeShore372('LakeShore372', baudrate=57600, port='/dev/ls372',
                                      enabled_input_channels=ENABLED_372_INPUT_CHANNELS)#, initializer=initializer)
             log.info(f"LakeShore 372 connection successful!")
+            to_pid_output()
+            turn_on_heater_output()
             redis.store({STATUS_KEY: "OK"})
         except InstrumentException:
             log.info(f"Instrument exception occurred, trying to connect from PID/VID")
