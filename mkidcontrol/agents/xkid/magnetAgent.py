@@ -52,16 +52,13 @@ MAGNET_STATE_KEY = 'status:magnet:state'  # OFF | RAMPING | SOAKING | QUENCH (DO
 MAGNET_CURRENT_KEY = 'status:magnet:current'
 MAGNET_FIELD_KEY = 'status:magnet:field'
 CONTROLLER_STATUS_KEY = 'status:magnet:status'
-OUTPUT_VOLTAGE_KEY = 'status:device:ls625:output-voltage'
 
-TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY]
+TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY]
 
 COMMAND_KEYS = [f"command:{k}" for k in MAGNET_COMMAND_KEYS + SETTING_KEYS]
 
 DEVICE_TEMP_KEY = 'status:temps:device-stage:temp'
 REGULATION_TEMP_KEY = "device-settings:device-stage:regulating-temp"
-
-MAGNETKEYS = TS_KEYS + [SOAK_TIME_KEY, SOAK_CURRENT_KEY, COOLDOWN_SCHEDULED_KEY, STOP_RAMP_KEY, RAMP_RATE_KEY]
 
 log = logging.getLogger()
 
@@ -76,30 +73,27 @@ def compute_initial_state(statefile):
     redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
     try:
         if ls625.is_initialized():
-            if ls372.in_pid_output():
-                initial_state = 'regulating'  # NB if HS in wrong position (closed) device won't stay cold and we'll transition to deramping
+            state_time, persisted_state = load_persisted_state(statefile)
+            if persisted_state is None or time.time()-state_time > MAX_PERSISTED_STATE_LIFE_SECONDS:
+                return initial_state
             else:
-                state_time, persisted_state = load_persisted_state(statefile)
-                if persisted_state is None or time.time()-state_time > MAX_PERSISTED_STATE_LIFE_SECONDS:
-                    return initial_state
-                else:
-                    initial_state = persisted_state
-                current = ls625.lakeshore_current()
-                if initial_state == 'soaking' and (current >= 0.97 * float(redis.read(SOAK_CURRENT_KEY))) and (current <= 1.03 * float(redis.read(SOAK_CURRENT_KEY))):
-                    initial_state = 'ramping'  # we can recover
+                initial_state = persisted_state
+            current = ls625.lakeshore_current()
+            if initial_state == 'soaking' and (current >= 0.97 * float(redis.read(SOAK_CURRENT_KEY))) and (current <= 1.03 * float(redis.read(SOAK_CURRENT_KEY))):
+                initial_state = 'ramping'  # we can recover
 
-                # be sure the command is sent
-                if initial_state in ('hs_closing',):
-                    heatswitch.close()
+            # be sure the command is sent
+            if initial_state in ('hs_closing', 'ramping', 'soaking'):
+                heatswitch.close()
 
-                if initial_state in ('hs_opening',):
-                    heatswitch.open()
+            if initial_state in ('hs_opening', 'cooling', 'regulating'):
+                heatswitch.open()
 
-                # failure cases
-                if ((initial_state in ('ramping', 'soaking') and heatswitch.is_opened()) or
-                        (initial_state in ('cooling',) and heatswitch.is_closed()) or
-                        (initial_state in ('off', 'regulating'))):
-                    initial_state = 'deramping'  # deramp to off, we are out of sync with the hardware
+            # failure cases
+            if ((initial_state in ('ramping', 'soaking') and heatswitch.is_opened()) or
+                    (initial_state in ('cooling',) and heatswitch.is_closed()) or
+                    (initial_state in ('off', 'regulating'))):
+                initial_state = 'deramping'  # deramp to off, we are out of sync with the hardware
 
     except IOError:
         log.critical('Lost ls625 connection during agent startup. defaulting to deramping')
@@ -123,68 +117,42 @@ class MagnetController(LockedMachine):
 
             {'trigger': 'quench', 'source': '*', 'dest': 'off'},
 
-            {'trigger': 'start', 'source': 'off', 'dest': 'hs_closing',
-             'prepare': ('close_heatswitch', 'ls372_to_no_output', 'to_manual_mode')},
-            {'trigger': 'start', 'source': 'deramping', 'dest': 'hs_closing',
-             'prepare': ('close_heatswitch', 'ls372_to_no_output', 'to_manual_mode')},
-
-            {'trigger': 'next', 'source': 'hs_closing', 'dest': None,
-             'prepare': 'close_heatswitch'},
-            {'trigger': 'next', 'source': 'hs_closing', 'dest': 'starting_ramp',
-             'conditions': ('heatswitch_closed', 'ls372_in_no_output')},
-
-            {'trigger': 'next', 'source': 'starting_ramp', 'dest': 'ramping',
-             'conditions': ('heatswitch_closed', 'in_manual_mode'), 'prepare': 'start_current_ramp'},
+            {'trigger': 'start', 'source': 'off', 'dest': 'ramping', 'prepare': 'close_heatswitch', 'after': 'start_current_ramp'},
 
             {'trigger': 'next', 'source': 'ramping', 'dest': None, 'conditions': 'ramp_ok',
              'unless': 'current_ready_to_soak'},
-            {'trigger': 'next', 'source': 'ramping', 'dest': 'soaking', 'conditions': 'current_ready_to_soak'},
-            {'trigger': 'next', 'source': 'ramping', 'dest': 'deramping'},
+            {'trigger': 'next', 'source': 'ramping', 'dest': 'soaking', 'conditions': ('current_ready_to_soak', 'heatswitch_closed')},
 
             {'trigger': 'next', 'source': 'soaking', 'dest': None, 'unless': 'soak_time_expired',
-             'conditions': 'current_at_soak'},
-            {'trigger': 'next', 'source': 'soaking', 'dest': 'starting_deramp', 'prepare': ('open_heatswitch',),
-             'conditions': ('current_at_soak', 'soak_time_expired')},
+             'conditions': ('current_at_soak', 'heatswitch_closed')},
+            {'trigger': 'next', 'source': 'soaking', 'dest': 'cooling', 'prepare': ('open_heatswitch', ),
+             'conditions': ('current_at_soak', 'soak_time_expired'), 'after': 'start_current_deramp'},
             {'trigger': 'next', 'source': 'soaking', 'dest': 'deramping'},
-
-            {'trigger': 'next', 'source': 'starting_deramp', 'dest': 'cooling', 'conditions': 'heatswitch_opened',
-             'prepare': 'start_current_deramp'},
 
             {'trigger': 'next', 'source': 'cooling', 'dest': None, 'unless': 'device_ready_for_regulate',
              'conditions': ('heatswitch_opened', 'deramp_ok')},
-            {'trigger': 'next', 'source': 'cooling', 'dest': 'prep_regulating',
-             'conditions': ('heatswitch_opened', 'device_ready_for_regulate')},
+            {'trigger': 'next', 'source': 'cooling', 'dest': 'regulating',
+             'conditions': ('heatswitch_opened', 'device_ready_for_regulate'), 'after': ('ls372_to_pid', 'turn_on_ls372_output')},
             {'trigger': 'next', 'source': 'cooling', 'dest': 'deramping', 'conditions': 'heatswitch_closed'},
 
-            {'trigger': 'next', 'source': 'prep_regulating', 'dest': None, 'prepare': 'to_pid_mode',
-             'conditions': ('heatswitch_opened', 'device_ready_for_regulate'), 'unless': 'in_pid_mode'},
-            {'trigger': 'next', 'source': 'prep_regulating', 'dest': 'regulating',
-             'conditions': ('heatswitch_opened', 'device_ready_for_regulate', 'in_pid_mode'), 'after': 'ls372_to_pid'},
-            {'trigger': 'next', 'source': 'prep_regulating', 'dest': 'deramping'},
-
             {'trigger': 'next', 'source': 'regulating', 'dest': None,
-             'conditions': ('device_regulatable', 'in_pid_mode', 'ls372_in_pid')},
+             'conditions': ('device_regulatable', 'ls372_in_pid', 'ls372_output_on')},
             {'trigger': 'next', 'source': 'regulating', 'dest': None,
-             'conditions': ('device_regulatable', 'in_pid_mode', 'ls372_in_no_output'), 'prepare': 'ls372_to_pid'},
+             'conditions': ('device_regulatable', 'ls372_in_no_output'), 'prepare': ('ls372_to_pid', 'ls372_turn_on_output')},
             {'trigger': 'next', 'source': 'regulating', 'dest': 'deramping'},
 
-            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'prepare': ('to_manual_mode', 'kill_current'),
+            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'prepare': 'kill_current',
              'unless': 'current_off'},
-            {'trigger': 'next', 'source': 'deramping', 'dest': 'off', 'prepare': ('ls372_to_no_output', 'kill_current')},
+            {'trigger': 'next', 'source': 'deramping', 'dest': 'off', 'prepare': 'kill_current'},
 
             {'trigger': 'next', 'source': 'off', 'dest': None}
         ]
 
         states = (  # Entering off MUST succeed
             State('off', on_enter=['record_entry', 'kill_current']),
-            State('hs_closing', on_enter='record_entry'),
-            State('starting_ramp', on_enter='record_entry'),
             State('ramping', on_enter='record_entry'),
             State('soaking', on_enter='record_entry'),
-            State('hs_opening', on_enter='record_entry'),
-            State('starting_deramp', on_enter='record_entry'),
             State('cooling', on_enter='record_entry'),
-            State('prep_regulating', on_enter='record_entry'),
             State('regulating', on_enter='record_entry'),
             # Entering ramping MUST succeed
             State('deramping', on_enter='record_entry'))
@@ -201,18 +169,6 @@ class MagnetController(LockedMachine):
                                send_event=True)
 
         self.start_main()
-
-    def initialize_lakeshore(self):
-        """
-        Callback run on connection to the lakeshore whenever it is not initialized. This will only happen if the sim loses all
-        of its settings, which should never every happen. Any settings applied take immediate effect
-        """
-        self.firmware_pull()
-        try:
-            self.set_redis_settings(init_blocked=True) # If called the sim is in a blank state and needs everything!
-        except (RedisError, KeyError) as e:
-            raise IOError(e)  # we can't initialize!
-
 
     def start_main(self):
         self._run = True  # Set to false to kill the main loop
@@ -296,12 +252,14 @@ class MagnetController(LockedMachine):
     def close_heatswitch(self, event):
         try:
             heatswitch.close()
+            time.sleep(2)
         except RedisError:
             pass
 
     def open_heatswitch(self, event):
         try:
             heatswitch.open()
+            time.sleep(2)
         except RedisError:
             pass
 
@@ -317,9 +275,21 @@ class MagnetController(LockedMachine):
         except RedisError:
             pass
 
+    def turn_on_ls372_output(self):
+        try:
+            ls372.turn_on_heater_output()
+        except RedisError:
+            pass
+
+    def ls372_output_on(self):
+        try:
+            ls372.heater_output_on()
+        except RedisError:
+            pass
+
     def current_off(self, event):
         try:
-            return redis.read('device-settings:ls625:control-mode') == "Internal" and \
+            return redis.read('device-settings:ls625:control-mode') == "Sum" and \
                    float(redis.read('device-settings:ls625:desired-current')) == 0.0 and \
                    abs(float(redis.read(MAGNET_CURRENT_KEY)[1])) <= 0.003
         except RedisError:
@@ -374,30 +344,6 @@ class MagnetController(LockedMachine):
             soak_current = float(redis.read(SOAK_CURRENT_KEY))
             diff = (current - soak_current) / soak_current
             return diff <= 0.03
-        except RedisError:
-            return False
-
-    def in_pid_mode(self, event):
-        try:
-            return ls625.in_pid_mode()
-        except RedisError:
-            return False
-
-    def to_pid_mode(self, event):
-        try:
-            ls625.to_pid_mode()
-        except RedisError:
-            return False
-
-    def in_manual_mode(self, event):
-        try:
-            return ls625.in_manual_mode()
-        except RedisError:
-            return False
-
-    def to_manual_mode(self, event):
-        try:
-            ls625.to_manual_mode()
         except RedisError:
             return False
 
