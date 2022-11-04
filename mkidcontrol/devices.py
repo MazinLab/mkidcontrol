@@ -12,6 +12,7 @@ import time
 import threading
 import serial
 from serial import SerialException
+from lakeshore import InstrumentException
 from zaber_motion.binary import Connection, BinarySettings, CommandCode
 from FLI.filter_wheel import USBFilterWheel
 
@@ -1626,7 +1627,7 @@ class LakeShore625(LakeShoreDevice):
             try:
                 log.debug(f"Querying limits from Lake Shore 625")
                 current_limit, voltage_limit, rate_limit = self.query("LIMIT?").split(',')
-            except (IOError, SerialException):
+            except (IOError, SerialException) as e:
                 log.warning(f"Could not query the limits from the Lake Shore 625!")
                 raise IOError(f"Can't communicate with the Lake Shore 625: {e}")
             self.current_limit = float(current_limit)
