@@ -25,7 +25,11 @@ setuptools.setup(
              'mkidcontrol/agents/picturec/hemttempAgent.py',
              'mkidcontrol/controlflask/mkidDirector.py',
              'mkidcontrol/agents/picturec/sim960Agent.py',
-             'mkidcontrol/agents/picturec/sim921Agent.py'],
+             'mkidcontrol/agents/picturec/sim921Agent.py',
+             'mkidcontrol/agents/xkid/laserflipperAgent.py',
+             'mkidcontrol/agents/xkid/focusAgent.py',
+             'mkidcontrol/agents/xkid/filterwheelAgent.py',
+             'mkidcontrol/agents/xkid/magnetAgent.py'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
