@@ -1,5 +1,5 @@
 [Unit]
-Description=MKIDControl Laser/Flipper Agent
+Description=MKIDControl LaserFlipper Agent
 
 [Install]
 WantedBy=mkidcontrol.service
