@@ -485,6 +485,7 @@ COMMANDSFILTERWHEEL = {'device-settings:filterwheel:position': {'command': '', '
                       }
 
 # ---- Focus Slider Commands ----
+# TODO
 COMMANDSFOCUS = {'device-settings:focus:home-params:velocity': {'command': '', 'vals': {}},
                  'device-settings:focus:home-params:offset-distance': {'command': '', 'vals': {}},
                  'device-settings:focus:home-params:direction': {'command': '', 'vals': {}},
