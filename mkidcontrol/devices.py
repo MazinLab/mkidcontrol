@@ -1063,6 +1063,9 @@ class LakeShoreMixin:
             elif command_code == "CRVHDR":
                 data = vars(self.get_curve_header(curve))
                 log.debug(f"Read the curve header from curve {curve}: {data}")
+            elif command_code == "FILTER":
+                data = vars(self.get_filter(channel))
+                log.debug(f"Read the filter data for channel {channel}: {data}")
             return data
         except (IOError, SerialException) as e:
             raise IOError(f"Serial error communicating with Lake Shore {self.model_number[-3:]}: {e}")
@@ -1437,6 +1440,8 @@ class LakeShore372(LakeShoreMixin, Model372):
                 self.modify_curve_header(curve_num=cmd.curve, command_code=cmd.command_code, **cmd.desired_setting)
             elif cmd.command_code == "INNAME":
                 self.change_input_sensor_name(channel=cmd.channel, name=cmd.command_value)
+            elif cmd.command_code == "FILTER":
+                self.set_channel_filter(channel=cmd.channel, command_code=cmd.command_code, **cmd.desired_setting)
             else:
                 log.info(f"Command code '{cmd.command_code}' not recognized! No change will be made")
                 pass
@@ -1549,6 +1554,20 @@ class LakeShore372(LakeShoreMixin, Model372):
         else:
             log.info(f"Requested to set temperature setpoint from {current_setpoint} to {setpoint}, no change"
                         f"sent to Lake Shore 372.")
+
+    def set_channel_filter(self, channel, command_code, **desired_settings):
+        """
+        Takes in an allowable channel number, command code (to query the current settings), and the desired settings to
+        modify in order to set a filter on an input channel
+        """
+        new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
+        try:
+            log.info(f"Configuring filter for input channel {channel}: {new_settings}")
+            self.set_filter(channel, state=new_settings['state'], settle_time=new_settings['settle_time'],
+                            window=new_settings['window'])
+        except (SerialException, IOError) as e:
+            log.error(f"...failed: {e}")
+            raise e
 
     def modify_pid_settings(self, channel, command_code, **desired_settings):
         """
