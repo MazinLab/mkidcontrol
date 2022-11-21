@@ -1,5 +1,5 @@
 [Unit]
-Description=MKIDControl Lake Shore 372 Agent
+Description=MKIDControl Lake Shore 625 Agent
 Wants=heatswitch.service
 Wants=lakeshore372.service
 
