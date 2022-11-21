@@ -12,7 +12,9 @@ TS_KEYS = ['status:temps:50k-stage:temp',
            'status:temps:1k-stage:temp',
            'status:temps:1k-stage:resistance',
            'status:temps:device-stage:temp',
-           'status:temps:device-stage:resistance']
+           'status:temps:device-stage:resistance',
+           'status:magnet:current',
+           'status:magnet:field']
 
 
 def plot_cooldown_temperatures(start=None, end=None):
@@ -52,7 +54,7 @@ def plot_cooldown_temperatures(start=None, end=None):
 
 if __name__ == "__main__":
 
-    header = ['Time', 'Timestamp', '50k T', '50k V', '3k T', '3k V', '1k T', '1k R', 'Device T', 'Device R']
+    header = ['Time', 'Timestamp', '50k T', '50k V', '3k T', '3k V', '1k T', '1k R', 'Device T', 'Device R', 'Magnet Current', 'Magnet Field']
 
     redis.setup_redis(ts_keys=TS_KEYS)
 
