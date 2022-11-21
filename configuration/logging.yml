@@ -121,6 +121,19 @@ loggers:
       handlers: [ default ]
       level: DEBUG
       propagate: False
+  magnetAgent:
+    magnetAgent: debug
+    mkidcontrol.mkidredis: info
+    mkidcontrol.devices: debug
+    serial: debug
+    "":
+      handlers: [ default ]
+      level: DEBUG
+      propagate: False
+    __main__:
+      handlers: [ default ]
+      level: DEBUG
+      propagate: False
   relayAgent:
     relayAgent: debug
     mkidcontrol.mkidredis: info
