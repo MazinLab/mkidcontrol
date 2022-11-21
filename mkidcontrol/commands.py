@@ -273,6 +273,7 @@ COMMANDS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command':
 
 
 # ---- Lake Shore 372 Commands ----
+# TODO: Incorporate setting filter for input channel (see lakeshore model_372.py lines 916-942)
 ENABLED_372_INPUT_CHANNELS = ("A", "1")
 ALLOWED_372_INPUT_CHANNELS = ("A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16")
 ENABLED_372_OUTPUT_CHANNELS = (0, )
