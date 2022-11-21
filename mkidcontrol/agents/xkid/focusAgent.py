@@ -20,6 +20,8 @@ TODO: Does this require a monitor function?
 from serial import SerialException
 import logging
 import sys
+import time
+import threading
 
 from thorlabs_apt_device.devices.tdc001 import TDC001
 from mkidcontrol.mkidredis import RedisError
@@ -41,8 +43,13 @@ FOCUS_POSITION_ENCODER_KEY = 'status:device:focus:position:encoder'
 
 TS_KEYS = (FOCUS_POSITION_MM_KEY, FOCUS_POSITION_ENCODER_KEY)
 
+MOVE_BY_MM_KEY = 'device-settings:focus:desired-move:mm'
+MOVE_BY_ENC_KEY = 'device-settings:focus:desired-move:encoder'
+
+JOG_KEY = 'device-settings:focus:jog'
+
 SETTING_KEYS = tuple(COMMANDSFOCUS.keys())
-COMMAND_KEYS = (f"command:{key}" for key in SETTING_KEYS)
+COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY, JOG_KEY]])
 
 
 class Focus(TDC001):
@@ -299,9 +306,18 @@ if __name__ == "__main__":
                     log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
                     continue
                 try:
-                    f.update_param(key, val)
-                    redis.store({cmd.setting: cmd.value})
-                    redis.store({STATUS_KEY: "OK"})
+                    if 'params' in key:
+                        f.update_param(key, val)
+                        redis.store({cmd.setting: cmd.value})
+                        redis.store({STATUS_KEY: "OK"})
+                    elif 'desired-position' in key:
+                        units = key.split(":")[-1]
+                        f.move_to(val, units=units)
+                    elif key in [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY]:
+                        unts = key.split(":")[-1]
+                        f.move_by(val, units=units)
+                    elif key == JOG_KEY:
+                        f.jog(direction=val)
                 except IOError as e:
                     redis.store({STATUS_KEY: f"Error {e}"})
                     log.error(f"Comm error: {e}")
