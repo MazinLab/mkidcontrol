@@ -14,8 +14,6 @@ N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/mod
 
 TODO: 'Block' settings (e.g. excitation cannot be in V if mode is Current)
 
-TODO: Output voltage key value to report the control voltage to the lakeshore 625 magnet current control
-
 TODO: Gracefully handle serial disconnects/reconnects
 """
 
@@ -35,7 +33,6 @@ log = logging.getLogger()
 TEMPERATURE_KEYS = ['status:temps:device-stage:temp', 'status:temps:1k-stage:temp']
 RESISTANCE_KEYS = ['status:temps:device-stage:resistance', 'status:temps:1k-stage:resistance']
 EXCITATION_POWER_KEYS = ['status:temps:device-stage:excitation-power', 'status:temps:1k-stage:excitation-power']
-
 
 OUTPUT_VOLTAGE_KEY = 'status:device:ls372:output-voltage'
 
@@ -180,8 +177,7 @@ if __name__ == "__main__":
                     lakeshore.handle_command(cmd)
                     redis.store({cmd.setting: cmd.value})
                     if cmd.command_code == "SETP":
-                        # TODO: May need to publish this as well, need to walk through what other programs need this value
-                        redis.store({REGULATION_TEMP_KEY: cmd.command_value})
+                        redis.publish({REGULATION_TEMP_KEY: cmd.command_value}, store=False)
                     redis.store({STATUS_KEY: "OK"})
                 except IOError as e:
                     redis.store({STATUS_KEY: f"Error"})
