@@ -60,6 +60,8 @@ COMMAND_KEYS = [f"command:{k}" for k in MAGNET_COMMAND_KEYS + SETTING_KEYS]
 DEVICE_TEMP_KEY = 'status:temps:device-stage:temp'
 REGULATION_TEMP_KEY = "device-settings:device-stage:regulating-temp"
 
+LAKESHORE_SETPOINT_KEY = 'device-settings:ls372:heater-channel-0:setpoint'
+
 log = logging.getLogger()
 
 
@@ -74,7 +76,7 @@ def compute_initial_state(statefile):
     try:
         if ls625.is_initialized():
             state_time, persisted_state = load_persisted_state(statefile)
-            if persisted_state is None or time.time()-state_time > MAX_PERSISTED_STATE_LIFE_SECONDS:
+            if (persisted_state is None) or (time.time()-state_time > MAX_PERSISTED_STATE_LIFE_SECONDS):
                 return initial_state
             else:
                 initial_state = persisted_state
@@ -83,7 +85,7 @@ def compute_initial_state(statefile):
                 initial_state = 'ramping'  # we can recover
 
             # be sure the command is sent
-            if initial_state in ('hs_closing', 'ramping', 'soaking'):
+            if initial_state in ('hs_closing', 'ramping', 'soaking', 'off'):
                 heatswitch.close()
 
             if initial_state in ('hs_opening', 'cooling', 'regulating'):
@@ -91,8 +93,7 @@ def compute_initial_state(statefile):
 
             # failure cases
             if ((initial_state in ('ramping', 'soaking') and heatswitch.is_opened()) or
-                    (initial_state in ('cooling',) and heatswitch.is_closed()) or
-                    (initial_state in ('off', 'regulating'))):
+                    (initial_state in ('cooling', 'regulating') and heatswitch.is_closed())):
                 initial_state = 'deramping'  # deramp to off, we are out of sync with the hardware
 
     except IOError:
@@ -143,7 +144,7 @@ class MagnetController(LockedMachine):
 
             {'trigger': 'next', 'source': 'deramping', 'dest': None, 'prepare': 'kill_current',
              'unless': 'current_off'},
-            {'trigger': 'next', 'source': 'deramping', 'dest': 'off', 'prepare': 'kill_current'},
+            {'trigger': 'next', 'source': 'deramping', 'dest': 'off', 'conditions': 'current_off'},
 
             {'trigger': 'next', 'source': 'off', 'dest': None}
         ]
@@ -163,7 +164,7 @@ class MagnetController(LockedMachine):
         self._run = False  # Set to false to kill the main loop
         self._mainthread = None
 
-        initial = compute_initial_state(self.lakeshore, self.statefile)
+        initial = compute_initial_state(self.statefile)
         self.state_entry_time = {initial: time.time()}
         LockedMachine.__init__(self, transitions=transitions, initial=initial, states=states, machine_context=self.lock,
                                send_event=True)
@@ -199,7 +200,7 @@ class MagnetController(LockedMachine):
         soak_time = float(redis.read(SOAK_TIME_KEY))
         ramp_rate = float(redis.read(RAMP_RATE_KEY))
         deramp_rate = -1 * float(redis.read(RAMP_RATE_KEY))
-        current_current = self.lakeshore.current()
+        current_current = float(redis.read(MAGNET_CURRENT_KEY)[1])
         current_state = self.state # NB: If current_state is regulating time_to_cool will return 0 since it is already cool.
 
         time_to_cool = 0
@@ -275,13 +276,13 @@ class MagnetController(LockedMachine):
         except RedisError:
             pass
 
-    def turn_on_ls372_output(self):
+    def turn_on_ls372_output(self, event):
         try:
             ls372.turn_on_heater_output()
         except RedisError:
             pass
 
-    def ls372_output_on(self):
+    def ls372_output_on(self, event):
         try:
             ls372.heater_output_on()
         except RedisError:
@@ -333,7 +334,7 @@ class MagnetController(LockedMachine):
             current = float(redis.read(MAGNET_CURRENT_KEY)[1])
             soak_current = float(redis.read(SOAK_CURRENT_KEY))
             diff = (current - soak_current) / soak_current
-            return diff <= 0.03
+            return abs(diff) <= 0.03
         except RedisError:
             return False
 
@@ -343,26 +344,26 @@ class MagnetController(LockedMachine):
             current = float(redis.read(MAGNET_CURRENT_KEY)[1])
             soak_current = float(redis.read(SOAK_CURRENT_KEY))
             diff = (current - soak_current) / soak_current
-            return diff <= 0.03
+            return abs(diff <= 0.03)
         except RedisError:
             return False
 
     def start_current_ramp(self, event):
         try:
             ls625.start_cycle_ramp()
+            return True
         except RedisError:
             return False
 
     def start_current_deramp(self, event):
         try:
             ls625.start_cycle_deramp()
+            return True
         except RedisError:
             return False
 
     def ramp_ok(self, event):
         # TODO
-
-        # if self.state == 'ramping' and self.lakeshore.last_current_read >= 0 and self.lakeshore.last_current_read <= redis.read(SOAK_CURRENT_KEY):
         if self.state == 'ramping':
             return True
         else:
@@ -370,8 +371,7 @@ class MagnetController(LockedMachine):
 
     def deramp_ok(self, event):
         # TODO
-        # if self.state == 'deramping' and self.lakeshore.last_current_read >= 0 and self.lakeshore.last_current_read <= redis.read(SOAK_CURRENT_KEY):
-        if self.state == 'deramping':
+        if (self.state == 'deramping') or (self.state == 'cooling'):
             return True
         else:
             return False
@@ -416,7 +416,7 @@ class MagnetController(LockedMachine):
 
 
 if __name__ == "__main__":
-    util.setup_logging('lakeshore625Agent')
+    util.setup_logging('magnetAgent')
     redis.setup_redis(ts_keys=TS_KEYS)
     MAX_REGULATE_TEMP = 1.50 * float(redis.read(REGULATION_TEMP_KEY))
 
@@ -438,8 +438,6 @@ if __name__ == "__main__":
                 if key in SETTING_KEYS:
                     try:
                         cmd = LakeShoreCommand(key, val)
-                        controller.ls_command(cmd)
-                        redis.store({cmd.setting: cmd.value})
                     except (IOError, StateError):
                         pass
                     except ValueError:
@@ -447,6 +445,7 @@ if __name__ == "__main__":
                 # NB I'm disinclined to include forced state overrides but they would go here
                 elif key == REGULATION_TEMP_KEY:
                     MAX_REGULATE_TEMP = 1.50 * float(redis.read(REGULATION_TEMP_KEY))
+                    redis.publish(f"command:{LAKESHORE_SETPOINT_KEY}", val)
                 elif key == ABORT_CMD:
                     # abort any cooldown in progress, warm up, and turn things off
                     # e.g. last command before heading to bed
@@ -468,9 +467,8 @@ if __name__ == "__main__":
                     try:
                         controller.cancel_scheduled_cooldown()
                         redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
-                    except:
-                        # Add error handling here
-                        pass
+                    except Exception as e:
+                        log.error(e)
                 else:
                     log.info(f'Ignoring {key}:{val}')
                 redis.store({CONTROLLER_STATUS_KEY: controller.status})

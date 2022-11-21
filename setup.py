@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='mkidcontrol',
-    version='0.6.0',
+    version='0.7.0',
     author='Noah Swimmer',
     author_email='nswimmer@ucsb.edu',
     description='MKID Instrument Control Software',
