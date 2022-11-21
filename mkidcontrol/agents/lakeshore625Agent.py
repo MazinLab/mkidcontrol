@@ -71,7 +71,7 @@ CYCLE_DERAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
 
 
 def is_initialized():
-    return (redis.read(STATUS_KEY) == "OK") and (redis.read(OUTPUT_MODE_KEY) == "SUM")
+    return (redis.read(STATUS_KEY) == "OK") and (redis.read(OUTPUT_MODE_KEY) == "Sum")
 
 
 def lakeshore_current():
@@ -79,7 +79,8 @@ def lakeshore_current():
 
 
 def kill_current():
-    redis.publish(f"command:{KILL_CURRENT_KEY}", 0)
+    # redis.publish(f"command:{STOP_RAMP_KEY}", 0, store=False)
+    redis.publish(f"command:{DESIRED_CURRENT_KEY}", 0, store=False)
 
 
 def start_cycle_ramp(current=None):
@@ -87,15 +88,15 @@ def start_cycle_ramp(current=None):
     redis.publish(RAMP_RATE_KEY, ramp_rate, store=False)
     if current is None:
         current = float(redis.read(SOAK_CURRENT_KEY))
-    redis.publish(DESIRED_CURRENT_KEY, current, store=False)
+    redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
 
 
 def start_cycle_deramp(current=None):
     ramp_rate = redis.read(CYCLE_DERAMP_RATE_KEY)
-    redis.publish(RAMP_RATE_KEY, ramp_rate, store=False)
+    redis.publish(RAMP_RATE_KEY, abs(ramp_rate), store=False)
     if current is None:
         current = 0
-    redis.publish(DESIRED_CURRENT_KEY, current, store=False)
+    redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
 
 
 def firmware_pull(device):
