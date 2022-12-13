@@ -295,6 +295,7 @@ LS372_MEASUREMENT_INPUT_CURRENT_RANGE = {key: val.value for key, val in zip(['1 
 LS372_CONTROL_INPUT_CURRENT_RANGE = {key: val.value for key, val in zip(['316 pA', '1 nA', '3.16 nA', '10 nA', '31.6 nA', '100 nA'], Model372ControlInputCurrentRange)}
 LS372_CURRENT_SOURCE_SHUNTED_VALUES = {"False": False, "True": True}
 LS372_INPUT_SENSOR_UNITS = {key: val.value for key, val in zip(['Kelvin', 'Ohms'], Model372InputSensorUnits)}
+LS372_INPUT_FILTER_STATES = {'Off': False, 'On': True}
 LS372_RESISTANCE_RANGE = {key: val.value for key, val in zip([f"{res}\u03A9" for res in ['2 m', '6.32 m', '20 m', '63.2 m', '200 m', '632 m',
                                                                                          '2 ', '6.32 ', '20 ', '63.2 ', '200 ', '632 ',
                                                                                          '2 k', '6.32 k', '20 k', '63.2 k', '200 k', '632 k',
@@ -361,6 +362,16 @@ class LS372HeaterOutput:
         self.range = values[f'device-settings:ls372:heater-channel-{channel}:range']
 
 
+class LS372InputFilter:
+    def __init__(self, channel, redis):
+        values = redis.read(redis.redis_keys(f'device-settings:ls372:input-channel-{channel}:filter:*'))
+        self.channel = channel
+
+        self.state = values[f'device-settings:ls372:input-channel-{channel}:filter:state']
+        self.settle_time = values[f'device-settings:ls372:input-channel-{channel}:filter:settle-time']
+        self.window = values[f'device-settings:ls372:input-channel-{channel}:filter:window']
+
+
 COMMANDS372 = {}
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:name': {'command': 'INNAME', 'vals': ''} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:mode': {'command': 'INTYPE', 'vals': LS372_SENSOR_MODE} for ch in ALLOWED_372_INPUT_CHANNELS})
@@ -375,6 +386,9 @@ COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:dwell-tim
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:pause-time': {'command': 'INSET', 'vals': [3, 200]} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:curve-number': {'command': 'INSET', 'vals': {str(cn): cn for cn in np.arange(1,60)}} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:temperature-coefficient': {'command': 'INSET', 'vals': LS372_CURVE_COEFFICIENTS} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:filter:state': {'command': 'FILTER', 'vals': LS372_INPUT_FILTER_STATES} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:filter:settle-time': {'command': 'FILTER', 'vals': [1, 200]} for ch in ALLOWED_372_INPUT_CHANNELS})
+COMMANDS372.update({f'device-settings:ls372:input-channel-{ch.lower()}:filter:window': {'command': 'FILTER', 'vals': [1,80]} for ch in ALLOWED_372_INPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:output-mode': {'command': 'OUTMODE', 'vals': LS372_HEATER_OUTPUT_MODE} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:input-channel': {'command': 'OUTMODE', 'vals': LS372_HEATER_INPUT_CHANNEL} for ch in ALLOWED_372_OUTPUT_CHANNELS})
 COMMANDS372.update({f'device-settings:ls372:heater-channel-{ch}:powerup-enable': {'command': 'OUTMODE', 'vals': LS372_HEATER_POWERUP_ENABLE} for ch in ALLOWED_372_OUTPUT_CHANNELS})
