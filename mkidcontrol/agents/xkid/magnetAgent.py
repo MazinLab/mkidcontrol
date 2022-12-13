@@ -4,6 +4,9 @@ Author: Noah Swimmer
 
 Program for controlling the magnet. The magnet controller itself is a statemachine but requires no instruments to run.
 It will run even with no lakeshore/heatswitch/etc., although it will not allow anything to actually happen.
+
+TODO: Rewrite magnet control agent using sim960agent.py magnetControl state machine, go back to what we know was working
+and restructure from there
 """
 
 import sys
@@ -292,7 +295,7 @@ class MagnetController(LockedMachine):
         try:
             return redis.read('device-settings:ls625:control-mode') == "Sum" and \
                    float(redis.read('device-settings:ls625:desired-current')) == 0.0 and \
-                   abs(float(redis.read(MAGNET_CURRENT_KEY)[1])) <= 0.003
+                   abs(float(redis.read(MAGNET_CURRENT_KEY)[1])) <= 0.005
         except RedisError:
             return False
 
