@@ -339,7 +339,7 @@ class LS372InputSensor:
 class LS372HeaterOutput:
     def __init__(self, channel, redis):
         # N.B. Heater channels are numbers, no need to match lower/upper-case
-        values = redis.read(redis.redis_keys(f'device-settings*ls372:heater-channel-{channel}*'))
+        values = redis.read(redis.redis_keys(f'device-settings:ls372:heater-channel-{channel}:*'))
         self.channel = channel
         if int(channel) == 0:
             self.name = "Device (Sample Heater)"
