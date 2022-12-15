@@ -13,8 +13,6 @@ MTS50/M-Z8 NOTES:
     - There are 512 x 67.49 = 34,555 encoder steps per revolution of the lead screw
     - Each encode count is 1.0 mm / 34,555 encoder steps = 29 nm / encoder step
     - The device can move from 0 - 1727750 (in encoder step space) or 0 - 50 (in mm space)
-
-TODO: Does this require a monitor function?
 """
 
 import logging

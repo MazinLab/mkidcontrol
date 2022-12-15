@@ -492,8 +492,7 @@ COMMANDSLASERFLIPPER = {'device-settings:laserflipperduino:laserbox:808:power': 
 # ---- Fitler Wheel Commands ----
 COMMANDSFILTERWHEEL = {'device-settings:filterwheel:position': {'command': '', 'vals': {'0': 0, '1': 1, '2': 2,
                                                                                         '3': 3, '4': 4, '5': 5,
-                                                                                        '6': 6}}
-                      }
+                                                                                        '6': 6}}}
 
 # ---- Focus Slider Commands ----
 COMMANDSFOCUS = {'device-settings:focus:home-params:velocity': {'command': '', 'vals': [0, 164931]},
