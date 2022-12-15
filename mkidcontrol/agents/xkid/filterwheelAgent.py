@@ -5,6 +5,10 @@ Code to control the Finger Lakes Instrumentation (FLI) CFW2-7 Filter wheel
 
 TODO: Consider not reinitializing to 'closed' if that is the last known position. Otherwise a homing move will cause it
  to go all the way around meaning it'll open when you don't necessarily want it to
+
+TODO: Make 'close' and 'open' helper functions
+
+TODO: Logging level probably works better at INFO
 """
 
 import logging
