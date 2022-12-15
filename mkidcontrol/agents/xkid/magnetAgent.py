@@ -123,9 +123,9 @@ class MagnetController(LockedMachine):
 
             # Allow starting a ramp from off or deramping, if close_heatswitch fails then start should fail
             {'trigger': 'start', 'source': 'off', 'dest': 'hs_closing',
-             'prepare': ('close_heatswitch')},
+             'prepare': 'close_heatswitch'},
             {'trigger': 'start', 'source': 'deramping', 'dest': 'hs_closing',
-             'prepare': ('close_heatswitch')},
+             'prepare': 'close_heatswitch'},
             # {'trigger': 'start', 'source': 'cooling', 'dest': 'hs_closing', 'prepare': 'close_heatswitch'},
             # {'trigger': 'start', 'source': 'regulating', 'dest': 'hs_closing', 'prepare': 'close_heatswitch'},
             # {'trigger': 'start', 'source': 'soak', 'dest': 'hs_closing', 'prepare': 'close_heatswitch'},
@@ -136,7 +136,9 @@ class MagnetController(LockedMachine):
             # if we can't get the status from redis then the conditions default to false and we stay put
             {'trigger': 'next', 'source': 'hs_closing', 'dest': 'ramping', 'conditions': 'heatswitch_closed'},
             {'trigger': 'next', 'source': 'hs_closing', 'dest': None,
-             'prepare': ('close_heatswitch')},
+             'prepare': 'close_heatswitch'},
+
+            # TODO: "STARTING RAMPING"
 
             # stay in ramping, increasing the current a bit each time unless the current is high enough to soak
             # if we can't increment the current or get the current then IOErrors will arise and we stay put
@@ -165,6 +167,8 @@ class MagnetController(LockedMachine):
              'conditions': ('heatswitch_opened', 'ls372_in_pid')},
             {'trigger': 'next', 'source': 'hs_opening', 'dest': None,
              'prepare': ('open_heatswitch', 'ls372_to_pid')},
+
+            # TODO: START COOLING
 
             # stay in cooling, decreasing the current a bit until the device is regulatable
             # if the heatswitch closes move to deramping
@@ -199,11 +203,14 @@ class MagnetController(LockedMachine):
         states = (  # Entering off MUST succeed
             State('off', on_enter=['record_entry', 'kill_current']),
             State('hs_closing', on_enter='record_entry'),
+            State('starting_ramp', on_enter='record_entry'),
             State('ramping', on_enter='record_entry'),
             State('soaking', on_enter='record_entry'),
             State('hs_opening', on_enter='record_entry'),
+            State('start_cooling', on_enter='record_entry'),
             State('cooling', on_enter='record_entry'),
             State('regulating', on_enter='record_entry'),
+            State('start_deramping', on_enter='record_entry'),
             # Entering ramping MUST succeed
             State('deramping', on_enter='record_entry'))
 
@@ -363,7 +370,7 @@ class MagnetController(LockedMachine):
             return False
 
     def increment_current(self, event):
-        # TODO
+        # TODO: Turn this into 'start ramp'
         limit = self.sim.MAX_CURRENT_SLOPE
         interval = self.LOOP_INTERVAL
         try:
@@ -388,7 +395,7 @@ class MagnetController(LockedMachine):
             log.warning('Failed to increment current, sim offline')
 
     def decrement_current(self, event):
-        # TODO
+        # TODO: Turn this into 'start deramp'
         limit = self.sim.MAX_CURRENT_SLOPE
         interval = self.LOOP_INTERVAL  # No need to do this faster than increment current.
         try:
@@ -535,12 +542,11 @@ if __name__ == "__main__":
 
     except RedisError as e:
         log.critical(f"Redis server error! {e}", exc_info=True)
-        # TODO insert something to suppress the concomitant redis monitor thread errors that will spam logs?
         controller.deramp()
 
         try:
             while not controller.is_off():
-                log.info(f'Waiting (10s) for magnet to deramp from ({controller.sim.setpoint()}) before exiting...')
+                log.info(f'Waiting (10s) for magnet to deramp from ({redis.read(REGULATION_TEMP_KEY)}) before exiting...')
                 time.sleep(10)
         except IOError:
             pass
