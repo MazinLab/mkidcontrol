@@ -6,7 +6,7 @@ Program for controlling the magnet. The magnet controller itself is a statemachi
 It will run even with no lakeshore/heatswitch/etc., although it will not allow anything to actually happen.
 
 TODO: Rewrite magnet control agent using sim960agent.py magnetControl state machine, go back to what we know was working
-and restructure from there
+ and restructure from there
 """
 
 import sys
@@ -110,52 +110,98 @@ def compute_initial_state(statefile):
 
 
 class MagnetController(LockedMachine):
-
     LOOP_INTERVAL = 1
-    BLOCKS = defaultdict(set)  # This holds the ls625 commands that are blocked out in a given state i.e.
-                               #  'regulating':('device-settings:ls625:setpoint-mode',)
+    BLOCKS = defaultdict(set)  # This holds the sim960 commands that are blocked out in a given state i.e.
 
     def __init__(self, statefile='./magnetstate.txt'):
         transitions = [
+            # Allow aborting from any point, trigger will always succeed
             {'trigger': 'abort', 'source': '*', 'dest': 'deramping'},
 
+            # Allow quench (direct to hard off) from any point, trigger will always succeed
             {'trigger': 'quench', 'source': '*', 'dest': 'off'},
 
-            {'trigger': 'start', 'source': 'off', 'dest': 'ramping', 'prepare': 'close_heatswitch', 'after': 'start_current_ramp'},
+            # Allow starting a ramp from off or deramping, if close_heatswitch fails then start should fail
+            {'trigger': 'start', 'source': 'off', 'dest': 'hs_closing',
+             'prepare': ('close_heatswitch')},
+            {'trigger': 'start', 'source': 'deramping', 'dest': 'hs_closing',
+             'prepare': ('close_heatswitch')},
+            # {'trigger': 'start', 'source': 'cooling', 'dest': 'hs_closing', 'prepare': 'close_heatswitch'},
+            # {'trigger': 'start', 'source': 'regulating', 'dest': 'hs_closing', 'prepare': 'close_heatswitch'},
+            # {'trigger': 'start', 'source': 'soak', 'dest': 'hs_closing', 'prepare': 'close_heatswitch'},
 
-            {'trigger': 'next', 'source': 'ramping', 'dest': None, 'conditions': 'ramp_ok',
-             'unless': 'current_ready_to_soak'},
-            {'trigger': 'next', 'source': 'ramping', 'dest': 'soaking', 'conditions': ('current_ready_to_soak', 'heatswitch_closed')},
+            # Transitions for cooldown progression
 
+            # stay in hs_closing until it is closed then transition to ramping
+            # if we can't get the status from redis then the conditions default to false and we stay put
+            {'trigger': 'next', 'source': 'hs_closing', 'dest': 'ramping', 'conditions': 'heatswitch_closed'},
+            {'trigger': 'next', 'source': 'hs_closing', 'dest': None,
+             'prepare': ('close_heatswitch')},
+
+            # stay in ramping, increasing the current a bit each time unless the current is high enough to soak
+            # if we can't increment the current or get the current then IOErrors will arise and we stay put
+            # if we can't get the settings from redis then the conditions default to false and we stay put
+            {'trigger': 'next', 'source': 'ramping', 'dest': None, 'unless': 'current_ready_to_soak',
+             'after': 'increment_current'},
+            {'trigger': 'next', 'source': 'ramping', 'dest': 'soaking', 'conditions': 'current_ready_to_soak'},
+
+            # stay in soaking until we've elapsed the soak time, if the current changes move to deramping as something
+            # is quite wrong, when elapsed command heatswitch open and move to waiting on the heatswitch
+            # if we can't get the current then conditions raise IOerrors and we will deramp
+            # if we can't get the settings from redis then the conditions default to false and we stay put
+            # Note that the hs_opening command will always complete (even if it fails) so the state will progress
             {'trigger': 'next', 'source': 'soaking', 'dest': None, 'unless': 'soak_time_expired',
-             'conditions': ('current_at_soak', 'heatswitch_closed')},
-            {'trigger': 'next', 'source': 'soaking', 'dest': 'cooling', 'prepare': ('open_heatswitch', ),
-             'conditions': ('current_at_soak', 'soak_time_expired'), 'after': 'start_current_deramp'},
+             'conditions': 'current_at_soak'},
+            {'trigger': 'next', 'source': 'soaking', 'dest': 'hs_opening',
+             'prepare': ('open_heatswitch', 'ls372_to_pid'),
+             'conditions': ('current_at_soak', 'soak_time_expired')},
+            # condition repeated to preclude call passing due to IO hiccup
             {'trigger': 'next', 'source': 'soaking', 'dest': 'deramping'},
 
+            # stay in hs_opening until it is open then transition to cooling
+            # don't require conditions on current
+            # if we can't get the status from redis then the conditions default to false and we stay put
+            {'trigger': 'next', 'source': 'hs_opening', 'dest': 'cooling',
+             'conditions': ('heatswitch_opened', 'ls372_in_pid')},
+            {'trigger': 'next', 'source': 'hs_opening', 'dest': None,
+             'prepare': ('open_heatswitch', 'ls372_to_pid')},
+
+            # stay in cooling, decreasing the current a bit until the device is regulatable
+            # if the heatswitch closes move to deramping
+            # if we can't change the current or interact with redis for related settings the its a noop and we
+            #  stay put
+            # if we can't put the device in pid mode (IOError)  we stay put
             {'trigger': 'next', 'source': 'cooling', 'dest': None, 'unless': 'device_ready_for_regulate',
-             'conditions': ('heatswitch_opened', 'deramp_ok')},
-            {'trigger': 'next', 'source': 'cooling', 'dest': 'regulating',
-             'conditions': ('heatswitch_opened', 'device_ready_for_regulate'), 'after': ('ls372_to_pid', 'turn_on_ls372_output')},
+             'after': 'decrement_current', 'conditions': 'heatswitch_opened'},
+            {'trigger': 'next', 'source': 'cooling', 'dest': 'regulating', 'before': 'to_pid_mode',
+             'conditions': ('heatswitch_opened', 'ls372_in_scaled')},
             {'trigger': 'next', 'source': 'cooling', 'dest': 'deramping', 'conditions': 'heatswitch_closed'},
 
+            # stay in regulating until the device is too warm to regulate
+            # if it somehow leaves PID mode (or we can't verify it is in PID mode: IOError) move to deramping
+            # if we cant pull the temp from redis then device is assumed unregulatable and we move to deramping
             {'trigger': 'next', 'source': 'regulating', 'dest': None,
-             'conditions': ('device_regulatable', 'ls372_in_pid', 'ls372_output_on')},
-            {'trigger': 'next', 'source': 'regulating', 'dest': None,
-             'conditions': ('device_regulatable', 'ls372_in_no_output'), 'prepare': ('ls372_to_pid', 'ls372_turn_on_output')},
+             'conditions': ['device_regulatable', 'in_pid_mode']},
             {'trigger': 'next', 'source': 'regulating', 'dest': 'deramping'},
 
-            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'prepare': 'kill_current',
-             'unless': 'current_off'},
-            {'trigger': 'next', 'source': 'deramping', 'dest': 'off', 'conditions': 'current_off'},
+            # stay in deramping, trying to decrement the current, until the device is off then move to off
+            # condition defaults to false in the even of an IOError and decrement_current will just noop if there are
+            # failures
+            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'unless': 'current_off',
+             'after': 'decrement_current'},
+            {'trigger': 'next', 'source': 'deramping', 'dest': 'off'},
 
+            # once off stay put, if the current gets turned on while in off then something is fundamentally wrong with
+            # the sim itself. This can't happen.
             {'trigger': 'next', 'source': 'off', 'dest': None}
         ]
 
         states = (  # Entering off MUST succeed
             State('off', on_enter=['record_entry', 'kill_current']),
+            State('hs_closing', on_enter='record_entry'),
             State('ramping', on_enter='record_entry'),
             State('soaking', on_enter='record_entry'),
+            State('hs_opening', on_enter='record_entry'),
             State('cooling', on_enter='record_entry'),
             State('regulating', on_enter='record_entry'),
             # Entering ramping MUST succeed
@@ -175,7 +221,7 @@ class MagnetController(LockedMachine):
         self.start_main()
 
     def start_main(self):
-        self._run = True  # Set to false to kill the main loop
+        self._run = True  # Set to false to kill the m
         self._mainthread = threading.Thread(target=self._main)
         self._mainthread.daemon = True
         self._mainthread.start()
@@ -202,13 +248,14 @@ class MagnetController(LockedMachine):
         soak_current = float(redis.read(SOAK_CURRENT_KEY))
         soak_time = float(redis.read(SOAK_TIME_KEY))
         ramp_rate = float(redis.read(RAMP_RATE_KEY))
-        deramp_rate = -1 * float(redis.read(RAMP_RATE_KEY))
-        current_current = float(redis.read(MAGNET_CURRENT_KEY)[1])
-        current_state = self.state # NB: If current_state is regulating time_to_cool will return 0 since it is already cool.
+        deramp_rate = float(redis.read(DERAMP_RATE_KEY))
+        current_current = self.sim.setpoint()
+        current_state = self.state  # NB: If current_state is regulating time_to_cool will return 0 since it is already cool.
 
         time_to_cool = 0
         if current_state in ('ramping', 'off', 'hs_closing'):
-            time_to_cool = ((soak_current - current_current) / ramp_rate) + soak_time + ((0 - soak_current) / deramp_rate)
+            time_to_cool = ((soak_current - current_current) / ramp_rate) + soak_time + (
+                    (0 - soak_current) / deramp_rate)
         if current_state in ('soaking', 'hs_opening'):
             time_to_cool = (time.time() - self.state_entry_time['soaking']) + ((0 - soak_current) / deramp_rate)
         if current_state in ('cooling', 'deramping'):
@@ -218,6 +265,7 @@ class MagnetController(LockedMachine):
 
     def schedule_cooldown(self, time):
         """time specifies the time by which to be cold"""
+        # TODO how to handle scheduling when we are warming up or other such
         if self.state not in ('off', 'deramping'):
             raise ValueError(f'Cooldown in progress, abort before scheduling.')
 
@@ -225,11 +273,12 @@ class MagnetController(LockedMachine):
         time_needed = self.min_time_until_cool
 
         if time < now + time_needed:
-            raise ValueError(f'Time travel not possible, specify a time at least {time_needed} in the future. (Current time: {now.timestamp()})')
+            raise ValueError(
+                f'Time travel not possible, specify a time at least {time_needed} in the future. (Current time: {now.timestamp()})')
 
         self.cancel_scheduled_cooldown()
         redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
-        t = threading.Timer((time - time_needed - now).seconds, self.start) # TODO (For JB): self.start?
+        t = threading.Timer((time - time_needed - now).seconds, self.start)  # TODO (For JB): self.start?
         self.scheduled_cooldown = (time - time_needed, t)
         redis.store({COOLDOWN_SCHEDULED_KEY: 'yes'})
         t.daemon = True
@@ -256,14 +305,12 @@ class MagnetController(LockedMachine):
     def close_heatswitch(self, event):
         try:
             heatswitch.close()
-            time.sleep(2)
         except RedisError:
             pass
 
     def open_heatswitch(self, event):
         try:
             heatswitch.open()
-            time.sleep(2)
         except RedisError:
             pass
 
@@ -279,24 +326,14 @@ class MagnetController(LockedMachine):
         except RedisError:
             pass
 
-    def turn_on_ls372_output(self, event):
-        try:
-            ls372.turn_on_heater_output()
-        except RedisError:
-            pass
-
-    def ls372_output_on(self, event):
-        try:
-            ls372.heater_output_on()
-        except RedisError:
-            pass
-
     def current_off(self, event):
         try:
-            return redis.read('device-settings:ls625:control-mode') == "Sum" and \
-                   float(redis.read('device-settings:ls625:desired-current')) == 0.0 and \
+            # return redis.read('device-settings:ls625:control-mode') == "Sum" and \
+            #        float(redis.read('device-settings:ls625:desired-current')) == 0.0 and \
+            #        abs(float(redis.read(MAGNET_CURRENT_KEY)[1])) <= 0.005
+            return float(redis.read('device-settings:ls625:desired-current')) == 0.0 and \
                    abs(float(redis.read(MAGNET_CURRENT_KEY)[1])) <= 0.005
-        except RedisError:
+        except IOError:
             return False
 
     def heatswitch_closed(self, event):
@@ -325,6 +362,56 @@ class MagnetController(LockedMachine):
         except RedisError:
             return False
 
+    def increment_current(self, event):
+        # TODO
+        limit = self.sim.MAX_CURRENT_SLOPE
+        interval = self.LOOP_INTERVAL
+        try:
+            slope = abs(float(redis.read(RAMP_SLOPE_KEY)))
+        except RedisError:
+            log.warning(f'Unable to pull {RAMP_SLOPE_KEY} using {limit}.')
+            slope = limit
+
+        if slope > self.sim.MAX_CURRENT_SLOPE:
+            log.info(f'{RAMP_SLOPE_KEY} too high, overwriting.')
+            try:
+                redis.store({RAMP_SLOPE_KEY: limit})
+            except RedisError:
+                log.info(f'Overwriting failed.')
+
+        if not slope:
+            log.warning('Ramp slope set to zero, this will take eternity.')
+
+        try:
+            self.sim.manual_current += slope * interval
+        except IOError:
+            log.warning('Failed to increment current, sim offline')
+
+    def decrement_current(self, event):
+        # TODO
+        limit = self.sim.MAX_CURRENT_SLOPE
+        interval = self.LOOP_INTERVAL  # No need to do this faster than increment current.
+        try:
+            slope = abs(float(redis.read(DERAMP_SLOPE_KEY)))
+        except RedisError:
+            log.warning(f'Unable to pull {DERAMP_SLOPE_KEY} using {limit}.')
+            slope = limit
+
+        if slope > self.sim.MAX_CURRENT_SLOPE:
+            log.info(f'{DERAMP_SLOPE_KEY} too high, overwriting.')
+            try:
+                redis.store({DERAMP_SLOPE_KEY: limit})
+            except RedisError:
+                log.info(f'Overwriting failed.')
+
+        if not slope:
+            log.warning('Deramp slope set to zero, this will take eternity.')
+
+        try:
+            self.sim.manual_current -= slope * interval
+        except IOError:
+            log.warning('Failed to decrement current, sim offline')
+
     def soak_time_expired(self, event):
         try:
             return (time.time() - self.state_entry_time['soaking']) >= float(redis.read(SOAK_TIME_KEY))
@@ -332,56 +419,29 @@ class MagnetController(LockedMachine):
             return False
 
     def current_ready_to_soak(self, event):
-        # Test if the current is within 3% of the soak value, typically values are WELL within this limit
         try:
-            current = float(redis.read(MAGNET_CURRENT_KEY)[1])
-            soak_current = float(redis.read(SOAK_CURRENT_KEY))
-            diff = (current - soak_current) / soak_current
-            return abs(diff) <= 0.03
+            return self.sim.setpoint() >= float(redis.read(SOAK_CURRENT_KEY))
         except RedisError:
             return False
 
     def current_at_soak(self, event):
-        # Test if the current is within 3% of the soak value, typically values are WELL within this limit
         try:
             current = float(redis.read(MAGNET_CURRENT_KEY)[1])
             soak_current = float(redis.read(SOAK_CURRENT_KEY))
             diff = (current - soak_current) / soak_current
-            return abs(diff <= 0.03)
+            return abs(diff) <= 0.03 or (current >= soak_current)
         except RedisError:
             return False
 
-    def start_current_ramp(self, event):
-        try:
-            ls625.start_cycle_ramp()
-            return True
-        except RedisError:
-            return False
+    def in_pid_mode(self, event):
+        return ls372.in_pid_output()
 
-    def start_current_deramp(self, event):
-        try:
-            ls625.start_cycle_deramp()
-            return True
-        except RedisError:
-            return False
-
-    def ramp_ok(self, event):
-        # TODO
-        if self.state == 'ramping':
-            return True
-        else:
-            return False
-
-    def deramp_ok(self, event):
-        # TODO
-        if (self.state == 'deramping') or (self.state == 'cooling'):
-            return True
-        else:
-            return False
+    def to_pid_mode(self, event):
+        ls372.to_pid_output()
 
     def device_ready_for_regulate(self, event):
         try:
-            return float(redis.read(DEVICE_TEMP_KEY)[1]) <= float(redis.read(REGULATION_TEMP_KEY)) * 1.5
+            return float(redis.read(DEVICE_TEMP_KEY)[1]) <= float(redis.read(REGULATION_TEMP_KEY))
         except RedisError:
             return False
 
@@ -391,17 +451,15 @@ class MagnetController(LockedMachine):
 
         NOTE: enforce_upper_limit is controlled by an ENGINEERING KEY that must be changed DIRECTLY IN REDIS. It cannot
          be commanded and must be manually changed
-
-        TODO: Consider adding more logic into this to see if the current is still able to provide regulation?
         """
         enforce_upper_limit = redis.read(IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY)
-        try:
-            if enforce_upper_limit == "on":
+        if enforce_upper_limit == "on":
+            try:
                 return float(redis.read(DEVICE_TEMP_KEY)[1]) <= MAX_REGULATE_TEMP
-            else:
-                return True
-        except RedisError:
-            return False
+            except RedisError:
+                return False
+        else:
+            return True
 
     def kill_current(self, event):
         """Kill the current if possible, return False if fail"""
@@ -413,7 +471,6 @@ class MagnetController(LockedMachine):
 
     def record_entry(self, event):
         self.state_entry_time[self.state] = time.time()
-        log.info(f"Recorded entry: {self.state}")
         redis.store({MAGNET_STATE_KEY: self.state})
         write_persisted_state(self.statefile, self.state)
 
