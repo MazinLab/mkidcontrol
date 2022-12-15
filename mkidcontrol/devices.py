@@ -497,6 +497,43 @@ class FilterWheel(USBFilterWheel):
         except (SerialException, Exception) as e:
             raise Exception(f"Could not communicate with the filter wheel! {e}")
 
+    def close(self):
+        """
+        Convenience function aliasing the self.move_filter function to go to position 'closed'
+        """
+        if self.filters is not None:
+            for k, v in self.filters.items():
+                if v.lower() == "closed":
+                    closed_pos = k
+        else:
+            log.warning(f"Unable to determine what filter wheel position corresponds to closed, please provide "
+                        f"filterwheelAgent with dict of positions and filters")
+            return
+
+        try:
+            self.set_filter_pos(closed_pos)
+        except (SerialException, Exception) as e:
+            raise Exception(f"Could not communicate with the filter wheel! {e}")
+
+    def open(self):
+        """
+        Convenience function aliasing the self.move_filter function to go to position 'closed'
+        """
+        if self.filters is not None:
+            for k, v in self.filters.items():
+                if v.lower() == "open":
+                    open_pos = k
+        else:
+            log.warning(f"Unable to determine what filter wheel position corresponds to open, please provide "
+                        f"filterwheelAgent with dict of positions and filters")
+            return
+
+        try:
+            self.set_filter_pos(open_pos)
+        except (SerialException, Exception) as e:
+            raise Exception(f"Could not communicate with the filter wheel! {e}")
+
+
 class HeatswitchMotor:
     TIMEOUT = 4194303 * 1.25 / 0.5e3  # Default timeout value is the number of steps + 25% divided by half the slowest speed we run at
     MOTOR_POS_KEY = "status:device:heatswitch:motor:position"  # Integer between 0 and 4194303
