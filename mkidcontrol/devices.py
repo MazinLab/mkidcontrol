@@ -2241,7 +2241,7 @@ class Laserflipperduino(SerialDevice):
     def __init__(self, port, baudrate=115200, timeout=1, connect=True, lasernames=None):
         super().__init__(port, baudrate, timeout, name='laserflipperduino')
         if connect:
-            self.connect(raise_errors=False)
+            self.connect(raise_errors=True)
         self.status = {0: 0.0,
                        1: 0.0,
                        2: 0.0,
