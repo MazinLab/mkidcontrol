@@ -1,7 +1,5 @@
 """
 Author: Noah Swimmer, 10 May 2022
-
-TODO: Model Lakeshore 336 and 3722 curves after how the input sensors / output heaters are made for eventual flask control?
 """
 
 import numpy as np
@@ -273,7 +271,6 @@ COMMANDS336.update({f'device-settings:ls336:curve-{cu}:coefficient': {'command':
 
 
 # ---- Lake Shore 372 Commands ----
-# TODO: Incorporate setting filter for input channel (see lakeshore model_372.py lines 916-942)
 ENABLED_372_INPUT_CHANNELS = ("A", "1")
 ALLOWED_372_INPUT_CHANNELS = ("A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16")
 ENABLED_372_OUTPUT_CHANNELS = (0, )
@@ -499,17 +496,16 @@ COMMANDSFILTERWHEEL = {'device-settings:filterwheel:position': {'command': '', '
                       }
 
 # ---- Focus Slider Commands ----
-# TODO
-COMMANDSFOCUS = {'device-settings:focus:home-params:velocity': {'command': '', 'vals': {}},
-                 'device-settings:focus:home-params:offset-distance': {'command': '', 'vals': {}},
-                 'device-settings:focus:home-params:direction': {'command': '', 'vals': {}},
-                 'device-settings:focus:jog-params:size': {'command': '', 'vals': {}},
-                 'device-settings:focus:jog-params:acceleration': {'command': '', 'vals': {}},
-                 'device-settings:focus:jog-params:max-velocity': {'command': '', 'vals': {}},
-                 'device-settings:focus:jog-params:continuous': {'command': '', 'vals': {}},
-                 'device-settings:focus:move-params:backlash-distance': {'command': '', 'vals': {}},
-                 'device-settings:focus:velocity-params:acceleration': {'command': '', 'vals': {}},
-                 'device-settings:focus:velocity-params:max-velocity': {'command': '', 'vals': {}},
+COMMANDSFOCUS = {'device-settings:focus:home-params:velocity': {'command': '', 'vals': [0, 164931]},
+                 'device-settings:focus:home-params:offset-distance': {'command': '', 'vals': [0, 1727750]},
+                 'device-settings:focus:home-params:direction': {'command': '', 'vals': {'Reverse': 'reverse', 'Forward': 'forward'}},
+                 'device-settings:focus:jog-params:size': {'command': '', 'vals': [0, 100000]},
+                 'device-settings:focus:jog-params:acceleration': {'command': '', 'vals': [0, 1000]},
+                 'device-settings:focus:jog-params:max-velocity': {'command': '', 'vals': [0, 164931]},
+                 'device-settings:focus:jog-params:continuous': {'command': '', 'vals': {'False': False, 'True': True}},
+                 'device-settings:focus:move-params:backlash-distance': {'command': '', 'vals': [0, 1000]},
+                 'device-settings:focus:velocity-params:acceleration': {'command': '', 'vals': [0, 1000]},
+                 'device-settings:focus:velocity-params:max-velocity': {'command': '', 'vals': [0, 164931]},
                  'device-settings:focus:desired-position:encoder': {'command': '', 'vals': [0, 1727750]}}
 
 # ---- PICTURE-C Magnet Commands ----
