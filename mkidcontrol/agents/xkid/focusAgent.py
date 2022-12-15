@@ -45,11 +45,11 @@ TS_KEYS = (FOCUS_POSITION_MM_KEY, FOCUS_POSITION_ENCODER_KEY)
 
 MOVE_BY_MM_KEY = 'device-settings:focus:desired-move:mm'
 MOVE_BY_ENC_KEY = 'device-settings:focus:desired-move:encoder'
-
+HOME_KEY = 'device-settings:focus:home'
 JOG_KEY = 'device-settings:focus:jog'
 
 SETTING_KEYS = tuple(COMMANDSFOCUS.keys())
-COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY, JOG_KEY]])
+COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY, JOG_KEY, HOME_KEY]])
 
 
 class Focus(TDC001):
@@ -339,6 +339,8 @@ if __name__ == "__main__":
                         f.move_by(val, units=units)
                     elif key == JOG_KEY:
                         f.jog(direction=val)
+                    elif key == HOME_KEY:
+                        f.home()
                 except IOError as e:
                     redis.store({STATUS_KEY: f"Error {e}"})
                     log.error(f"Comm error: {e}")
