@@ -89,6 +89,10 @@ class Focus(TDC001):
     def position_encoder(self):
         return self.status['enc_count']
 
+    @property
+    def position(self):
+        return {'mm': self.status['position'], 'encoder': self.status['enc_count']}
+
     def jog(self, direction='forward'):
         """
         Jog the focus stage 'forward' or 'reverse'. This will follow the settings in self.jogparams
@@ -201,19 +205,36 @@ class Focus(TDC001):
         _, _, param_type, param = key.split(":")
         param.replace('-', '_')
         try:
+            to_change = self.params[param_type]
+            to_change[param] = value
             if 'home' in param_type:
-                self.set_home_params(**{param:value})
+                self.set_home_params(to_change)
             elif 'jog' in param_type:
-                self.set_jog_params(**{param:value})
+                self.set_jog_params(to_change)
             elif 'move' in param_type:
-                self.set_move_params(**{param:value})
+                self.set_move_params(to_change)
             elif 'velocity' in param_type:
-                self.set_move_params(**{param:value})
+                self.set_velocity_params(to_change)
             else:
                 raise ValueError(f"Unknown parameter type to update for focus slider!")
         except (IOError, SerialException) as e:
             log.warning(f"Can't communicate with focus slider! {e}")
             raise IOError(f"Can't communicate with focus slider! {e}")
+
+    @property
+    def params(self):
+        try:
+            home_params = self.homeparams_
+            jog_params = self.jogparams
+            move_params = self.genmoveparams
+            vel_params = self.velparams
+        except Exception as e:
+            raise Exception(f"Error querying params for focus! {e}")
+
+        return {'home': home_params,
+                'jog': jog_params,
+                'move': move_params,
+                'velocity': vel_params}
 
     def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
         """
