@@ -17,16 +17,14 @@ MTS50/M-Z8 NOTES:
 TODO: Does this require a monitor function?
 """
 
-from serial import SerialException
 import logging
 import sys
-import time
-import threading
 
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDSFOCUS, LakeShoreCommand
+from mkidcontrol.devices import Focus
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
