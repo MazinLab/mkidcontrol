@@ -67,7 +67,7 @@ OUTPUT_MODE_KEY = 'device-settings:ls625:control-mode'
 OUTPUT_MODE_COMMAND_KEY = f"command:{OUTPUT_MODE_KEY}"
 SOAK_CURRENT_KEY = 'device-settings:magnet:soak-current'
 CYCLE_RAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
-CYCLE_DERAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
+CYCLE_DERAMP_RATE_KEY = 'device-settings:magnet:deramp-rate'
 
 
 def is_initialized():

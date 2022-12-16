@@ -4,9 +4,6 @@ Author: Noah Swimmer
 
 Program for controlling the magnet. The magnet controller itself is a statemachine but requires no instruments to run.
 It will run even with no lakeshore/heatswitch/etc., although it will not allow anything to actually happen.
-
-TODO: Rewrite magnet control agent using sim960agent.py magnetControl state machine, go back to what we know was working
- and restructure from there
 """
 
 import sys
@@ -36,7 +33,7 @@ SETTING_KEYS = tuple(COMMANDSMAGNET.keys())
 SOAK_TIME_KEY = 'device-settings:magnet:soak-time'
 SOAK_CURRENT_KEY = 'device-settings:magnet:soak-current'
 RAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
-DERAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
+DERAMP_RATE_KEY = 'device-settings:magnet:deramp-rate'
 COOLDOWN_SCHEDULED_KEY = 'device-settings:magnet:cooldown-scheduled'
 
 IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY = 'device-settings:magnet:enable-temperature-regulation-upper-limit'
@@ -111,9 +108,10 @@ def compute_initial_state(statefile):
 
 class MagnetController(LockedMachine):
     LOOP_INTERVAL = 1
-    BLOCKS = defaultdict(set)  # This holds the sim960 commands that are blocked out in a given state i.e.
+    BLOCKS = defaultdict(set)  # This holds the ls625 commands that are blocked out in a given state
     MAX_CURRENT = 9.25 # Amps
 
+    # TODO: Make sure all transitions are legal and will allow appropriate operation
     def __init__(self, statefile='./magnetstate.txt'):
         transitions = [
             # Allow aborting from any point, trigger will always succeed

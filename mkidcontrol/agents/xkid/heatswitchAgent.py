@@ -56,7 +56,9 @@ def open():
 
 
 def is_opened():
-    return not (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.CLOSED)
+    # TODO: Check if this will return 'True' fast enough
+    return True
+    # return not (redis.read(HEATSWITCH_POSITION_KEY) == HeatswitchPosition.CLOSED)
 
 
 def is_closed():
