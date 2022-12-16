@@ -137,8 +137,8 @@ class MagnetController(LockedMachine):
             {'trigger': 'next', 'source': 'hs_closing', 'dest': 'start_ramping', 'conditions': 'heatswitch_closed'},
             {'trigger': 'next', 'source': 'hs_closing', 'dest': None, 'prepare': 'close_heatswitch'},
 
-            {'trigger': 'next', 'source': 'starting_ramp', 'dest': None, 'prepare': 'begin_ramp_up'},
-            {'trigger': 'next', 'source': 'starting_ramp', 'dest': 'ramping', 'conditions': 'ramp_ok'},
+            {'trigger': 'next', 'source': 'start_ramping', 'dest': None, 'prepare': 'begin_ramp_up'},
+            {'trigger': 'next', 'source': 'start_ramping', 'dest': 'ramping', 'conditions': 'ramp_ok'},
 
             # stay in ramping, as long as the ramp is going OK
             {'trigger': 'next', 'source': 'ramping', 'dest': None, 'unless': 'current_ready_to_soak',
@@ -195,7 +195,8 @@ class MagnetController(LockedMachine):
             # stay in deramping, trying to decrement the current, until the device is off then move to off
             # condition defaults to false in the even of an IOError and decrement_current will just noop if there are
             # failures
-            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'unless': 'current_off'},
+            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'unless': 'current_off',
+             'prepare': 'begin_ramp_down'},
             {'trigger': 'next', 'source': 'deramping', 'dest': 'off'},
 
             # once off stay put, if the current gets turned on while in off then something is fundamentally wrong with
