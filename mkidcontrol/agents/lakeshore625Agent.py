@@ -79,14 +79,13 @@ def lakeshore_current():
 
 
 def kill_current():
-    # redis.publish(f"command:{STOP_RAMP_KEY}", 0, store=False)
     redis.publish(f"command:{DESIRED_CURRENT_KEY}", 0, store=False)
 
 
-def start_cycle_ramp(current=None):
+def start_ramp_up(current=None):
     try:
         ramp_rate = redis.read(CYCLE_RAMP_RATE_KEY)
-        redis.publish(RAMP_RATE_KEY, ramp_rate, store=False)
+        redis.publish(f"command:{RAMP_RATE_KEY}", ramp_rate, store=False)
         if current is None:
             current = float(redis.read(SOAK_CURRENT_KEY))
         redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
@@ -95,10 +94,10 @@ def start_cycle_ramp(current=None):
         raise Exception(f"Could not communicate with redis to start ramping magnet with LS625: {e}")
 
 
-def start_cycle_deramp(current=None):
+def start_ramp_down(current=None):
     try:
-        ramp_rate = redis.read(CYCLE_DERAMP_RATE_KEY)
-        redis.publish(RAMP_RATE_KEY, abs(ramp_rate), store=False)
+        deramp_rate = redis.read(CYCLE_DERAMP_RATE_KEY)
+        redis.publish(f"command:{RAMP_RATE_KEY}", abs(deramp_rate), store=False)
         if current is None:
             current = 0
         redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
