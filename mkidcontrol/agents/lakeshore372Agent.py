@@ -58,19 +58,20 @@ OUTPUT_RANGE_COMMAND_KEY = f"command:{OUTPUT_RANGE_KEY}"
 
 
 def to_pid_output():
-    redis.publish(OUTPUT_MODE_COMMAND_KEY, "CLOSED_LOOP", store=False)
+    redis.publish(OUTPUT_MODE_COMMAND_KEY, "Closed Loop", store=False)
+    redis.publish(OUTPUT_RANGE_COMMAND_KEY, "1 mA", store=False)
 
 
 def to_no_output():
-    redis.publish(OUTPUT_MODE_COMMAND_KEY, "OFF", store=False)
+    redis.publish(OUTPUT_MODE_COMMAND_KEY, "Off", store=False)
 
 
 def in_pid_output():
-    return redis.read(OUTPUT_MODE_KEY) == "CLOSED_LOOP"
+    return (redis.read(OUTPUT_MODE_KEY) == "Closed Loop") and (redis.read(OUTPUT_RANGE_KEY) != '0')
 
 
 def in_no_output():
-    return redis.read(OUTPUT_MODE_KEY) == "OFF"
+    return redis.read(OUTPUT_MODE_KEY) == "Off"
 
 
 def turn_on_heater_output(output_range='1 mA'):
