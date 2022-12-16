@@ -84,19 +84,27 @@ def kill_current():
 
 
 def start_cycle_ramp(current=None):
-    ramp_rate = redis.read(CYCLE_RAMP_RATE_KEY)
-    redis.publish(RAMP_RATE_KEY, ramp_rate, store=False)
-    if current is None:
-        current = float(redis.read(SOAK_CURRENT_KEY))
-    redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
+    try:
+        ramp_rate = redis.read(CYCLE_RAMP_RATE_KEY)
+        redis.publish(RAMP_RATE_KEY, ramp_rate, store=False)
+        if current is None:
+            current = float(redis.read(SOAK_CURRENT_KEY))
+        redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
+    except RedisError as e:
+        log.warning(f"Could not communicate with redis to start ramping magnet with LS625: {e}")
+        raise Exception(f"Could not communicate with redis to start ramping magnet with LS625: {e}")
 
 
 def start_cycle_deramp(current=None):
-    ramp_rate = redis.read(CYCLE_DERAMP_RATE_KEY)
-    redis.publish(RAMP_RATE_KEY, abs(ramp_rate), store=False)
-    if current is None:
-        current = 0
-    redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
+    try:
+        ramp_rate = redis.read(CYCLE_DERAMP_RATE_KEY)
+        redis.publish(RAMP_RATE_KEY, abs(ramp_rate), store=False)
+        if current is None:
+            current = 0
+        redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
+    except RedisError as e:
+        log.warning(f"Could not communicate with redis to start deramping magnet with LS625: {e}")
+        raise Exception(f"Could not communicate with redis to start deramping magnet with LS625: {e}")
 
 
 def firmware_pull(device):

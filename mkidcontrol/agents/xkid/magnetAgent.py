@@ -112,11 +112,12 @@ def compute_initial_state(statefile):
 class MagnetController(LockedMachine):
     LOOP_INTERVAL = 1
     BLOCKS = defaultdict(set)  # This holds the sim960 commands that are blocked out in a given state i.e.
+    MAX_CURRENT = 9.25 # Amps
 
     def __init__(self, statefile='./magnetstate.txt'):
         transitions = [
             # Allow aborting from any point, trigger will always succeed
-            {'trigger': 'abort', 'source': '*', 'dest': 'deramping'},
+            {'trigger': 'abort', 'source': '*', 'dest': 'start_deramping'},
 
             # Allow quench (direct to hard off) from any point, trigger will always succeed
             {'trigger': 'quench', 'source': '*', 'dest': 'off'},
@@ -134,17 +135,16 @@ class MagnetController(LockedMachine):
 
             # stay in hs_closing until it is closed then transition to ramping
             # if we can't get the status from redis then the conditions default to false and we stay put
-            {'trigger': 'next', 'source': 'hs_closing', 'dest': 'ramping', 'conditions': 'heatswitch_closed'},
-            {'trigger': 'next', 'source': 'hs_closing', 'dest': None,
-             'prepare': 'close_heatswitch'},
+            # {'trigger': 'next', 'source': 'hs_closing', 'dest': 'ramping', 'conditions': 'heatswitch_closed'},
+            {'trigger': 'next', 'source': 'hs_closing', 'dest': 'start_ramping', 'conditions': 'heatswitch_closed'},
+            {'trigger': 'next', 'source': 'hs_closing', 'dest': None, 'prepare': 'close_heatswitch'},
 
-            # TODO: "STARTING RAMPING"
+            {'trigger': 'next', 'source': 'starting_ramp', 'dest': None, 'prepare': 'begin_ramp_up'},
+            {'trigger': 'next', 'source': 'starting_ramp', 'dest': 'ramping', 'conditions': 'ramp_ok'},
 
-            # stay in ramping, increasing the current a bit each time unless the current is high enough to soak
-            # if we can't increment the current or get the current then IOErrors will arise and we stay put
-            # if we can't get the settings from redis then the conditions default to false and we stay put
+            # stay in ramping, as long as the ramp is going OK
             {'trigger': 'next', 'source': 'ramping', 'dest': None, 'unless': 'current_ready_to_soak',
-             'after': 'increment_current'},
+             'conditions': 'ramp_ok'},
             {'trigger': 'next', 'source': 'ramping', 'dest': 'soaking', 'conditions': 'current_ready_to_soak'},
 
             # stay in soaking until we've elapsed the soak time, if the current changes move to deramping as something
@@ -158,17 +158,20 @@ class MagnetController(LockedMachine):
              'prepare': ('open_heatswitch', 'ls372_to_pid'),
              'conditions': ('current_at_soak', 'soak_time_expired')},
             # condition repeated to preclude call passing due to IO hiccup
-            {'trigger': 'next', 'source': 'soaking', 'dest': 'deramping'},
+            {'trigger': 'next', 'source': 'soaking', 'dest': 'start_deramping'},
 
             # stay in hs_opening until it is open then transition to cooling
             # don't require conditions on current
             # if we can't get the status from redis then the conditions default to false and we stay put
-            {'trigger': 'next', 'source': 'hs_opening', 'dest': 'cooling',
+            # {'trigger': 'next', 'source': 'hs_opening', 'dest': 'cooling',
+            #  'conditions': ('heatswitch_opened', 'ls372_in_pid')},
+            {'trigger': 'next', 'source': 'hs_opening', 'dest': 'start_cooling',
              'conditions': ('heatswitch_opened', 'ls372_in_pid')},
             {'trigger': 'next', 'source': 'hs_opening', 'dest': None,
              'prepare': ('open_heatswitch', 'ls372_to_pid')},
 
-            # TODO: START COOLING
+            {'trigger': 'next', 'source': 'start_cooling', 'dest': None, 'prepare': 'begin_ramp_down'},
+            {'trigger': 'next', 'source': 'start_cooling', 'dest': 'cooling', 'conditions': 'deramp_ok'},
 
             # stay in cooling, decreasing the current a bit until the device is regulatable
             # if the heatswitch closes move to deramping
@@ -176,23 +179,25 @@ class MagnetController(LockedMachine):
             #  stay put
             # if we can't put the device in pid mode (IOError)  we stay put
             {'trigger': 'next', 'source': 'cooling', 'dest': None, 'unless': 'device_ready_for_regulate',
-             'after': 'decrement_current', 'conditions': 'heatswitch_opened'},
+             'conditions': ('heatswitch_opened', 'deramp_ok')},
             {'trigger': 'next', 'source': 'cooling', 'dest': 'regulating', 'before': 'to_pid_mode',
-             'conditions': ('heatswitch_opened', 'ls372_in_scaled')},
-            {'trigger': 'next', 'source': 'cooling', 'dest': 'deramping', 'conditions': 'heatswitch_closed'},
+             'conditions': ('heatswitch_opened', 'ls372_in_pid', 'deramp_ok')},
+            {'trigger': 'next', 'source': 'cooling', 'dest': 'start_deramping', 'conditions': 'heatswitch_closed'},
 
             # stay in regulating until the device is too warm to regulate
             # if it somehow leaves PID mode (or we can't verify it is in PID mode: IOError) move to deramping
             # if we cant pull the temp from redis then device is assumed unregulatable and we move to deramping
             {'trigger': 'next', 'source': 'regulating', 'dest': None,
-             'conditions': ['device_regulatable', 'in_pid_mode']},
-            {'trigger': 'next', 'source': 'regulating', 'dest': 'deramping'},
+             'conditions': ('device_regulatable', 'in_pid_mode')},
+            {'trigger': 'next', 'source': 'regulating', 'dest': 'start_deramping'},
+
+            {'trigger': 'next', 'source': 'start_deramping', 'dest': None, 'prepare': 'begin_ramp_down'},
+            {'trigger': 'next', 'source': 'start_deramping', 'dest': 'deramping', 'conditions': 'deramp_ok'},
 
             # stay in deramping, trying to decrement the current, until the device is off then move to off
             # condition defaults to false in the even of an IOError and decrement_current will just noop if there are
             # failures
-            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'unless': 'current_off',
-             'after': 'decrement_current'},
+            {'trigger': 'next', 'source': 'deramping', 'dest': None, 'unless': 'current_off'},
             {'trigger': 'next', 'source': 'deramping', 'dest': 'off'},
 
             # once off stay put, if the current gets turned on while in off then something is fundamentally wrong with
@@ -203,7 +208,7 @@ class MagnetController(LockedMachine):
         states = (  # Entering off MUST succeed
             State('off', on_enter=['record_entry', 'kill_current']),
             State('hs_closing', on_enter='record_entry'),
-            State('starting_ramp', on_enter='record_entry'),
+            State('start_ramping', on_enter='record_entry'),
             State('ramping', on_enter='record_entry'),
             State('soaking', on_enter='record_entry'),
             State('hs_opening', on_enter='record_entry'),
@@ -368,6 +373,35 @@ class MagnetController(LockedMachine):
             return ls372.in_no_output()
         except RedisError:
             return False
+
+    def begin_ramp_up(self, event):
+        soak_current = None
+        try:
+            soak_current = abs(float(redis.read(SOAK_CURRENT_KEY)))
+        except RedisError:
+            log.warning(f"Unable to pull {SOAK_CURRENT_KEY}, using default value of {self.MAX_CURRENT}")
+
+        try:
+            if soak_current:
+                ls625.start_cycle_ramp(soak_current)
+            else:
+                ls625.start_cycle_ramp()
+        except Exception:
+            log.warning(f"Cycle could not be started! {e}")
+
+    def begin_ramp_down(self, event):
+        try:
+            ls625.start_cycle_deramp(0)
+        except Exception:
+            log.warning(f"Cycle could not be started! {e}")
+
+    def ramp_ok(self, event):
+
+        return True
+
+    def deramp_ok(self, event):
+
+        return True
 
     def increment_current(self, event):
         # TODO: Turn this into 'start ramp'
