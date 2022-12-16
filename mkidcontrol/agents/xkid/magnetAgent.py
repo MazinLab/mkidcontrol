@@ -180,7 +180,7 @@ class MagnetController(LockedMachine):
             # if we can't put the device in pid mode (IOError)  we stay put
             {'trigger': 'next', 'source': 'cooling', 'dest': None, 'unless': 'device_ready_for_regulate',
              'conditions': ('heatswitch_opened', 'deramp_ok')},
-            {'trigger': 'next', 'source': 'cooling', 'dest': 'regulating', 'before': 'to_pid_mode',
+            {'trigger': 'next', 'source': 'cooling', 'dest': 'regulating', 'before': 'ls372_to_pid',
              'conditions': ('heatswitch_opened', 'ls372_in_pid', 'deramp_ok')},
             {'trigger': 'next', 'source': 'cooling', 'dest': 'start_deramping', 'conditions': 'heatswitch_closed'},
 
@@ -188,7 +188,7 @@ class MagnetController(LockedMachine):
             # if it somehow leaves PID mode (or we can't verify it is in PID mode: IOError) move to deramping
             # if we cant pull the temp from redis then device is assumed unregulatable and we move to deramping
             {'trigger': 'next', 'source': 'regulating', 'dest': None,
-             'conditions': ('device_regulatable', 'in_pid_mode')},
+             'conditions': ('device_regulatable', 'ls372_in_pid')},
             {'trigger': 'next', 'source': 'regulating', 'dest': 'start_deramping'},
 
             {'trigger': 'next', 'source': 'start_deramping', 'dest': None, 'prepare': 'begin_ramp_down'},
@@ -265,12 +265,12 @@ class MagnetController(LockedMachine):
         current_state = self.state  # NB: If current_state is regulating time_to_cool will return 0 since it is already cool.
 
         time_to_cool = 0
-        if current_state in ('ramping', 'off', 'hs_closing'):
+        if current_state in ('ramping', 'off', 'hs_closing', 'start_ramping'):
             time_to_cool = ((soak_current - current_current) / ramp_rate) + soak_time + (
                     (0 - soak_current) / deramp_rate)
         if current_state in ('soaking', 'hs_opening'):
             time_to_cool = (time.time() - self.state_entry_time['soaking']) + ((0 - soak_current) / deramp_rate)
-        if current_state in ('cooling', 'deramping'):
+        if current_state in ('cooling', 'deramping', 'start_cooling', 'start_deramping'):
             time_to_cool = -1 * current_current / deramp_rate
 
         return timedelta(seconds=time_to_cool)
@@ -326,18 +326,6 @@ class MagnetController(LockedMachine):
         except RedisError:
             pass
 
-    def ls372_to_pid(self, event):
-        try:
-            ls372.to_pid_output()
-        except RedisError:
-            pass
-
-    def ls372_to_no_output(self, event):
-        try:
-            ls372.to_no_output()
-        except RedisError:
-            pass
-
     def current_off(self, event):
         try:
             # return redis.read('device-settings:ls625:control-mode') == "Sum" and \
@@ -362,6 +350,18 @@ class MagnetController(LockedMachine):
         except RedisError:
             return False
 
+    def ls372_to_pid(self, event):
+        try:
+            ls372.to_pid_output()
+        except RedisError:
+            pass
+
+    def ls372_to_no_output(self, event):
+        try:
+            ls372.to_no_output()
+        except RedisError:
+            pass
+
     def ls372_in_pid(self, event):
         try:
             return ls372.in_pid_output()
@@ -383,75 +383,25 @@ class MagnetController(LockedMachine):
 
         try:
             if soak_current:
-                ls625.start_cycle_ramp(soak_current)
+                ls625.start_ramp_up(soak_current)
             else:
-                ls625.start_cycle_ramp()
+                ls625.start_ramp_up()
         except Exception:
             log.warning(f"Cycle could not be started! {e}")
 
     def begin_ramp_down(self, event):
         try:
-            ls625.start_cycle_deramp(0)
+            ls625.start_ramp_down(0)
         except Exception:
             log.warning(f"Cycle could not be started! {e}")
 
     def ramp_ok(self, event):
-
+        # TODO: Make sure current is increasing, potentially using cached values of current rather than a long redis_ts.range()
         return True
 
     def deramp_ok(self, event):
-
+        # TODO: Make sure current is decreasing, potentially using cached values of current rather than a long redis_ts.range()
         return True
-
-    def increment_current(self, event):
-        # TODO: Turn this into 'start ramp'
-        limit = self.sim.MAX_CURRENT_SLOPE
-        interval = self.LOOP_INTERVAL
-        try:
-            slope = abs(float(redis.read(RAMP_SLOPE_KEY)))
-        except RedisError:
-            log.warning(f'Unable to pull {RAMP_SLOPE_KEY} using {limit}.')
-            slope = limit
-
-        if slope > self.sim.MAX_CURRENT_SLOPE:
-            log.info(f'{RAMP_SLOPE_KEY} too high, overwriting.')
-            try:
-                redis.store({RAMP_SLOPE_KEY: limit})
-            except RedisError:
-                log.info(f'Overwriting failed.')
-
-        if not slope:
-            log.warning('Ramp slope set to zero, this will take eternity.')
-
-        try:
-            self.sim.manual_current += slope * interval
-        except IOError:
-            log.warning('Failed to increment current, sim offline')
-
-    def decrement_current(self, event):
-        # TODO: Turn this into 'start deramp'
-        limit = self.sim.MAX_CURRENT_SLOPE
-        interval = self.LOOP_INTERVAL  # No need to do this faster than increment current.
-        try:
-            slope = abs(float(redis.read(DERAMP_SLOPE_KEY)))
-        except RedisError:
-            log.warning(f'Unable to pull {DERAMP_SLOPE_KEY} using {limit}.')
-            slope = limit
-
-        if slope > self.sim.MAX_CURRENT_SLOPE:
-            log.info(f'{DERAMP_SLOPE_KEY} too high, overwriting.')
-            try:
-                redis.store({DERAMP_SLOPE_KEY: limit})
-            except RedisError:
-                log.info(f'Overwriting failed.')
-
-        if not slope:
-            log.warning('Deramp slope set to zero, this will take eternity.')
-
-        try:
-            self.sim.manual_current -= slope * interval
-        except IOError:
-            log.warning('Failed to decrement current, sim offline')
 
     def soak_time_expired(self, event):
         try:
@@ -473,12 +423,6 @@ class MagnetController(LockedMachine):
             return abs(diff) <= 0.03 or (current >= soak_current)
         except RedisError:
             return False
-
-    def in_pid_mode(self, event):
-        return ls372.in_pid_output()
-
-    def to_pid_mode(self, event):
-        ls372.to_pid_output()
 
     def device_ready_for_regulate(self, event):
         try:
