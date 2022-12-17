@@ -11,6 +11,7 @@ import time
 import logging
 import threading
 from datetime import datetime, timedelta
+import numpy as np
 from collections import defaultdict
 from transitions import MachineError, State
 from transitions.extensions import LockedMachine
@@ -218,6 +219,7 @@ class MagnetController(LockedMachine):
             # Entering ramping MUST succeed
             State('deramping', on_enter='record_entry'))
 
+        self.last_5_currents = []
         self.statefile = statefile
         self.lock = threading.RLock()
         self.scheduled_cooldown = None
@@ -241,6 +243,8 @@ class MagnetController(LockedMachine):
         while self._run:
             try:
                 self.next()
+                self.last_5_currents.append(float(redis.read(MAGNET_CURRENT_KEY)[1]))
+                self.last_5_currents = self.last_5_currents[-5:]
                 log.debug(f"Magnet state is: {self.state}")
             except IOError:
                 log.info(exc_info=True)
@@ -395,12 +399,29 @@ class MagnetController(LockedMachine):
             log.warning(f"Cycle could not be started! {e}")
 
     def ramp_ok(self, event):
-        # TODO: Make sure current is increasing, potentially using cached values of current rather than a long redis_ts.range()
-        return True
+        currents = self.last_5_currents
+        steps = np.diff(currents)
+        if np.all(steps >= 0):
+            return True
+        elif np.sum(steps) >= 3:
+            return True
+        elif currents[-1] >= currents[-2]:
+            return True
+        else:
+            return False
+
 
     def deramp_ok(self, event):
-        # TODO: Make sure current is decreasing, potentially using cached values of current rather than a long redis_ts.range()
-        return True
+        currents = self.last_5_currents
+        steps = np.diff(currents)
+        if np.all(steps <= 0):
+            return True
+        elif np.sum(steps) >= 3:
+            return True
+        elif currents[-1] <= currents[-2]:
+            return True
+        else:
+            return False
 
     def soak_time_expired(self, event):
         try:
