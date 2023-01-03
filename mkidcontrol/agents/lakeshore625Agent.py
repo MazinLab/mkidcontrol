@@ -21,7 +21,6 @@ N.B. (19 July 2022): The limiting values are as follows (and remember, the limit
                    (di/dt)_desired is tunable, we don't recommend higher than 10 mA/s
 - Ramp rate: 20 mA/s (you want this to be about double + 10% of the max rate you expect to use)
 
-# TODO: Add 'pause current' command
 # TODO: Clean code
 # TODO: Handle disconnects nicely
 """
