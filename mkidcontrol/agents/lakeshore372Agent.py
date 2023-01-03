@@ -57,9 +57,9 @@ OUTPUT_RANGE_KEY = 'device-settings:ls372:heater-channel-0:range'
 OUTPUT_RANGE_COMMAND_KEY = f"command:{OUTPUT_RANGE_KEY}"
 
 
-def to_pid_output():
+def to_pid_output(heater_output="1 mA"):
     redis.publish(OUTPUT_MODE_COMMAND_KEY, "Closed Loop", store=False)
-    redis.publish(OUTPUT_RANGE_COMMAND_KEY, "1 mA", store=False)
+    turn_on_heater_output(heater_output)
 
 
 def to_no_output():
