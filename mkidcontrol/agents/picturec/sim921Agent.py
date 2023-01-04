@@ -102,11 +102,10 @@ def initializer(device):
         log.warning('Storing device settings to redis failed')
 
 
-
 if __name__ == "__main__":
 
     util.setup_logging('sim921Agent')
-    redis.setup_redis(create_ts_keys=TS_KEYS)
+    redis.setup_redis(ts_keys=TS_KEYS)
     sim = SIM921(port=DEVICE, timeout=.05, initializer=initializer)
 
     # ---------------------------------- MAIN OPERATION (The eternal loop) BELOW HERE ----------------------------------
