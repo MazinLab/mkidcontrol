@@ -259,6 +259,7 @@ def thermometry(device, channel):
                 log.debug(f"Unrecognized field to send as command: {key}")
             time.sleep(.15)
 
+    # TODO: Turn all of this if/else into a single 'thermometry' form
     if device == 'ls336':
         from mkidcontrol.controlflask.app.main.forms import RTDForm, DiodeForm, DisabledInputForm
         from ....commands import LS336InputSensor
