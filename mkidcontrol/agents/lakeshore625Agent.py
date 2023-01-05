@@ -22,7 +22,6 @@ N.B. (19 July 2022): The limiting values are as follows (and remember, the limit
 - Ramp rate: 20 mA/s (you want this to be about double + 10% of the max rate you expect to use)
 
 # TODO: Clean code
-# TODO: Handle disconnects nicely
 """
 
 import sys
