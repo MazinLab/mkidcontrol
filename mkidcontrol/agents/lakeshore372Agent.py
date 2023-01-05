@@ -13,8 +13,6 @@ From the manual -> Do not query more than 20 times per second
 N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/model_372.html
 
 TODO: 'Block' settings (e.g. excitation cannot be in V if mode is Current)
-
-TODO: Gracefully handle serial disconnects/reconnects
 """
 
 import sys

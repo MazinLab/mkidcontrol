@@ -1204,8 +1204,8 @@ class LakeShoreMixin:
         Raises an IOError if there is a problem communicating with the opened serial port
         """
         temp_vals = []
-        for channel in self.enabled_input_channels:
-            try:
+        try:
+            for channel in self.enabled_input_channels:
                 temp_rdg = float(self.get_kelvin_reading(channel))
                 log.info(f"Measured a temperature of {temp_rdg} K from channel {channel}")
                 if temp_rdg == 0:
@@ -1213,9 +1213,9 @@ class LakeShoreMixin:
                               f" is above the calibration limit. Setting to 40K (RX-102A max calibrated temp).")
                     temp_rdg = 40.0
                 temp_vals.append(temp_rdg)
-            except (SerialException, IOError) as e:
-                log.error(f"Serial error: {e}")
-                raise IOError(f"Serial error: {e}")
+        except Exception as e:
+            self.disconnect()
+            raise IOError(e)
 
         if len(self.enabled_input_channels) == 1:
             temp_vals = temp_vals[0]
@@ -1232,8 +1232,8 @@ class LakeShoreMixin:
         Raises an IOError if there is a problem communicating with the opened serial port
         """
         readings = []
-        for channel in self.enabled_input_channels:
-            try:
+        try:
+            for channel in self.enabled_input_channels:
                 if self.model_number == "MODEL372":
                     res = float(self.get_resistance_reading(channel))
                     log.info(f"Measured a resistance of {res} Ohms from channel {channel}")
@@ -1242,9 +1242,9 @@ class LakeShoreMixin:
                     sens = float(self.get_sensor_reading(channel))
                     log.info(f"Measured a value of {sens} from channel {channel}")
                     readings.append(sens)
-            except (SerialException, IOError) as e:
-                log.error(f"Serial error: {e}")
-                raise IOError(f"Serial error: {e}")
+        except Exception as e:
+            self.disconnect()
+            raise IOError(e)
 
         if len(self.enabled_input_channels) == 1:
             readings = readings[0]
@@ -1259,14 +1259,14 @@ class LakeShoreMixin:
         Raises an IOError if there is a problem communicating with the opened serial port
         """
         readings = []
-        for channel in self.enabled_input_channels:
-            try:
+        try:
+            for channel in self.enabled_input_channels:
                 pwr = float(self.get_excitation_power(channel))
                 log.info(f"Measured an excitation power of {pwr} W from channel {channel}")
                 readings.append(pwr)
-            except (SerialException, IOError) as e:
-                log.error(f"Serial error: {e}")
-                raise IOError(f"Serial error: {e}")
+        except Exception as e:
+            self.disconnect()
+            raise IOError(e)
 
         if len(self.enabled_input_channels) == 1:
             readings = readings[0]
@@ -1285,7 +1285,11 @@ class LakeShoreMixin:
             curve = c[-1]
             channel = None
 
-        settings = self.query_settings(command_code, channel, curve)
+        try:
+            settings = self.query_settings(command_code, channel, curve)
+        except Exception as e:
+            raise IOError(e)
+
         try:
             return settings[key]
         except (AttributeError, TypeError):
@@ -1718,23 +1722,32 @@ class LakeShore372(LakeShoreMixin, Model372):
             else:
                 log.info(f"Command code '{cmd.command_code}' not recognized! No change will be made")
                 pass
-        except IOError as e:
+        except Exception as e:
+            self.disconnect()
             log.error(f"Comm error: {e}")
-            raise e
+            raise IOError(e)
 
     @property
     def setpoint(self):
         """
         Returns the setpoint for the sample heater in Kelvin
         """
-        return self.get_setpoint_kelvin(0)
+        try:
+            return self.get_setpoint_kelvin(0)
+        except Exception as e:
+            self.disconnect()
+            raise IOError(e)
 
     def output_voltage(self):
         """
         Returns the current output to the sample heater in percent of total output
         Range runs from 0 to 100%
         """
-        return self.get_heater_output(0)
+        try:
+            return self.get_heater_output(0)
+        except Exception as e:
+            self.disconnect()
+            raise IOError(e)
 
     def configure_input_sensor(self, channel, command_code, **desired_settings):
         """

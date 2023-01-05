@@ -12,8 +12,6 @@ N.B. Python API at https://lake-shore-python-driver.readthedocs.io/en/latest/mod
 TODO: Figure out how to 'block' settings if other settings are in place (e.g. Input range cannot be in V if sensor type is RTD)
 
 TODO: Long term -> support adding curves
-
-TODO: Gracefully handle restarts
 """
 
 import sys
