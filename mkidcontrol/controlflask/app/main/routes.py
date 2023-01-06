@@ -36,6 +36,9 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Make sure columns/divs support resizing
 
+# TODO: Make sure plots handle the date+time rollover (there is a current bug which causes unintended behavior in plots
+#  when one has data from late one day and early the next, it does not appear linearly, it 'jumps back' on the plot)
+
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
 
@@ -495,7 +498,7 @@ def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
 
 def create_fig(name):
     since = None
-    first_tval = int((datetime.datetime.now() - timedelta(hours=24)).timestamp() * 1000) if not since else since
+    first_tval = int((datetime.datetime.now() - timedelta(hours=5)).timestamp() * 1000) if not since else since
     timestream = np.array(redis.mkr_range(CHART_KEYS[name], f"{first_tval}"))
     if timestream[0][0] is not None:
         times = [datetime.datetime.fromtimestamp(t / 1000).strftime("%H:%M:%S") for t in timestream[:, 0]]
