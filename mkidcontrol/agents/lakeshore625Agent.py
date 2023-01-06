@@ -145,15 +145,7 @@ def initializer(device):
 def callback(cur, field, ov):
     d = {k: float(x) for k, x in zip((MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY), (cur, field, ov)) if
          x}
-    try:
-        if all(i is None for i in [cur, field, ov]) is None:
-            # N.B. If there is an error on the query, the value passed is None
-            redis.store({STATUS_KEY: "Error"})
-        else:
-            redis.store(d, timeseries=True)
-            redis.store({STATUS_KEY: "OK"})
-    except RedisError:
-        log.warning('Storing LakeShore625 data to redis failed!')
+    redis.store(d, timeseries=True)
 
 
 if __name__ == "__main__":

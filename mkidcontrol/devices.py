@@ -1953,7 +1953,7 @@ class LakeShore625(LakeShoreDevice):
         pass
 
     def current(self):
-        current = float(self.query("RDGI?"))
+        current = self.query("RDGI?")
         self.last_current_read = current
         return current
 
@@ -1961,12 +1961,12 @@ class LakeShore625(LakeShoreDevice):
         self.send(f"SETI {current}")
 
     def field(self):
-        field = float(self.query("RDGF?"))
+        field = self.query("RDGF?")
         self.last_field_read = field
         return field
 
     def output_voltage(self):
-        voltage = float(self.query("RDGV?"))
+        voltage = self.query("RDGV?")
         self.last_voltage_read = voltage
         return voltage
 
