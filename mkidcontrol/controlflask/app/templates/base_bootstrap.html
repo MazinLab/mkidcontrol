@@ -38,6 +38,8 @@
         {% block navbar %}{% endblock %}
 
         {% block content %}
+
+<!-- Navbar -->
         <nav class="navbar navbar-expand-lg navbar-light bg-secondary"; style="position: sticky; top: 0; z-index: 100">
             <a class="navbar-brand" href="{{ url_for('main.index') }}">
 <!--                <img src="{{ url_for('static', filename='mazinlab_logo.png') }}" width="30" height="30" class="d-inline-block align-top" alt="">-->
@@ -114,118 +116,119 @@
             </div>
         </nav>
 
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-sm-3 col-md-2 justify-content-center align-items-center sidebar">
-                    <div class="d-flex flex-row justify-content-center align-items-center p-10" style="text-decoration: underline; font-size: 20px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 92%">Sensors</div>
-                    </div>
+<!-- Sidebar -->
+<!--        <div class="container-fluid">-->
+<!--            <div class="row">-->
+<!--                <div class="col-sm-3 col-md-2 justify-content-center align-items-center sidebar">-->
+<!--                    <div class="d-flex flex-row justify-content-center align-items-center p-10" style="text-decoration: underline; font-size: 20px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 92%">Sensors</div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Device T:</div>
-                        <div class="column" style="float: left; width: 50%"><div id="Device_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Device T:</div>-->
+<!--                        <div class="column" style="float: left; width: 50%"><div id="Device_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 40%">1K T:</div>
-                        <div class="column" style="float: left; width: 50%"><div id="1K_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 40%">1K T:</div>-->
+<!--                        <div class="column" style="float: left; width: 50%"><div id="1K_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 40%">3K T:</div>
-                        <div class="column" style="float: left; width: 50%"><div id="3K_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 40%">3K T:</div>-->
+<!--                        <div class="column" style="float: left; width: 50%"><div id="3K_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 40%">50K T:</div>
-                        <div class="column" style="float: left; width: 50%"><div id="50K_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 40%">50K T:</div>-->
+<!--                        <div class="column" style="float: left; width: 50%"><div id="50K_Temp" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">K</div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Current:</div>
-                        <div class="column" style="float: left; width: 50%"><div id="Meas_Current" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">A</div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Current:</div>-->
+<!--                        <div class="column" style="float: left; width: 50%"><div id="Meas_Current" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left">A</div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Heat switch: </div>
-                        <div class="column" style="float: left; width: 50%"><div id="heatswitch" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Heat switch: </div>-->
+<!--                        <div class="column" style="float: left; width: 50%"><div id="heatswitch" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Motor Position: </div>
-                        <div class="column" style="float: left; width: 50%"><div id="HSMotorPos" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 40%">Motor Position: </div>-->
+<!--                        <div class="column" style="float: left; width: 50%"><div id="HSMotorPos" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div><div style="display: inline; float: left"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row justify-content-center align-items-center p-10" style="text-decoration: underline; font-size: 20px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 92%">Device Statuses</div>
-                    </div>
+<!--                    <div class="d-flex flex-row justify-content-center align-items-center p-10" style="text-decoration: underline; font-size: 20px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 92%">Device Statuses</div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Lake Shore 336:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="LS336" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Lake Shore 336:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="LS336" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Lake Shore 372:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="LS372" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Lake Shore 372:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="LS372" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Lake Shore 625:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="LS625" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Lake Shore 625:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="LS625" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Heat Switch:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="HSMotor" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Heat Switch:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="HSMotor" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row justify-content-center align-items-center p-10" style="text-decoration: underline; font-size: 20px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 8%; width: 92%">Service Statuses</div>
-                    </div>
+<!--                    <div class="d-flex flex-row justify-content-center align-items-center p-10" style="text-decoration: underline; font-size: 20px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 8%; width: 92%">Service Statuses</div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">LS 336:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="LS336Service" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">LS 336:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="LS336Service" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">LS 372:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="LS372Service" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">LS 372:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="LS372Service" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">LS 625:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="LS625Service" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">LS 625:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="LS625Service" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">HS:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="HSMotorService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">HS:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="HSMotorService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Magnet:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="MagnetService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Magnet:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="MagnetService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Redis:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="RedisService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Redis:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="RedisService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Redis Commander:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="RedisCommanderService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Redis Commander:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="RedisCommanderService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
 
-                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">
-                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Flask:</div>
-                        <div class="column" style="float: left; width: 20%"><div id="FlaskService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!--                    <div class="d-flex flex-row align-items-center" style="padding: 6px 8px 6px 8px; text-decoration: none; font-size: 15px; color: white; display: block">-->
+<!--                        <div class="column" style="float: left; margin-left: 2%; width: 55%">Flask:</div>-->
+<!--                        <div class="column" style="float: left; width: 20%"><div id="FlaskService" style="display: inline; float: left; padding-left: 8px; padding-right: 4px"></div></div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
         {% endblock %}
 
         {% block scripts %}{% endblock %}
