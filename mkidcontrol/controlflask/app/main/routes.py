@@ -54,8 +54,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 # TODO: Rework sidebar, no need for 'ok' statuses or 'enabled' for services, just flash an error along the top of screen
 #  Maybe make it so it can pop up from the side
 
-# TODO: 'Dash' Doesn't need pixel numbers (tick labels) to be shown and should take up more of the screen (its the most important thing!)
-
 # TODO: Where is TCS data on the home screen?
 
 # TODO: Move all these key definitions to config.py where all the other redis db and key stuff lives
