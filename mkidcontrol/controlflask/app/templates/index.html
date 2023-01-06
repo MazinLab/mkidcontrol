@@ -169,7 +169,7 @@
             var newdata = JSON.parse(e.data);
 
             for (let j=0; j<rediskeys.length; j++) {
-                update_plot("indexplot", k[j], newdata, j);
+                update_plot("indexplot", rediskeys[j], newdata, j);
             }
         }, false);
         source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
