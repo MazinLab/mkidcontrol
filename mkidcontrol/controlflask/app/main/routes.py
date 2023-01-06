@@ -43,7 +43,7 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Turn all graphs/plots into plotly graph objects
 
-# TODO: Axe login stuff?
+# TODO: Axe login stuff
 
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
 
@@ -555,6 +555,7 @@ def view_array_data():
     fig = go.Figure()
     fig.add_heatmap(z=y.tolist(), showscale=False)
     fig.update_layout(dict(xaxis=dict(visible=False, ticks=''), yaxis=dict(visible=False, ticks='')))
+    fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
