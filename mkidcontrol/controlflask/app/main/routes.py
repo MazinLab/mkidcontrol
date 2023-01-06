@@ -108,13 +108,6 @@ def add_header(response):
     return response
 
 
-class ObsControlForm(FlaskForm):
-    # TODO more clearly name buttons and talk about their functionality, also space them better
-    start_stop = SubmitField("Start")
-    wavecal = SubmitField("Wavecal")
-    flat = SubmitField("Take Flat")
-    dark = SubmitField("Take Dark")
-
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/main', methods=['GET', 'POST'])
 def index():

@@ -14,6 +14,15 @@ class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class ObsControlForm(FlaskForm):
+    # TODO more clearly name buttons and talk about their functionality, also space them better
+    start_stop = SubmitField("Start Observation")
+    target = StringField("Target")
+    wavecal = SubmitField("Wavecal")
+    flat = SubmitField("Take Flat")
+    dark = SubmitField("Take Dark")
+
+
 class HeatSwitchForm(FlaskForm):
     # Heatswitch form
     from mkidcontrol.devices import HeatswitchMotor
