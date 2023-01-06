@@ -1,16 +1,8 @@
-# What fraction of FULL ON (512 leds @ white, max brightness) can we manage.
-#  Do not increase this above what the PSU can deliver or the cloud LED PSU will
-#  overcurrent and shut it self off.
-#  The cloud idles at 6 Watts and 256 full on uses 60 W. Implies full LED array uses 108W
-#  PSU can drive 90W, so 90/108 -> 0.8333. Use 0.8 as that's pretty bright and adds some margin.
 import json
 import pkg_resources
 import os
 from dotenv import load_dotenv
 #TODO: Make sure all schema keys are accounted for
-
-#TODO: Update schema key default values for LS372 and LS625
-
 REDIS_DB = 0
 
 REDIS_TS_RETENTION = 60 * 60 * 1000  # 60 min
@@ -803,7 +795,7 @@ REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                          'device-settings:focus:desired-position:encoder': 0,
                          'device-settings:magnet:ramp-rate': 0.005,
                          'device-settings:magnet:deramp-rate': 0.005,
-                         'device-settings:magnet:soak-time': 3600, # Always in seconds
+                         'device-settings:magnet:soak-time': 3600,  # Always in seconds
                          'device-settings:magnet:soak-current': 9.25,
                          'device-settings:mkidarray:regulating-temp': 0.090,
                          }
