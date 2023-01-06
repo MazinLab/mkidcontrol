@@ -550,11 +550,11 @@ def view_array_data():
     'device view' on the homepage of the flask application.
     """
     x = np.zeros((125, 80))
-    noise = 25 * np.random.randn(125, 80)
+    noise = 5 * np.random.randn(125, 80)
     y = x + noise
     fig = go.Figure()
     fig.add_heatmap(z=y.tolist(), showscale=False)
-    fig.update_layout(dict(xaxis=dict(visible=False, ticks=''), yaxis=dict(visible=False, ticks='')))
+    fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'), yaxis=dict(visible=False, ticks='')))
     fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
