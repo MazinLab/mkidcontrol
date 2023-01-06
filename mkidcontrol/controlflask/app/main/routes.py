@@ -572,7 +572,7 @@ def dashplot():
             t = time.time()
             data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%H:%M:%S.%f")[:-4]}
             yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
-            time.sleep(1) # TODO
+            time.sleep(1)  # TODO: Allow changed timesteps
 
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
