@@ -415,7 +415,7 @@ def system():
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
 
-    from ....agents.xkid.magnetAgent import MagnetCycleSettingsForm
+    from mkidcontrol.controlflask.app.main.forms import MagnetCycleSettingsForm
     if request.method == "POST":
         print(request.form)
     form = MagnetCycleSettingsForm()
