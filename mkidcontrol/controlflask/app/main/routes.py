@@ -32,8 +32,9 @@ import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMAND_DICT, SimCommand
 from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
 
-# TODO: Follow something similar to pipeline.py in mkidpipeline for smarter importation of big blocks of stuff like below
-from .forms import *
+from mkidcontrol.controlflask.app.main.forms import *
+
+# TODO: Make sure columns/divs support resizing
 
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
