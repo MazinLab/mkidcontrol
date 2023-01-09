@@ -441,6 +441,7 @@ class Focus(TDC001):
     MINIMUM_POSITION_MM = 0
     MAXIMUM_POSITION_ENCODER = 1727750
     MAXIMUM_POSITION_MM = 50
+    ENCODER_STEPS_PER_MM = 34555
 
     def __init__(self, name, port=None, home=False):
         super().__init__(serial_port=port, home=home)
@@ -498,10 +499,10 @@ class Focus(TDC001):
         Legal values in encoder are [0, 1727750]
         """
         if units == 'mm':
-            dest_encoder = dest * ENCODER_STEPS_PER_MM
+            dest_encoder = dest * self.ENCODER_STEPS_PER_MM
             dest_mm = dest
         elif units == 'encoder':
-            dest_mm = dest / ENCODER_STEPS_PER_MM
+            dest_mm = dest / self.ENCODER_STEPS_PER_MM
             dest_encoder = dest
         else:
             raise ValueError(f"Invalid units: '{units}'. Legal values are 'mm' and 'encoder'")
@@ -543,10 +544,10 @@ class Focus(TDC001):
         Raises a value error if units are in
         """
         if units == 'mm':
-            dist_encoder = dist * ENCODER_STEPS_PER_MM
+            dist_encoder = dist * self.ENCODER_STEPS_PER_MM
             dist_mm = dist
         elif units == 'encoder':
-            dist_mm = dist / ENCODER_STEPS_PER_MM
+            dist_mm = dist / self.ENCODER_STEPS_PER_MM
             dist_encoder = dist
         else:
             raise ValueError(f"Invalid units: '{units}'. Legal values are 'mm' and 'encoder'")
@@ -566,7 +567,7 @@ class Focus(TDC001):
                         f"Requested a move by {dist_encoder} ({dist_mm}mm), beyond the maximum allowed position ({self.MAXIMUM_POSITION_ENCODER}/{self.MAXIMUM_POSITION_MM} mm). "
                         f"Moving instead to {self.MAXIMUM_POSITION_ENCODER} ({self.MAXIMUM_POSITION_MM} mm)")
                     dist_encoder = self.MAXIMUM_POSITION_ENCODER - current_position_enc
-                    dist_mm = dist_encoder / ENCODER_STEPS_PER_MM
+                    dist_mm = dist_encoder / self.ENCODER_STEPS_PER_MM
             elif desired_position_enc <= self.MINIMUM_POSITION_ENCODER:
                 if error_on_disallowed:
                     log.debug(
@@ -578,7 +579,7 @@ class Focus(TDC001):
                         f"Requested a move by {dist_encoder} ({dist_mm}mm), beyond the minimum allowed position ({self.MINIMUM_POSITION_ENCODER}/{self.MINIMUM_POSITION_MM} mm). "
                         f"Moving instead to {self.MINIMUM_POSITION_ENCODER} ({self.MINIMUM_POSITION_MM} mm)")
                     dist_encoder = self.MINIMUM_POSITION_ENCODER - current_position_enc
-                    dist_mm = dist_encoder / ENCODER_STEPS_PER_MM
+                    dist_mm = dist_encoder / self.ENCODER_STEPS_PER_MM
             log.info(f"Attempting to move by {dist_encoder} steps ({dist_mm} mm)")
             self.move_relative(dist_encoder)
             log.info(f"Move successful")
