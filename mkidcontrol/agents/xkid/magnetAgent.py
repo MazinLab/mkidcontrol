@@ -4,6 +4,10 @@ Author: Noah Swimmer
 
 Program for controlling the magnet. The magnet controller itself is a statemachine but requires no instruments to run.
 It will run even with no lakeshore/heatswitch/etc., although it will not allow anything to actually happen.
+
+# TODO: Test on actual magnet
+
+# TODO: Double check all logic works and each instrument is told what it needs to do properly
 """
 
 import sys
