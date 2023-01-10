@@ -26,7 +26,6 @@ import mkidcontrol.agents.xkid.heatswitchAgent as heatswitch
 import mkidcontrol.agents.lakeshore372Agent as ls372
 import mkidcontrol.agents.lakeshore625Agent as ls625
 
-QUERY_INTERVAL = 1
 MAX_PERSISTED_STATE_LIFE_SECONDS = 3600
 
 SETTING_KEYS = tuple(COMMANDSMAGNET.keys())
@@ -71,7 +70,7 @@ class StateError(Exception):
 
 
 def compute_initial_state(statefile):
-    # TODO: Check legality and test funtions
+    # TODO: Check legality and test logic
     initial_state = 'deramping'  # always safe to start here
     redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
     try:
@@ -82,15 +81,17 @@ def compute_initial_state(statefile):
             else:
                 initial_state = persisted_state
             current = ls625.lakeshore_current()
-            if initial_state == 'soaking' and (current >= 0.97 * float(redis.read(SOAK_CURRENT_KEY))) and (current <= 1.03 * float(redis.read(SOAK_CURRENT_KEY))):
+            if initial_state == 'soaking' and (current >= 0.96 * float(redis.read(SOAK_CURRENT_KEY))) and (current <= 1.04 * float(redis.read(SOAK_CURRENT_KEY))):
                 initial_state = 'ramping'  # we can recover
 
             # be sure the command is sent
             if initial_state in ('hs_closing', 'ramping', 'soaking', 'off'):
-                heatswitch.close()
+                pass
+                # heatswitch.close()
 
             if initial_state in ('hs_opening', 'cooling', 'regulating'):
-                heatswitch.open()
+                pass
+                # heatswitch.open()
 
             # failure cases
             if ((initial_state in ('ramping', 'soaking') and heatswitch.is_opened()) or
@@ -108,11 +109,10 @@ def compute_initial_state(statefile):
 
 
 class MagnetController(LockedMachine):
-    LOOP_INTERVAL = 1
+    LOOP_INTERVAL = 10
     BLOCKS = defaultdict(set)  # This holds the ls625 commands that are blocked out in a given state
-    MAX_CURRENT = 9.25 # Amps
+    MAX_CURRENT = 9.25  # Amps
 
-    # TODO: Make sure all transitions are legal and will allow appropriate operation
     def __init__(self, statefile='./magnetstate.txt'):
         transitions = [
             # Allow aborting from any point, trigger will always succeed
@@ -138,7 +138,7 @@ class MagnetController(LockedMachine):
             {'trigger': 'next', 'source': 'hs_closing', 'dest': 'start_ramping', 'conditions': 'heatswitch_closed'},
             {'trigger': 'next', 'source': 'hs_closing', 'dest': None, 'prepare': 'close_heatswitch'},
 
-            {'trigger': 'next', 'source': 'start_ramping', 'dest': None, 'prepare': 'begin_ramp_up'},
+            {'trigger': 'next', 'source': 'start_ramping', 'dest': None, 'unless': 'ramp_ok', 'after': 'begin_ramp_up'},
             {'trigger': 'next', 'source': 'start_ramping', 'dest': 'ramping', 'conditions': 'ramp_ok'},
 
             # stay in ramping, as long as the ramp is going OK
@@ -169,7 +169,7 @@ class MagnetController(LockedMachine):
             {'trigger': 'next', 'source': 'hs_opening', 'dest': None,
              'prepare': ('open_heatswitch', 'ls372_to_pid')},
 
-            {'trigger': 'next', 'source': 'start_cooling', 'dest': None, 'prepare': 'begin_ramp_down'},
+            {'trigger': 'next', 'source': 'start_cooling', 'dest': None, 'unless':'deramp_ok', 'after': 'begin_ramp_down'},
             {'trigger': 'next', 'source': 'start_cooling', 'dest': 'cooling', 'conditions': 'deramp_ok'},
 
             # stay in cooling, decreasing the current a bit until the device is regulatable
@@ -190,7 +190,7 @@ class MagnetController(LockedMachine):
              'conditions': ('device_regulatable', 'ls372_in_pid')},
             {'trigger': 'next', 'source': 'regulating', 'dest': 'start_deramping'},
 
-            {'trigger': 'next', 'source': 'start_deramping', 'dest': None, 'prepare': 'begin_ramp_down'},
+            {'trigger': 'next', 'source': 'start_deramping', 'dest': None, 'unless':'deramp_ok', 'prepare': 'begin_ramp_down'},
             {'trigger': 'next', 'source': 'start_deramping', 'dest': 'deramping', 'conditions': 'deramp_ok'},
 
             # stay in deramping, trying to decrement the current, until the device is off then move to off
@@ -242,9 +242,9 @@ class MagnetController(LockedMachine):
     def _main(self):
         while self._run:
             try:
-                self.next()
                 self.last_5_currents.append(float(redis.read(MAGNET_CURRENT_KEY)[1]))
                 self.last_5_currents = self.last_5_currents[-5:]
+                self.next()
                 log.debug(f"Magnet state is: {self.state}")
             except IOError:
                 log.info(exc_info=True)
@@ -264,7 +264,7 @@ class MagnetController(LockedMachine):
         soak_time = float(redis.read(SOAK_TIME_KEY))
         ramp_rate = float(redis.read(RAMP_RATE_KEY))
         deramp_rate = float(redis.read(DERAMP_RATE_KEY))
-        current_current = self.sim.setpoint()
+        current_current = self.last_5_currents[-1]
         current_state = self.state  # NB: If current_state is regulating time_to_cool will return 0 since it is already cool.
 
         time_to_cool = 0
@@ -410,7 +410,6 @@ class MagnetController(LockedMachine):
         else:
             return False
 
-
     def deramp_ok(self, event):
         currents = self.last_5_currents
         steps = np.diff(currents)
@@ -431,7 +430,10 @@ class MagnetController(LockedMachine):
 
     def current_ready_to_soak(self, event):
         try:
-            return self.sim.setpoint() >= float(redis.read(SOAK_CURRENT_KEY))
+            current = float(redis.read(MAGNET_CURRENT_KEY)[1])
+            soak_current = float(redis.read(SOAK_CURRENT_KEY))
+            diff = (current - soak_current) / soak_current
+            return abs(diff) <= 0.04 or (current >= soak_current)
         except RedisError:
             return False
 
@@ -440,7 +442,7 @@ class MagnetController(LockedMachine):
             current = float(redis.read(MAGNET_CURRENT_KEY)[1])
             soak_current = float(redis.read(SOAK_CURRENT_KEY))
             diff = (current - soak_current) / soak_current
-            return abs(diff) <= 0.03 or (current >= soak_current)
+            return abs(diff) <= 0.04 or (current >= soak_current)
         except RedisError:
             return False
 
@@ -483,7 +485,8 @@ class MagnetController(LockedMachine):
 if __name__ == "__main__":
     util.setup_logging('magnetAgent')
     redis.setup_redis(ts_keys=TS_KEYS)
-    MAX_REGULATE_TEMP = 1.50 * float(redis.read(REGULATION_TEMP_KEY))
+    # MAX_REGULATE_TEMP = 1.50 * float(redis.read(REGULATION_TEMP_KEY))
+    MAX_REGULATE_TEMP = np.inf
 
     try:
         statefile = redis.read(STATEFILE_PATH_KEY)
@@ -492,7 +495,7 @@ if __name__ == "__main__":
         redis.store({STATEFILE_PATH_KEY: statefile})
 
     controller = MagnetController(statefile=statefile)
-    redis.store({IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY: 'on'})
+    redis.store({IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY: 'off'})
 
     # main loop, listen for commands and handle them
     try:
