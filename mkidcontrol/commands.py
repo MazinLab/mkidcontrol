@@ -525,6 +525,9 @@ COMMANDSMAGNET = {'device-settings:magnet:ramp-rate': {'command': '', 'vals': [0
                   'device-settings:device-stage:regulating-temp': {'command': '', 'vals': [0, 4]}}  # TODO: Alias this to the ls372 heater output setpoint key?
 
 
+COMMANDSCONEX = {}
+
+
 # ---- Full command dict ----
 COMMAND_DICT = {}
 COMMAND_DICT.update(COMMANDS336)
@@ -537,3 +540,4 @@ COMMAND_DICT.update(COMMANDS625)
 COMMAND_DICT.update(COMMANDSLASERFLIPPER)
 COMMAND_DICT.update(COMMANDSFILTERWHEEL)
 COMMAND_DICT.update(COMMANDSFOCUS)
+COMMAND_DICT.update(COMMANDSCONEX)
