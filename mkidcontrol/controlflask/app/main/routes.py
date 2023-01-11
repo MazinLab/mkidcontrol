@@ -44,10 +44,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Turn sidebar with statuses into a more useful layout (maybe in a box somewhere instead or make it toggleable?)
 
-# TODO: Turn all graphs/plots into plotly graph objects
-
-# TODO: Axe login stuff
-
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
 
 # TODO: MUST TEST FOR CONCURRENCY ISSUES (Controlling the instrument from multiple tabs, does it work, does it stay in
