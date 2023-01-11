@@ -50,7 +50,8 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
 
-# TODO: MUST TEST FOR CONCURRENCY ISSUES (Controlling the instrument from multiple tabs, does it work, does it stay in sync?)
+# TODO: MUST TEST FOR CONCURRENCY ISSUES (Controlling the instrument from multiple tabs, does it work, does it stay in
+#  sync?), do pages need to reload to show status updates or do they just update?
 
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
 
