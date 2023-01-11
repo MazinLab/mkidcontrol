@@ -116,13 +116,14 @@ class HeatswitchPosition:
 
 class SerialDevice:
     def __init__(self, port, baudrate=115200, timeout=0.1, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS,
-                 xonxoff=False, name=None, terminator='\n', response_terminator=''):
+                 xonxoff=False, stopbits=serial.STOPBITS_ONE, name=None, terminator='\n', response_terminator=''):
         self.ser = None
         self.parity = parity
-        self.bytesize=bytesize
+        self.bytesize = bytesize
         self.port = port
         self.baudrate = baudrate
         self.xonxoff = xonxoff
+        self.stopbits = stopbits
         self.timeout = timeout
         self.name = name if name else self.port
         self.terminator = terminator
@@ -171,7 +172,8 @@ class SerialDevice:
         try:
             self._preconnect()
             self.ser = Serial(port=self.port, baudrate=self.baudrate, timeout=self.timeout,
-                              parity=self.parity, bytesize=self.bytesize, xonxoff=self.xonxoff)
+                              parity=self.parity, bytesize=self.bytesize, xonxoff=self.xonxoff,
+                              stopbits=self.stopbits)
             self._postconnect()
             getLogger(__name__).info(f"port {self.port} connection established")
             return True
