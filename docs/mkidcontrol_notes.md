@@ -14,8 +14,8 @@
     of what we will be doing https://www.silabs.com/community/interface/forum.topic.html/linux_cannot_identif-PB7r)
 - First, from this link (https://github.com/torvalds/linux/blob/master/drivers/usb/serial/cp210x.c) find the version of
     the cp210x.c file that matches the linux kernel you have (e.g. if using Linux 5.15.10, use the cp210x.c from tag v5.15)
-- Copy the contents of this file into docs/hardware_reference_documentation/drivers/linuxlakeshoredriver/cp210x.c (you 
-    may move them anywhere, but this file currently exists and there is an appropriate Makefile in the same director)
+- Copy the contents of this file into docs/manuals/drivers/linuxlakeshoredriver/cp210x.c (you  may move them anywhere, 
+    but this file currently exists and there is an appropriate Makefile in the same director)
 - In 'cp210x.c' add the VID/PID of the LS240 (1FB9, 0205) and LS372 (1FB9, 0305) to the list like below
     ```
     { USB_DEVICE(0x1FB9, 0x0201) }, /* Lake Shore Model 219 Temperature Monitor */
@@ -90,7 +90,7 @@
     - NOTE : If the module is not started up immediately after signing it, you can either reboot (make sure it's in
         the '/etc/modules' file) or run 'sudo modprobe cp210x', which will load it without rebooting
 
-# TODO: How to compile the fliusb.ko file to talk to it
+# Compiling the fliusb.ko file to talk to it
 - Make a directory to store the files you will need
   - mkdir rts2fliusb
 - First, clone the git repository at https://github.com/RTS2/fliusb.git
@@ -139,3 +139,38 @@
   - Run 'sudo depmod -a'
   - Run 'sudo modprobe fliusb.ko'
     - This will start the fliusb module and enable communication with the FLI filter wheel
+
+# Recompiling the ftdi_sio.ko file to talk with conex controller
+- This process is inspired by the cp210x modification required to talk with natively unsupported lakeshore devices.
+- From 'https://github.com/torvalds/linux/tree/master/drivers/usb/serial' download 'ftdi_sio.c', 'ftdi_sio.h', 'ftdi_sio_ids.h'
+  - Make sure that one doesn't only use the '/master/' branch. Choose the proper version for your linux kernel
+  - e.g. if you use kernel '5.15.0-41-generic', you would use tag 'v5.15'
+- Move these files to '~/mkidcore/docs/manuals/drivers/conexdriver'
+- Modify 'ftdi_sio_ids.h'
+  - In the Newport Cooperation block, add '#define NEWPORT_CONEX_AGAP_PID		0x3008'
+  '''
+    /*
+    * Newport Cooperation (www.newport.com)
+    */
+    #define NEWPORT_VID			0x104D
+    #define NEWPORT_AGILIS_PID		0x3000
+    #define NEWPORT_CONEX_CC_PID		0x3002
+    #define NEWPORT_CONEX_AGP_PID		0x3006
+    #define NEWPORT_CONEX_AGAP_PID		0x3008
+  '''
+- 'ftdi_sio.h' does not require modification
+- Modify 'ftdi_sio.c'
+  - In the Newport block, add '{ USB_DEVICE(NEWPORT_VID, NEWPORT_CONEX_AGAP_PID) },'
+  '''
+  { USB_DEVICE(NEWPORT_VID, NEWPORT_AGILIS_PID) },
+  { USB_DEVICE(NEWPORT_VID, NEWPORT_CONEX_CC_PID) },
+  { USB_DEVICE(NEWPORT_VID, NEWPORT_CONEX_AGP_PID) },
+  { USB_DEVICE(NEWPORT_VID, NEWPORT_CONEX_AGAP_PID) },
+  { USB_DEVICE(INTERBIOMETRICS_VID, INTERBIOMETRICS_IOBOARD_PID) },
+  { USB_DEVICE(INTERBIOMETRICS_VID, INTERBIOMETRICS_MINI_IOBOARD_PID) },
+  '''
+- Using the 'Makefile' in '~/mkidcore/docs/manuals/drivers/conexdriver' run 'make'
+- Copy the original ftdi_sio.ko file to the '~/original_ko_files' directory (following the method described for the cp210x driver above)
+- Follow the same commands to copy this to the same location as the cp210x driver above
+- Sign the module if desired
+- Add the module to '/etc/modules' if desired

@@ -102,7 +102,7 @@ sudo cp /lib/modules/$(uname -r)/kernel/drivers/usb/serial/cp210x.ko ~/original_
 # Currently this should be done manually following notes in mkidcontrol_notes.md / instructions here (which are in sync)
 # Ensure that the cp210x.c file in this directory is for the proper linux kernel you've installed and you're using the
 # version of gcc that you desire
-cd ~/mkidcontrol/docs/hardware_reference_documentation/drivers/linuxlakeshoredriver
+cd ~/mkidcontrol/docs/manuals/drivers/linuxlakeshoredriver
 sudo make all # NOTE: IF THIS COMMAND FAILS, LOOK AT THE COMMAND THAT IS FIRST PRINTED AND THEN JUST RUN THAT
 # INSTEAD (there's some weird path stuff going on). The command that worked for the xkid computer is below
 #sudo make clean -C /lib/modules/`uname -r`/build M=/home/kids/mkidcontrol/docs/hardware_reference_documentation/drivers/lakeshoredriver/linuxlakeshoredriver modules
@@ -112,6 +112,17 @@ sudo cp cp210x.ko /lib/modules/$(uname -r)/kernel/drivers/usb/serial/
 sudo modprobe -r cp210x # Unload old
 sudo modprobe cp210x # Reload new
 # You can test this worked by running `lsmod | grep cp210x` to see if the module is running and also `modinfo cp210x` to get info about the module
+
+# Compile ftdi_sio.ko so that one can use the CONEX-AG-M100D Piezo Motor Mirror Mount
+# Good information for generating the proper .c and .h files can be found at
+# https://github.com/torvalds/linux/tree/master/drivers/usb/serial
+# Make sure to use the same version your linux shipped with! (e.g. if you have linux 5.15.0, use git tag v5.15)
+sudo cp /lib/modules/$(uname -r)/kernel/drivers/usb/serial/ftdi_sio.ko ~/original_ko_files
+cd ~/mkidcontrol/docs/manuals/drivers/conexdriver
+sudo make
+sudo cp ftdi_sio.ko /lib/modules/$(uname -r)/kernel/drivers/usb/serial/
+sudo modprobe -r ftdi_sio
+sudo modprobe ftdi_sio
 
 # From https://indilib.org/individuals/devices/cameras/fli-ccd-filter-wheel.html
 # How to install the drivers for the FLI (Finger Lakes Instruments) Filter Wheel for linux distro
