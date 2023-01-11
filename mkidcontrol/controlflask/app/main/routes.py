@@ -42,8 +42,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
 
-# TODO: Turn sidebar with statuses into a more useful layout (maybe in a box somewhere instead or make it toggleable?)
-
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
 
 # TODO: MUST TEST FOR CONCURRENCY ISSUES (Controlling the instrument from multiple tabs, does it work, does it stay in
