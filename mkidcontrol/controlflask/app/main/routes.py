@@ -283,7 +283,6 @@ def thermometry(device, channel):
 
 
 @bp.route('/ls625', methods=['POST', 'GET'])
-# @login_required
 def ls625():
     # from mkidcontrol.controlflask.app.main.forms import Lakeshore625ControlForm
     from ....commands import LakeShoreCommand, LS625MagnetSettings
@@ -309,7 +308,6 @@ def ls625():
 
 
 @bp.route('/heatswitch/<mode>', methods=['POST', 'GET'])
-# @login_required
 def heatswitch(mode):
     # from mkidcontrol.controlflask.app.main.forms import HeatSwitchForm, HeatSwitchEngineeringModeForm
     if request.method == "POST":
@@ -323,7 +321,6 @@ def heatswitch(mode):
 
 
 @bp.route('/services')
-# @login_required
 def services():
     services = mkidcontrol_services()
     try:
@@ -335,7 +332,6 @@ def services():
 
 
 @bp.route('/service', methods=['POST', 'GET'])
-# @login_required
 def service():
     """start, stop, enable, disable, restart"""
     name = request.args.get('name', '')
@@ -353,7 +349,6 @@ def service():
 
 
 @bp.route('/task', methods=['GET', 'POST'])
-# @login_required
 def task():
     if request.method == 'POST':
         id = request.form.get('id')
@@ -390,7 +385,6 @@ def task():
 # NOTE (N.S.) 19 July 2022: I'm disinclined to include this as a route and leave it to only be allowable by a
 # responsible superuser
 @bp.route('/system', methods=['POST'])
-# @login_required
 def system():
     """data: shutdown|reboot|reinit """
     cmd = request.form.get('data', '')
@@ -565,7 +559,6 @@ def view_array_data():
 
 
 @bp.route('/dashplot', methods=["GET"])
-# @login_required
 def dashplot():
     """
     TODO: Update appropriately following 'plot_data()' function from cloudflask
@@ -656,7 +649,6 @@ def notifications():
 #
 # @bp.route('/', methods=['GET', 'POST'])
 # @bp.route('/index', methods=['GET', 'POST'])
-# @login_required
 # def index():
 #     modes = tuple((key, e.name) for key, e in cloudlight.fadecandy.EFFECTS.items())
 #     if request.method == 'POST':
@@ -747,7 +739,6 @@ def notifications():
 #
 #
 # @bp.route('/rediscontrol', methods=['POST', 'GET'])
-# @login_required
 # def rediscontrol():
 #     """Handle read and write requests for redis keys"""
 #     if request.method == 'POST':
@@ -772,7 +763,6 @@ def notifications():
 #
 # # Controls need to be named with their redis key
 # @bp.route('/redisdata', methods=['GET'])
-# @login_required
 # def redisdata():
 #     from ....config import schema_keys
 #     keys = schema_keys()
@@ -793,14 +783,12 @@ def notifications():
 #     return current_app.response_class(_stream(), mimetype="text/event-stream")
 #
 # @bp.route('/redispoll', methods=['GET'])
-# @login_required
 # def redispoll():
 #     from ....config import schema_keys
 #     return jsonify(g.redis.read(schema_keys()))
 #
 #
 # @bp.route('/status')
-# @login_required
 # def status():
 #     from ....config import schema_keys
 #     system = get_system_status()
@@ -823,7 +811,6 @@ def notifications():
 #
 # #TODO add critical temp? todo make sliders responsive
 # @bp.route('/settings', methods=['GET', 'POST'])
-# @login_required
 # def settings():
 #     from .forms import CloudControl
 #     r2f = {'speaker:keepalive': 'keepalive', 'lamp:overheated_limit': 'thermal_brightness',
@@ -845,7 +832,6 @@ def notifications():
 #
 #
 # @bp.route('/modeform', methods=['POST'])
-# @login_required
 # def modeform():
 #     mode = request.form['data']
 #     try:
