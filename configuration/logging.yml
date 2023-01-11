@@ -53,6 +53,19 @@ loggers:
       handlers: [ default ]
       level: DEBUG
       propagate: False
+  conexAgent:
+    conexAgent: debug
+    mkidcontrol.mkidredis: info
+    mkidcontrol.devices: debug
+    serial: debug
+    "":
+      handlers: [ default ]
+      level: INFO
+      propagate: False
+    __main__:
+      handlers: [ default ]
+      level: DEBUG
+      propagate: False
   hemttempAgent:
     hemttempAgent: debug
     mkidcontrol.mkidredis: info
