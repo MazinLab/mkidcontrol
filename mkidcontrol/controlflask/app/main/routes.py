@@ -42,6 +42,8 @@ from mkidcontrol.controlflask.app.main.forms import *
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
 
+# TODO: Make sure 'submit' keys don't need to reload pages, just submit values and update accordingly
+
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
 
 # TODO: MUST TEST FOR CONCURRENCY ISSUES (Controlling the instrument from multiple tabs, does it work, does it stay in
@@ -49,8 +51,7 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
 
-# TODO: Rework sidebar, no need for 'ok' statuses or 'enabled' for services, just flash an error along the top of screen
-#  Maybe make it so it can pop up from the side
+# TODO: Rework statuses, no need for 'ok'/'enabled', just flash an error along the top of screen
 
 # TODO: Where is TCS data on the home screen?
 
