@@ -6,8 +6,6 @@ Agent for controlling the CONEX-AG-M100D Piezo Motor Mirror Mount (https://www.n
 as a tip/tilt mirror for XKID aiding in both alignment and dithering.
 
 Axis syntax is: U -> rotation around the y-axis, V -> rotation around the y-axis
-
-TODO: Control software
 """
 
 import logging
@@ -305,9 +303,9 @@ class Conex(SerialDevice):
                 raise IOError(e)
 
 
-class ConexManager:
+class ConexController:
     """
-    The ConexManager manages the Conex() base class
+    The ConexController manages the Conex() base class
 
     It also implements a thread safe dither routine
 
@@ -618,15 +616,13 @@ class ConexManager:
         """
         Starts move in new thread
         """
-        self.stop(
-            wait=False)  # If the user wants to move, then forcibly stop whatever we were doing before (indcluding dithers)
+        self.stop(wait=False)  # If the user wants to move, then forcibly stop whatever we were doing before (indcluding dithers)
         with self._rlock:
             self.cur_status = self.status()
             if self.cur_status['state'] == 'Offline': return False
             self._startedMove += 1
-        # log.error("Starting move to {:.2f}, {:.2f}".format(x,y))
         self._movement_thread = threading.Thread(target=self.move, args=(x, y,),
-                                       name='Move to ({}, {})'.format(x, y))
+                                       name=f'Move to ({x}, {y})')
         self._movement_thread.daemon = True
         self._movement_thread.start()
 
@@ -636,17 +632,18 @@ class ConexManager:
         """
         Tells conex to move and collects errors
         """
-        self._updateState('Moving to {:.2f}, {:.2f}'.format(x, y))
+        self._updateState(f'Moving to {x:.2f}, {y:.2f}')
         try:
             self.conex.move((x, y), blocking=True)  # block until conex is done moving (or stopped)
-            if self._startedMove > 0: self._updateState('Idle')
-            log.debug('moved to ({}, {})'.format(x, y))
+            if self._startedMove > 0:
+                self._updateState('Idle')
+            log.debug(f'moved to ({x}, {y})')
         except (IOError, serial.SerialException) as e:  # on timeout it raise IOError
-            self._updateState('Error: move to {:.2f}, {:.2f} failed'.format(x, y))
+            self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
             self._halt_dither = True
             log.error('Error on move', exc_info=True)
         except:  # I dont think this should happen??
-            self._updateState('Error: move to {:.2f}, {:.2f} failed'.format(x, y))
+            self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
             self._halt_dither = True
             log.error('Unexpected error on move', exc_info=True)
         if self._startedMove > 0:
@@ -708,9 +705,9 @@ if __name__ == "__main__":
     util.setup_logging('conexAgent')
 
     try:
-        conex = Conex('/dev/conex')
-        redis.store({SN_KEY: conex.id_number})
-        redis.store({FIRMWARE_KEY: conex.firmware})
+        cc = ConexController(port='/dev/conex')
+        redis.store({SN_KEY: cc.conex.id_number})
+        redis.store({FIRMWARE_KEY: cc.conex.firmware})
         redis.store({STATUS_KEY: "OK"})
     except RedisError as e:
         log.error(f"Redis server error! {e}")
@@ -718,5 +715,30 @@ if __name__ == "__main__":
     except Exception as e:
         log.critical(f"Could not connect to the conex! Error {e}")
         redis.store({STATUS_KEY: f"Error: {e}"})
+        sys.exit(1)
+
+    try:
+        while True:
+            for key, val in redis.listen(COMMAND_KEYS):
+                log.debug(f"conexAgent received {key}: {val}.")
+                key = key.removeprefix("command:")
+                if key in SETTING_KEYS:
+                    try:
+                        cmd = LakeShoreCommand(key, val)
+                    except ValueError as e:
+                        log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
+                        continue
+                    try:
+                        log.info(f"Processing command {cmd}")
+                        if key == FILTERWHEEL_POSITION_KEY:
+                            fw.set_filter_pos(cmd.command_value)
+                            redis.store({cmd.setting: cmd.value})
+                            redis.store({FILTERWHEEL_FILTER_KEY: FILTERS[cmd.value]})
+                            redis.store({STATUS_KEY: "OK"})
+                    except IOError as e:
+                        redis.store({STATUS_KEY: f"Error {e}"})
+                        log.error(f"Comm error: {e}")
+    except RedisError as e:
+        log.error(f"Redis server error! {e}")
         sys.exit(1)
 
