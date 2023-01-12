@@ -30,6 +30,7 @@ QUERY_INTERVAL = 1
 
 STATUS_KEY = "status:device:conex:status"
 SN_KEY = "status:device:conex:sn"
+FIRMWARE_KEY = "status:device:conex:firmware"
 
 TS_KEYS = ()
 
@@ -82,6 +83,10 @@ class Conex(SerialDevice):
     @property
     def id_number(self):
         return self.query("ID?")
+
+    @property
+    def firmware(self):
+        return self.query("VE?")
 
     @property
     def limits(self):
@@ -143,8 +148,11 @@ class Conex(SerialDevice):
         False is conex isn't ready
         :raises
         IOError if there are communication issues
-        TODO: Just call self.status[0] to get the status_code?
         """
+        # TODO: Just call self.status[0] to get the status_code?
+        # status = self.status()
+        # return int(status[0]) in (32, 33, 34, 35, 36)
+
         status_msg = self.query("TS?")
         err = status_msg[:4]
         status = status_msg[4:]
@@ -301,6 +309,9 @@ if __name__ == "__main__":
 
     try:
         conex = Conex('/dev/conex')
+        redis.store({SN_KEY: conex.id_number})
+        redis.store({FIRMWARE_KEY: conex.firmware})
+        redis.store({STATUS_KEY: "OK"})
     except RedisError as e:
         log.error(f"Redis server error! {e}")
         sys.exit(1)
