@@ -14,6 +14,7 @@ import logging
 import sys
 import time
 import numpy as np
+import threading
 
 import serial
 
@@ -124,7 +125,7 @@ class Conex(SerialDevice):
         """
         Check status of the conex
 
-        :return: Tuple of (status code, status string)
+        :return: Tuple of (status code, status string, status message)
         :raises: IOError if there are communication issues
         """
         status_msg = self.query("TS?")
@@ -136,8 +137,12 @@ class Conex(SerialDevice):
         elif int(err, 16) > 0:
             raise IOError(f"Unknown Err - {err}")
 
-        status = self.CONTROLLER_STATES[status_code]
-        return (status_code, status)
+        try:
+            status = self.CONTROLLER_STATES[status_code]
+        except (KeyError, ValueError) as e:
+            raise ValueError(f"Invalid status code read by conex: {e}")
+
+        return (status_code, status, status_msg)
 
     def ready(self):
         """
@@ -249,7 +254,7 @@ class Conex(SerialDevice):
         Enables the controller. Checks to ensure it has been enabled successfully
         """
         self.send("MM1")
-        enabled = self.send()[1].split(" ")[0] == "READY"
+        enabled = self.status()[1].split(" ")[0] == "READY"
         if enabled:
             log.info(f"Successfully enabled the conex controller")
         else:
@@ -301,6 +306,56 @@ class Conex(SerialDevice):
             except Exception as e:
                 raise IOError(e)
 
+
+class ConexManager:
+    """
+    The ConexManager manages the Conex() base class
+
+    It also implements a thread safe dither routine
+
+    Possible states:
+    - "Unknown"
+    - "Offline"
+    - "Idle"
+    - "Stopped"
+    - "Moving"
+    - "Dither"
+    - "Error"
+    """
+
+    def __init__(self, port):
+        self.conex = Conex(port=port)
+        self._completed_dithers = []  # list of completed dithers
+        self._movement_thread = None  # thread for moving/dithering
+        self._halt_dither = True
+        self._rlock = threading.RLock()
+        self._startedMove = 0  # number of times start_move was called (not dither). Reset in queryMove and start_dither
+        self._completedMoves = 0  # number of moves completed (not dither)
+
+        self.state = ('Unknown', 'Unknown')
+        try:
+            if self.conex.ready():
+                self._updateState('Idle')
+        except:
+            pass
+        self.cur_status = self.status()
+
+    def _updateState(self, newState):
+        with self._rlock:
+            self.state = (self.state[1], newState)
+
+    def status(self):
+        pos = (np.NaN, np.NaN)
+        status = ''
+        try:
+            status = self.conex.status
+            pos = self.conex.position()
+            log.debug(f"Conex: {status[1]} @ pos {pos}")
+        except (IOError, serial.SerialException):
+            log.error('Unable to get conex status', exc_info=True)
+            self._halt_dither = True
+            self._updateState('Offline')
+        return {'state': self.state, 'pos': pos, 'conexstatus': status, 'limits': self.conex.limits}
 
 if __name__ == "__main__":
 
