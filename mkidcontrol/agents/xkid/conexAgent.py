@@ -115,6 +115,138 @@ class Conex(SerialDevice):
         else:
             raise ValueError(f"Invalid limit command sent! {cmd}")
 
+    def status(self):
+        """
+        Check status of the conex
+
+        :return: Tuple of (status code, status string)
+        :raises: IOError if there are communication issues
+        """
+        status_msg = self.query("TS?")
+        err = status_msg[:4]
+        status_code = status_msg[4:]
+
+        if err == '0020':
+            raise IOError("Motion time out")
+        elif int(err, 16) > 0:
+            raise IOError(f"Unknown Err - {err}")
+
+        status = self.CONTROLLER_STATES[status_code]
+        return (status_code, status)
+
+    def ready(self):
+        """
+        Check status of the conex
+
+        :return
+        True if conex is ready for another command
+        False is conex isn't ready
+        :raises
+        IOError if there are communication issues
+        TODO: Just call self.status[0] to get the status_code?
+        """
+        status_msg = self.query("TS?")
+        err = status_msg[:4]
+        status = status_msg[4:]
+
+        if err == '0020':
+            raise IOError("Motion time out")
+        elif int(err, 16) > 0:
+            raise IOError(f"Unknown Err - {err}")
+
+        return int(status) in (32, 33, 34, 35, 36)
+
+    def move(self, pos:(tuple, list, np.array), blocking=False, timeout=5.):
+        """
+        Move mirror to new position
+
+        :param pos: [U,V] tuple/list/array position in degrees (Conex truncates these floats at 3 decimal places)
+        :param blocking: If True, don't return until the move is complete
+        :param timeout: error out if it takes too long for move to complete. Ignored if not blocking. Requires
+         significant time even though the moves themselves are fast
+        """
+        with self._rlock:
+            if not self.in_bounds(position=pos):
+                raise ValueError('Target position outside of limits. Aborted move')
+            self.send(f"PAU{pos[0]}")
+            self.ser.flush()  # wait until the write command finishes sending
+            self.send(f"PAV{pos[1]}")  # Conex can move both axes at once
+            if blocking:
+                self.ser.flush()
+        if blocking:
+            self.ser.flush()
+            t = time.time()
+            while not self.ready():
+                if time.time() - t > timeout:
+                    status = self.status()
+                    raise IOError(f"Move timed out. Status: {status[1]} (code {status[0]})")
+                time.sleep(0.001)
+
+    def home(self, blocking=False):
+        """
+        Move the conex back to position (0, 0)
+        """
+        self.move((0, 0), blocking=blocking)
+
+    def position(self):
+        u_pos = self.query("TPU?")
+        v_pos = self.query("TPV?")
+        return (float(u_pos), float(v_pos))
+
+    def in_bounds(self, position:(tuple, list, np.array)=None, u:float=None, v:float=None):
+        """
+        :param Either position in the format [u,v] or u AND v
+        Position must be type <float> in degrees
+        The position tuple (u,v) will supersede individual coordinates being passed
+        :
+        :return: True if position is within the positioning limits, False otherwise
+        """
+        if position is None:
+            if (u is None) or (v is None):
+                raise ValueError(f"Cannot determine position is in bounds without coordinates (either [u,v] or u and v)")
+        else:
+            u = position[0]
+            v = position[1]
+
+        inbounds = ((self.u_lower_limit <= u <= self.u_upper_limit) and
+                    (self.v_lower_limit <= v <= self.v_upper_limit))
+        log.info(f"({u}, {v}) in bounds status is {inbounds}")
+        return inbounds
+
+    def stop(self):
+        """
+        Stops a move in progress on the controller.
+        """
+        self.send("ST")
+
+    def reset(self):
+        """
+        Issue a hardware reset of the controller, equivalent to a power-up.
+        """
+        self.send("RS")
+
+    def disable(self):
+        """
+        Disables the controller. Checks to ensure it has been disabled successfully
+        """
+        self.send("MM0")
+        disabled = self.status()[1].split(" ")[0] == "DISABLE"
+        if disabled:
+            log.info(f"Successfully disabled the conex controller")
+        else:
+            log.warning(f"Unable to disable the conex controller!")
+
+    def enable(self):
+        """
+        Enables the controller. Checks to ensure it has been enabled successfully
+        """
+        self.send("MM1")
+        enabled = self.send()[1].split(" ")[0] == "READY"
+        if enabled:
+            log.info(f"Successfully enabled the conex controller")
+        else:
+            log.warning(f"Unable to enable the conex controller!")
+
     def format_msg(self, msg:str):
         """
         Overrides method from base class
@@ -160,47 +292,6 @@ class Conex(SerialDevice):
                 return received
             except Exception as e:
                 raise IOError(e)
-
-    def status(self):
-        """
-        Check status of the conex
-
-        :return: Tuple of (status code, status string)
-        :raises: IOError if there are communication issues
-        """
-        status_msg = self.query("TS?")
-        err = status_msg[:4]
-        status_code = status_msg[4:]
-
-        if err == '0020':
-            raise IOError("Motion time out")
-        elif int(err, 16) > 0:
-            raise IOError(f"Unknown Err - {err}")
-
-        status = self.CONTROLLER_STATES[status_code]
-        return (status_code, status)
-
-    def ready(self):
-        """
-        Check status of the conex
-
-        :return
-        True if conex is ready for another command
-        False is conex isn't ready
-        :raises
-        IOError if there are communication issues
-        TODO: Just call self.status[0] to get the status_code?
-        """
-        status_msg = self.query("TS?")
-        err = status_msg[:4]
-        status = status_msg[4:]
-
-        if err == '0020':
-            raise IOError("Motion time out")
-        elif int(err, 16) > 0:
-            raise IOError(f"Unknown Err - {err}")
-
-        return int(status) in (32, 33, 34, 35, 36)
 
 
 if __name__ == "__main__":
