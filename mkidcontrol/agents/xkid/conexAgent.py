@@ -351,7 +351,7 @@ class ConexController:
             log.error('Unable to get conex status', exc_info=True)
             self._halt_dither = True
             self._updateState('Offline')
-        return {'state': self.state, 'pos': pos, 'conexstatus': status, 'limits': self.conex.limits}
+        return {'state': self.state, 'pos': pos, 'conexstatus': status[2], 'limits': self.conex.limits}
 
     def queryMove(self):
         """
