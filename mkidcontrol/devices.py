@@ -776,8 +776,9 @@ class FilterWheel(USBFilterWheel):
 class HeatswitchMotor:
     TIMEOUT = 4194303 * 1.25 / 0.5e3  # Default timeout value is the number of steps + 25% divided by half the slowest speed we run at
     MOTOR_POS_KEY = "status:device:heatswitch:motor:position"  # Integer between 0 and 4194303
-    FULL_OPEN_POSITION = 0  # Hard limit of the motor opening
     FULL_CLOSE_POSITION = 4194303  # Halfway point for motor position, physical hard stop with clamps closed on heat sinks
+    FULL_OPEN_POSITION = int(23 * 4194303 / 32) # Open the heat switch ~1/4 of the way. Speeds up opening and reduces wear.
+    # FULL_OPEN_POSITION = 0  # Hard limit of the motor opening
     DEFAULT_MAX_VELOCITY = 1e3  # Maximum velocity empirically found with ARCONS
     DEFAULT_RUNNING_CURRENT = 13  # Current can be set between 10 (highest) and 127 (lowest). Lower current (higher number)
     # will avoid damaging the heat switch if limit is reached by mistake
@@ -965,7 +966,7 @@ class HeatswitchMotor:
     def open(self):
         try:
             log.info(f"Opening heatswitch")
-            self.move_by(-1 * self.FULL_CLOSE_POSITION)
+            self.move_by(self.FULL_OPEN_POSITION - self.FULL_CLOSE_POSITION)
             log.info(f"Heatswitch now opened")
         except (IOError, serial.SerialException) as e:
             log.error("Could not open heatswitch!")
@@ -977,7 +978,7 @@ class HeatswitchMotor:
     def close(self):
         try:
             log.info(f"Closing heatswitch")
-            self.move_by(self.FULL_CLOSE_POSITION)
+            self.move_by(self.FULL_CLOSE_POSITION - self.FULL_OPEN_POSITION)
             log.info(f"Heatswitch now closed")
         except (IOError, serial.SerialException) as e:
             log.error("Could not close the heatswitch!")
