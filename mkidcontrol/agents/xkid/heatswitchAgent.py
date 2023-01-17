@@ -13,9 +13,7 @@ a limit of the motor and damage it or we don't try to close it too much and do d
 switch too tightly.
 
 Note: Documentation for zaber python library exists at https://www.zaber.com/software/docs/motion-library/
-Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdf
-
-TODO: need to fix capitalization between command syntax and status writing ("Open vs open")
+Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdfa
 """
 
 import sys
