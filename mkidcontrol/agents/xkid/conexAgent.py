@@ -183,7 +183,6 @@ class Conex(SerialDevice):
             if blocking:
                 self.ser.flush()
         if blocking:
-            self.ser.flush()
             t = time.time()
             while not self.ready():
                 if time.time() - t > timeout:
