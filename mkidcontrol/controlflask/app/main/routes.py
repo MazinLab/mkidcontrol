@@ -36,9 +36,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Make sure columns/divs support resizing
 
-# TODO: Make sure plots handle the date+time rollover (there is a current bug which causes unintended behavior in plots
-#  when one has data from late one day and early the next, it does not appear linearly, it 'jumps back' on the plot)
-
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
 
@@ -491,7 +488,7 @@ def create_fig(name):
     first_tval = int((datetime.datetime.now() - timedelta(hours=5)).timestamp() * 1000) if not since else since
     timestream = np.array(redis.mkr_range(CHART_KEYS[name], f"{first_tval}"))
     if timestream[0][0] is not None:
-        times = [datetime.datetime.fromtimestamp(t / 1000).strftime("%H:%M:%S") for t in timestream[:, 0]]
+        times = [datetime.datetime.fromtimestamp(t / 1000).strftime("%m/%d/%Y %H:%M:%S") for t in timestream[:, 0]]
         vals = list(timestream[:, 1])
     else:
         times = [None]
@@ -512,7 +509,7 @@ def multi_sensor_fig(titles):
     times = []
     for ts in timestreams:
         if ts[0][0] is not None:
-            times.append([datetime.datetime.fromtimestamp(t / 1000).strftime("%H:%M:%S") for t in ts[:, 0]])
+            times.append([datetime.datetime.fromtimestamp(t / 1000).strftime("%m/%d/%Y %H:%M:%S") for t in ts[:, 0]])
         else:
             times.append([None])
     vals = [list(ts[:, 1]) for ts in timestreams]
@@ -562,7 +559,7 @@ def dashplot():
         while True:
             figdata = view_array_data()
             t = time.time()
-            data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%H:%M:%S.%f")[:-4]}
+            data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%m/$d/$Y %H:%M:%S.%f")[:-4]}
             yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
             time.sleep(1)  # TODO: Allow changed timesteps
 
