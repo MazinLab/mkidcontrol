@@ -14,6 +14,27 @@ class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class ConexForm(FlaskForm):
+    # TODO: Subdither
+    start_pos = StringField("Start Position (x, y)", default="0.0, 0.0")
+    stop_pos = StringField("Stop Position (x, y)", default="0.0, 0.0")
+    n_steps = IntegerField("N Steps", default=5)
+    dwell_time = IntegerField("Dwell Time (s)", default=30)
+    dither_start = SubmitField("Dither")
+    position = StringField("Position (x, y)", default="0.0, 0.0")
+    go = SubmitField("Go")
+    stop = SubmitField("Stop")
+
+
+class LaserBoxForm(FlaskForm):
+    power_808 = IntegerField("808 nm", default=0)
+    power_904 = IntegerField("904 nm", default=0)
+    power_980 = IntegerField("980 nm", default=0)
+    power_1120 = IntegerField("1120 nm", default=0)
+    power_1310 = IntegerField("1310 nm", default=0)
+    update = SubmitField("Update")
+
+
 class ObsControlForm(FlaskForm):
     # TODO more clearly name buttons and talk about their functionality, also space them better
     start_stop = SubmitField("Start Observation")
