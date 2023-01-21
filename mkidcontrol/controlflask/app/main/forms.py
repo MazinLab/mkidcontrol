@@ -27,12 +27,25 @@ class ConexForm(FlaskForm):
 
 
 class LaserBoxForm(FlaskForm):
-    power_808 = IntegerField("808 nm", default=0)
-    power_904 = IntegerField("904 nm", default=0)
-    power_980 = IntegerField("980 nm", default=0)
-    power_1120 = IntegerField("1120 nm", default=0)
-    power_1310 = IntegerField("1310 nm", default=0)
-    update = SubmitField("Update")
+    power808 = IntegerField("Power", default=0)
+    enabled808 = BooleanField("Enabled")
+    update808 = SubmitField("Update")
+    power904 = IntegerField("Power", default=0)
+    enabled904 = BooleanField("Enabled")
+    update904 = SubmitField("Update")
+    power980 = IntegerField("Power", default=0)
+    enabled980 = BooleanField("Enabled")
+    update980 = SubmitField("Update")
+    power1120 = IntegerField("Power", default=0)
+    enabled1120 = BooleanField("Enabled")
+    update1120 = SubmitField("Update")
+    power1310 = IntegerField("Power", default=0)
+    enabled1310 = BooleanField("Enabled")
+    update1310 = SubmitField("Update")
+    update_all = SubmitField("Update All")
+    all_off = SubmitField("All Off")
+    enable_all = SubmitField("Enable All")
+    disable_all = SubmitField("Disable All")
 
 
 class ObsControlForm(FlaskForm):
