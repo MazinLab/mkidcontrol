@@ -776,16 +776,14 @@ class FilterWheel(USBFilterWheel):
 class HeatswitchMotor:
     TIMEOUT = 4194303 * 1.25 / 0.5e3  # Default timeout value is the number of steps + 25% divided by half the slowest speed we run at
     MOTOR_POS_KEY = "status:device:heatswitch:motor:position"  # Integer between 0 and 4194303
-    # TODO: Turn full open/close positions into configuration arguments?
     FULL_CLOSE_POSITION = 4194303  # Halfway point for motor position, physical hard stop with clamps closed on heat sinks
-    FULL_OPEN_POSITION = int(23 * 4194303 / 32) # Open the heat switch ~1/4 of the way. Speeds up opening and reduces wear.
-    # FULL_OPEN_POSITION = 0  # Hard limit of the motor opening
+    FULL_OPEN_POSITION = 0  # Hard limit of the motor opening
     DEFAULT_MAX_VELOCITY = 1e3  # Maximum velocity empirically found with ARCONS
     DEFAULT_RUNNING_CURRENT = 13  # Current can be set between 10 (highest) and 127 (lowest). Lower current (higher number)
     # will avoid damaging the heat switch if limit is reached by mistake
     DEFAULT_ACCELERATION = 2  # Default acceleration from ARCONS
 
-    def __init__(self, port, redis_inst, set_mode=True):
+    def __init__(self, port, redis_inst, set_mode=True, open_position=None, close_position=None):
         c = Connection.open_serial_port(port)
         self.hs = c.detect_devices()[0]
 
@@ -795,6 +793,13 @@ class HeatswitchMotor:
         self.last_recorded_position = None
         self.last_10_positions = []
         self.last_move = 0
+
+        if open_position:
+            self.FULL_OPEN_POSITION = open_position
+        if close_position:
+            self.FULL_CLOSE_POSITION = close_position
+
+        log.info(f"Heat switch range is ({self.FULL_OPEN_POSITION}, {self.FULL_CLOSE_POSITION}).")
 
         # Initializes the heatswitch to
         self._initialize_position()
