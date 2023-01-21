@@ -480,12 +480,32 @@ COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {"O
               'device-settings:heatswitch:acceleration': {'command': '', 'vals': [0, 100]},
               }
 
+
+class Laserbox:
+    def __init__(self, redis):
+        values = redis.read(redis.redis_keys("device-settings:laserflipperduino:laserbox:*"))
+        self.power808 = int(values['device-settings:laserflipperduino:laserbox:808:power'])
+        self.power904 = int(values['device-settings:laserflipperduino:laserbox:904:power'])
+        self.power980 = int(values['device-settings:laserflipperduino:laserbox:980:power'])
+        self.power1120 = int(values['device-settings:laserflipperduino:laserbox:1120:power'])
+        self.power1310 = int(values['device-settings:laserflipperduino:laserbox:1310:power'])
+        self.enabled808 = False if (values['device-settings:laserflipperduino:laserbox:808:enabled'] == "False") else True
+        self.enabled904 = False if (values['device-settings:laserflipperduino:laserbox:904:enabled'] == "False") else True
+        self.enabled980 = False if (values['device-settings:laserflipperduino:laserbox:980:enabled'] == "False") else True
+        self.enabled1120 = False if (values['device-settings:laserflipperduino:laserbox:1120:enabled'] == "False") else True
+        self.enabled1310 = False if (values['device-settings:laserflipperduino:laserbox:1310:enabled'] == "False") else True
+
 # ---- Laserflipper Arduino Commands ----
 COMMANDSLASERFLIPPER = {'device-settings:laserflipperduino:laserbox:808:power': {'command': '0', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:laserbox:808:enabled': {'command': '', 'vals': {'True': 'True', 'False': 'False'}},
                         'device-settings:laserflipperduino:laserbox:904:power': {'command': '1', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:laserbox:904:enabled': {'command': '', 'vals': {'True': 'True', 'False': 'False'}},
                         'device-settings:laserflipperduino:laserbox:980:power': {'command': '2', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:laserbox:980:enabled': {'command': '', 'vals': {'True': 'True', 'False': 'False'}},
                         'device-settings:laserflipperduino:laserbox:1120:power': {'command': '3', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:laserbox:1120:enabled': {'command': '', 'vals': {'True': 'True', 'False': 'False'}},
                         'device-settings:laserflipperduino:laserbox:1310:power': {'command': '4', 'vals': [0, 100]},
+                        'device-settings:laserflipperduino:laserbox:1310:enabled': {'command': '', 'vals': {'True': 'True', 'False': 'False'}},
                         'device-settings:laserflipperduino:flipper:position': {'command': '', 'vals': {"Up": "Up", "Down": "Down"}}
                         }
 
