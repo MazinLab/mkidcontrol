@@ -13,6 +13,8 @@ REDIS_TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage'
                  'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current',
                  'status:magnet:field', 'status:device:ls625:output-voltage', 'status:device:heatswitch:motor:position')
 
+REDIS_STATUS_KEYS = () # TODO: Grab all device status keys
+
 REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                 'channels': (),
                 'keys': {'device-settings:ls336:input-channel-a:name': '',
