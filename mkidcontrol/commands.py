@@ -525,9 +525,7 @@ COMMANDSMAGNET = {'device-settings:magnet:ramp-rate': {'command': '', 'vals': [0
                   'device-settings:device-stage:regulating-temp': {'command': '', 'vals': [0, 4]}}  # TODO: Alias this to the ls372 heater output setpoint key?
 
 # COMMANDSCONEX
-COMMANDSCONEX = {'device-settings:conex:position': {'command': '', 'vals': ''},
-                 'device-settings:conex:enabled': {'command': '', 'vals': {'Enabled': 'Enabled',
-                                                                           'Disabled': 'Disabled'}}}
+COMMANDSCONEX = {'device-settings:conex:enabled': {'command': '', 'vals': {'Enabled': 'Enabled', 'Disabled': 'Disabled'}}}
 
 
 # ---- Full command dict ----
