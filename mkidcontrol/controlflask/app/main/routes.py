@@ -34,12 +34,15 @@ from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
 
+
 # TODO: Make sure columns/divs support resizing
 
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
 
 # TODO: Make sure 'submit' keys don't need to reload pages, just submit values and update accordingly
+# TODO: Handle commands without a reloading page (i.e. clicking 'update' or 'submit' doesn't cause a reload) OR have a 'write_settings' that allows reloading
+# TODO: Command handling
 
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
 
@@ -113,13 +116,14 @@ def index():
     Initializes sensor plot data to send for plotting.
     TODO: Make robust to redis not being up and running
     TODO: Handle 'post' requests
+    TODO: Support message flashing
     """
     try:
         redis.read(KEYS)
     except RedisError:
         return redirect(url_for('main.redis_error_page'))
     except KeyError:
-        return flash(f"Redis keys are missing!")
+        flash(f"Redis keys are missing!")
 
     # from mkidcontrol.controlflask.app.main.forms import MagnetCycleForm, ScheduleForm, HeatSwitchForm2
     magnetform = MagnetCycleForm()
@@ -267,7 +271,7 @@ def thermometry(device, channel):
         if channel == "A":
             form = ControlSensorForm(**vars(sensor))
         elif channel in ALLOWED_372_INPUT_CHANNELS[1:]:
-            form = InputSensorForm(**vars(sensor))
+            form = Input372SensorForm(**vars(sensor))
     else:
         return redirect(url_for('main.page_not_found'))
 
@@ -400,7 +404,9 @@ def test_page():
     from mkidcontrol.controlflask.app.main.forms import MagnetCycleSettingsForm
     if request.method == "POST":
         print(request.form)
-    form = MagnetCycleSettingsForm()
+    from mkidcontrol.commands import Laserbox
+    l = Laserbox(redis)
+    form = LaserBoxForm(**vars(l))
 
     return render_template('test_page.html', title=_('Test Page'), form=form)
 
