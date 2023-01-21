@@ -43,14 +43,14 @@ COOLDOWN_SCHEDULED_KEY = 'device-settings:magnet:cooldown-scheduled'
 IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY = 'device-settings:magnet:enable-temperature-regulation-upper-limit'
 STATEFILE_PATH_KEY = 'device-settings:magnet:statefile'  # /mkidcontrol/mkidcontrol/logs/statefile.txt
 
-STOP_RAMP_KEY = 'command:device-settings:ls625:stop-current-ramp'
+STOP_RAMP_KEY = 'device-settings:ls625:stop-current-ramp'
 COLD_AT_CMD = 'be-cold-at'
 COLD_NOW_CMD = 'get-cold'
 ABORT_CMD = 'abort-cooldown'
 CANCEL_COOLDOWN_CMD = 'cancel-scheduled-cooldown'
 QUENCH_KEY = 'event:quenching'
 
-MAGNET_COMMAND_KEYS = (COLD_AT_CMD, COLD_NOW_CMD, ABORT_CMD, CANCEL_COOLDOWN_CMD, STOP_RAMP_KEY)
+MAGNET_COMMAND_KEYS = tuple([COLD_AT_CMD, COLD_NOW_CMD, ABORT_CMD, CANCEL_COOLDOWN_CMD, STOP_RAMP_KEY])
 
 MAGNET_STATE_KEY = 'status:magnet:state'  # OFF | RAMPING | SOAKING | QUENCH (DON'T QUENCH!)
 MAGNET_CURRENT_KEY = 'status:magnet:current'
@@ -59,7 +59,7 @@ CONTROLLER_STATUS_KEY = 'status:magnet:status'
 
 TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY]
 
-COMMAND_KEYS = [f"command:{k}" for k in MAGNET_COMMAND_KEYS + SETTING_KEYS]
+COMMAND_KEYS = [f"command:{k}" for k in list(MAGNET_COMMAND_KEYS) + list(SETTING_KEYS)]
 
 DEVICE_TEMP_KEY = 'status:temps:device-stage:temp'
 REGULATION_TEMP_KEY = "device-settings:device-stage:regulating-temp"
