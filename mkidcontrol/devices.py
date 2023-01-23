@@ -3266,55 +3266,6 @@ class ConexController:
                 self.cur_status = self.status()
                 self._completedMoves += 1
 
-    def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
-        """
-        Given a monitoring function (or is of the same) and either one or the same number of optional callback
-        functions call the monitors every interval. If one callback it will get all the values in the order of the
-        monitor funcs, if a list of the same number as of monitorables each will get a single value.
-
-        Monitor functions may not return None.
-
-        When there is a 1-1 correspondence the callback is not called in the event of a monitoring error.
-        If a single callback is present for multiple monitor functions values that had errors will be sent as None.
-        Function must accept as many arguments as monitor functions.
-        """
-        if not isinstance(monitor_func, (list, tuple)):
-            monitor_func = (monitor_func,)
-        if value_callback is not None and not isinstance(value_callback, (list, tuple)):
-            value_callback = (value_callback,)
-        if not (value_callback is None or len(monitor_func) == len(value_callback) or len(value_callback) == 1):
-            raise ValueError('When specified, the number of callbacks must be one or the number of monitor functions')
-
-        def f():
-            while True:
-                vals = []
-                for func in monitor_func:
-                    try:
-                        vals.append(func())
-                    except IOError as e:
-                        log.error(f"Failed to poll {func}: {e}")
-                        vals.append(None)
-
-                if value_callback is not None:
-                    if len(value_callback) > 1 or len(monitor_func) == 1:
-                        for v, cb in zip(vals, value_callback):
-                            try:
-                                cb(v)
-                            except Exception as e:
-                                log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
-                    else:
-                        cb = value_callback[0]
-                        try:
-                            cb(*vals)
-                        except Exception as e:
-                            log.error(f"Callback {cb} error. args={vals}.", exc_info=True)
-
-                time.sleep(interval)
-
-        self._monitor_thread = threading.Thread(target=f, name='Monitor Thread')
-        self._monitor_thread.daemon = True
-        self._monitor_thread.start()
-
 
 def dither_two_point_positions(start_x, start_y, stop_x, stop_y, user_n_steps, single_pixel_move=0.015):
     if user_n_steps == 1:

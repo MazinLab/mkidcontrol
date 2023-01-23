@@ -10,7 +10,9 @@ Axis syntax is: U -> rotation around the y-axis, V -> rotation around the y-axis
 Commands sent to conex for dithering/moving are dicts converted to strings via the json.dumps() to conveniently send
 complicated dicts over redis pubsub connections
 
-TODO: Add _wait4move and _wait4dither functionality to ConexController class
+TODO: Add _wait4move and _wait4dither functionality to ConexController class to properly update dither status in
+ flask GUI
+
 """
 
 import logging
@@ -81,7 +83,9 @@ if __name__ == "__main__":
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
 
-    cc.monitor(QUERY_INTERVAL, (cc.queryMove, cc.queryDither, cc.status), value_callback=callback)
+    # TODO: This will overwrite the status and make it impossible to tell what is going on with the conex.
+    #  This requires more thought and incorporation of the wait4dither/wait4move status updates
+    # cc.monitor(QUERY_INTERVAL, (cc.queryMove, cc.queryDither, cc.status), value_callback=callback)
 
     # N.B. Conex movement/dither commands will be dicts turned into strings via json.dumps() for convenient sending and
     # ultimately reformatting over redis and flask connections.
