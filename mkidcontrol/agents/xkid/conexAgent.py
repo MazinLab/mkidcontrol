@@ -13,6 +13,7 @@ complicated dicts over redis pubsub connections
 TODO: Add _wait4move and _wait4dither functionality to ConexController class to properly update dither status in
  flask GUI
 
+TODO: Log dither starting
 """
 
 import logging
