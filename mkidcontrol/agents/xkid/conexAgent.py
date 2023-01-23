@@ -9,6 +9,8 @@ Axis syntax is: U -> rotation around the y-axis, V -> rotation around the y-axis
 
 Commands sent to conex for dithering/moving are dicts converted to strings via the json.dumps() to conveniently send
 complicated dicts over redis pubsub connections
+
+TODO: Add _wait4move and _wait4dither functionality to ConexController class
 """
 
 import logging
@@ -83,7 +85,6 @@ if __name__ == "__main__":
 
     # N.B. Conex movement/dither commands will be dicts turned into strings via json.dumps() for convenient sending and
     # ultimately reformatting over redis and flask connections.
-    # TODO: Logging
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
@@ -99,22 +100,32 @@ if __name__ == "__main__":
                         log.info(f"Processing command {cmd}")
                         if key == ENABLE_CONEX_KEY:
                             if val.lower() == 'enabled':
+                                log.debug("Enabling Conex...")
                                 cc.conex.enable()
+                                log.info("Conex enabled")
                             elif val.lower() == 'disabled':
+                                log.debug("Disabling Conex")
                                 cc.conex.disable()
+                                log.info("Conex disabled")
                             redis.store({cmd.setting: cmd.value})
                             redis.store({STATUS_KEY: "OK"})
                     elif key == MOVE_COMMAND_KEY:
+                        log.debug(f"Starting conex move...")
                         val = json.loads(val)
                         cc.start_move(val['x'], val['y'])
                         redis.store({STATUS_KEY: "OK"})
+                        log.info(f"Conex move to ({val['x']}, {val['y']}) successful")
                     elif key == DITHER_COMMAND_KEY:
+                        log.debug(f"Starting dither...")
                         val = json.loads(val)
-                        cc.dither_two_point(val)
+                        cc.start_dither(val)
                         redis.store({STATUS_KEY: "OK"})
+                        log.info(f"Started dither with params: {val}")
                     elif key == STOP_COMMAND_KEY:
+                        log.debug("Stopping conex")
                         cc.stop()
                         redis.store({STATUS_KEY: "OK"})
+                        log.info("Conex stopped!")
                 except IOError as e:
                     redis.store({STATUS_KEY: f"Error {e}"})
                     log.error(f"Comm error: {e}")

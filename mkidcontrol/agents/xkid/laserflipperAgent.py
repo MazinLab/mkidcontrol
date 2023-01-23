@@ -75,7 +75,9 @@ if __name__ == "__main__":
                         if key == MIRROR_FLIP_KEY:
                             laserduino.set_mirror_position(cmd.value)
                         elif key in LASER_KEYS:
+                            log.debug(f"Setting laser to {cmd.value}% power. ")
                             laserduino.set_diode(int(cmd.command), int(cmd.value))
+                            log.info("Laser power set")
                         redis.store({cmd.setting: cmd.value})
                         redis.store({STATUS_KEY: "OK"})
                     except IOError as e:
