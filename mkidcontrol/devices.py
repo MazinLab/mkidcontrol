@@ -2942,6 +2942,7 @@ class ConexController:
         self._rlock = threading.RLock()
         self._startedMove = 0  # number of times start_move was called (not dither). Reset in queryMove and start_dither
         self._completedMoves = 0  # number of moves completed (not dither)
+        self.thread_pool = np.asarray([])
 
         self.state = ('Unknown', 'Unknown')
         try:
@@ -2950,6 +2951,7 @@ class ConexController:
         except:
             pass
         self.cur_status = self.status()
+        self.operation_status = self.status()
 
     def _updateState(self, newState):
         with self._rlock:
@@ -2967,6 +2969,73 @@ class ConexController:
             self._halt_dither = True
             self._updateState('Offline')
         return {'state': self.state, 'pos': pos, 'conexstatus': status[2], 'limits': self.conex.limits}
+
+    def do_go_to(self, x, y):
+        # TODO
+        log.info(f"Starting move to ({x}, {y})")
+        started = self.start_move(x, y)
+        if started:
+            self.thread_pool = self.thread_pool[[t.is_alive() for t in self.thread_pool]]
+            thread = threading.Thread(target=self._wait4move, name="Move wait thread")
+            thread.daemon = True
+            self.thread_pool=np.append(self.thread_pool,thread)
+            thread.start()
+
+    def do_dither(self, dither_dict):
+        # TODO
+        log.info("Starting dither")
+        started = self.start_dither(dither_dict)
+        if started:
+            self.thread_pool = self.thread_pool[[t.is_alive() for t in self.thread_pool]]
+            thread = threading.Thread(target=self._wait4dither, name="Dithering wait thread")
+            thread.daemon = True
+            self.thread_pool = np.append(self.thread_pool, thread)
+            thread.start()
+
+    def do_halt(self):
+        log.info('Conex Movement Stopped by user.')
+        s = self.stop(wait=False)  # blocking
+        with self._rlock:
+            self.operation_status = s
+        # self.statusupdate.emit()  TODO: Choose how to send update to flask
+
+    def _wait4dither(self):
+        d = self.queryDither()
+        with self._rlock:
+            self.operation_status = d['status']
+        pos_tolerance = 0.003
+        while not d['completed']:
+            time.sleep(0.001)
+            try:
+                d = self.queryDither()
+
+                oldPos = self.operation_status['pos']
+                newPos = d['status']['pos']
+                posNear = (np.abs(newPos[0] - oldPos[0]) <= pos_tolerance) and (
+                        np.abs(newPos[1] - oldPos[1]) <= pos_tolerance)
+                with self._rlock:
+                    self.operation_status = d['status']
+                if not posNear:  # If the position changed
+                    # self.statusupdate.emit()  TODO: Choose how to notify that there has been a dither move
+                    pass
+            except:
+                d = {'completed': False}
+        # self.complete.emit(d)  TODO: Choose how to notify that the dither is done
+        log.info('Finished dither')
+
+    def _wait4move(self):
+        d = self.queryMove()
+        self.operation_status = d['status']
+        pos_tolerance = 0.003
+        while not d['completed']:
+            time.sleep(0.0001)
+            try:
+                d = self.queryMove()
+                self.operation_status = d['status']
+            except:
+                d={'completed':False}
+        # self.statusupdate.emit()  TODO: Choose how to notify that a move has been / is being made
+        log.info('Finished conex GOTO')
 
     def queryMove(self):
         """
