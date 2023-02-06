@@ -37,6 +37,13 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Make sure columns/divs support resizing
 
+# TODO: Color coding array viewer (0 - no counts, X - max counts)
+
+# TODO: Focus settings form, add focus control to homepage
+# TODO: Add clearer magnet control/status to homepage
+# TODO: Observation control on home screen
+# TODO: Laser box control on home screen
+
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
 
@@ -548,8 +555,10 @@ def view_array_data():
     x = np.zeros((125, 80))
     noise = 5 * np.random.randn(125, 80)
     y = x + noise
+    m = y < 0
+    y[m] = 0
     fig = go.Figure()
-    fig.add_heatmap(z=y.tolist(), showscale=False)
+    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale='greys_r', zmin=0, zmax=2500)
     fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'), yaxis=dict(visible=False, ticks='')))
     fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
