@@ -97,12 +97,10 @@ if __name__ == "__main__":
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
 
-    # TODO: This will overwrite the status and make it impossible to tell what is going on with the conex.
-    #  This requires more thought and incorporation of the wait4dither/wait4move status updates
-    # cc.monitor(QUERY_INTERVAL, (cc.queryMove, cc.queryDither, cc.status), value_callback=callback)
-
     # N.B. Conex movement/dither commands will be dicts turned into strings via json.dumps() for convenient sending and
     # ultimately reformatting over redis and flask connections.
+    # TODO: give the conex contoller a threadsafe wait4move/wait4dither thread and statusupdate attribute that will be
+    #  used by the flask application to write to the conex status location
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
