@@ -116,7 +116,8 @@ if __name__ == "__main__":
     util.setup_logging('heatswitchAgent')
 
     try:
-        hs = HeatswitchMotor('/dev/heatswitch', redis, open_position=int((1/2) * 4194303))
+        # hs = HeatswitchMotor('/dev/heatswitch', redis, open_position=int((1/2) * 4194303))
+        hs = HeatswitchMotor('/dev/heatswitch', redis, open_position=0)
         redis.store({STATUS_KEY: "OK"})
     except RedisError as e:
         log.error(f"Redis server error! {e}")
