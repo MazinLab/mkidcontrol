@@ -825,6 +825,10 @@ class HeatswitchMotor:
         reported_position = int(self.motor_position())
         last_recorded_position = int(self.redis_inst.read(self.MOTOR_POS_KEY)[1])
 
+        if (reported_position == self.FULL_CLOSE_POSITION) or (last_recorded_position == self.FULL_CLOSE_POSITION):
+            self.hs.generic_command(CommandCode.SET_CURRENT_POSITION, last_recorded_position)
+            self.redis_inst.store({self.MOTOR_POS_KEY: self.FULL_CLOSE_POSITION}, timeseries=True)
+
         distance = abs(reported_position - last_recorded_position)
 
         log.info(f"The last position recorded to redis was {last_recorded_position}. "
