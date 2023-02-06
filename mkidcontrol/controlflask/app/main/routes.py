@@ -37,8 +37,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Make sure columns/divs support resizing
 
-# TODO: Color coding array viewer (0 - no counts, X - max counts)
-
 # TODO: Focus settings form, add focus control to homepage
 # TODO: Add clearer magnet control/status to homepage
 # TODO: Observation control on home screen
