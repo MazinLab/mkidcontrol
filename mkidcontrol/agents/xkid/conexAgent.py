@@ -30,6 +30,7 @@ logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 QUERY_INTERVAL = 1
+TIMEMOUT = 2  # Timeout for query request
 
 STATUS_KEY = "status:device:conex:status"
 SN_KEY = "status:device:conex:sn"
