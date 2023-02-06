@@ -547,7 +547,7 @@ def multi_sensor_fig(titles):
     return fig
 
 
-def view_array_data():
+def view_array_data(max=2500):
     """
     Placeholding function to grab a frame from a (hard-coded, previously made) temporal drizzle to display as the
     'device view' on the homepage of the flask application.
@@ -558,7 +558,7 @@ def view_array_data():
     m = y < 0
     y[m] = 0
     fig = go.Figure()
-    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale='greys_r', zmin=0, zmax=2500)
+    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale=[[0, "black"], [0.5,"white"], [0.5, "red"], [1, "red"]], zmin=0, zmax=max*2)
     fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'), yaxis=dict(visible=False, ticks='')))
     fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
