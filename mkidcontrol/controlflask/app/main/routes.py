@@ -574,7 +574,7 @@ def dashplot():
         while True:
             figdata = view_array_data()
             t = time.time()
-            data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%m/$d/$Y %H:%M:%S.%f")[:-4]}
+            data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
             yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
             time.sleep(1)  # TODO: Allow changed timesteps
 
