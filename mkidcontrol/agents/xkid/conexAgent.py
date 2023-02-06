@@ -67,6 +67,18 @@ def callback(move_status, dither_status, conex_status):
         log.warning('Storing LakeShore336 data to redis failed!')
 
 
+def status(controller):
+    return controller.status()
+
+
+def query_dither(controller):
+    return controller.queryDither()
+
+
+def query_move(controller):
+    return controller.queryMove()
+
+
 if __name__ == "__main__":
 
     redis.setup_redis()
