@@ -36,12 +36,7 @@ LASER_KEYS = ('device-settings:laserflipperduino:laserbox:808:power',
               'device-settings:laserflipperduino:laserbox:1120:power',
               'device-settings:laserflipperduino:laserbox:1310:power'
               )
-LASER_ENABLE_KEYS = ('device-settings:laserflipperduino:laserbox:808:enabled',
-                     'device-settings:laserflipperduino:laserbox:904:enabled',
-                     'device-settings:laserflipperduino:laserbox:980:enabled',
-                     'device-settings:laserflipperduino:laserbox:1120:enabled',
-                     'device-settings:laserflipperduino:laserbox:1310:enabled'
-                     )
+
 
 if __name__ == "__main__":
 
