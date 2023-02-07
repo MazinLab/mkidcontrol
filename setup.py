@@ -68,9 +68,9 @@ class CustomDevelop(develop):
 
 extensions = [Extension(name="mkidcontrol.packetmaster3.sharedmem",
                         sources=['mkidcontrol/packetmaster3/sharedmem.pyx'],
-                        include_dirs=[numpy.get_include(), MKIDSHM_DIR],
+                        include_dirs=[numpy.get_include(), os.path.abspath(MKIDSHM_DIR)],
                         extra_compile_args=['-shared', '-fPIC'],
-                        library_dirs=[mkidshm_dir],
+                        library_dirs=[MKIDSHM_DIR],
                         runtime_library_dirs=[os.path.abspath(MKIDSHM_DIR)],
                         extra_link_args=['-O3', '-lmkidshm', '-lrt', '-lpthread']),  # '-Wl',f'-rpath={MKIDSHM_DIR}']),
               Extension(name="mkidcontrol.packetmaster3.packetmaster",
@@ -81,7 +81,6 @@ extensions = [Extension(name="mkidcontrol.packetmaster3.sharedmem",
                         extra_compile_args=['-O3', '-shared', '-fPIC'],
                         extra_link_args=['-lmkidshm', '-lrt', '-lpthread'])
              ]
-
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -118,7 +117,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
-    ]
+    ],
+    cmdclass={'install': CustomInstall, 'develop': CustomDevelop}
 )
 
 #https://docs.python.org/3/distutils/setupscript.html#installing-package-data
