@@ -7,7 +7,7 @@ import numpy as np
 cimport numpy as np
 from libc.stdlib cimport free, malloc
 from libc.string cimport memcpy, memset, strcpy
-from mkidreadout.readout.sharedmem import ImageCube, EventBuffer
+from .sharedmem import ImageCube, EventBuffer
 from mkidcore.corelog import getLogger
 
 READER_CPU = 1
