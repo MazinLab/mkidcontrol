@@ -220,7 +220,7 @@ cdef class Packetmaster(object):
                 strcpy(self.imageParams.sharedImageNames[i], image.encode('UTF-8'))
 
         #INITIALIZE EVENT BUFFER
-        print 'initializing event buffer...'
+        print('initializing event buffer...')
         self.eventBuffer = None
         if eventBuffCfg is not None:
             self.eventBuffParams.nRows = self.nRows
@@ -230,7 +230,7 @@ cdef class Packetmaster(object):
             strcpy(self.eventBuffParams.bufferName, eventBuffCfg['name'].encode('UTF8'))
 
         #INITIALIZE WAVECAL
-        print 'initializing wavecal...'
+        print('initializing wavecal...')
         self.wavecal.data = <wvlcoeff_t*>malloc(N_WVL_COEFFS*sizeof(wvlcoeff_t)*npix)
         memset(self.wavecal.data, 0, N_WVL_COEFFS*sizeof(wvlcoeff_t)*npix)
         if wvlCoeffs is not None:
@@ -284,11 +284,11 @@ cdef class Packetmaster(object):
         resetSem(RINGBUF_RESET_SEM_NAME.encode('UTF-8'))
         startReaderThread(&(self.readerParams), &(self.threads[0]))
         threadNum = 1
-        print 'starting shared image thread'
+        print('starting shared image thread')
         if self.sharedImages:
             startShmImageWriterThread(&(self.imageParams), &(self.threads[threadNum]))
             threadNum += 1
-        print 'starting event buffer thread'
+        print('starting event buffer thread')
         if self.eventBuffer:
             startEventBuffWriterThread(&(self.eventBuffParams), &(self.threads[threadNum]))
             threadNum += 1
