@@ -1,8 +1,7 @@
+from __future__ import print_function
+
 import setuptools
 import sys
-
-
-from __future__ import print_function
 
 import os
 import platform
