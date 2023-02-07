@@ -1,0 +1,4 @@
+[submodule "mkidreadout"]
+	path = mkidreadout
+	url = https://github.com/MazinLab/MKIDReadout
+	branch = develop
