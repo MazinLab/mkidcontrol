@@ -10,8 +10,8 @@ TODO (FOR ALL DEVICES): Enable graceful power on/off handling (i.e. don't error 
 
 Note to the user, the actual body of the app and the stuff that makes everything 'go' is in /mkidcontrol/controlflask/app/
 """
-from .app import create_app, db, cli
-from .app.models import User, Post, Message, Notification, Task
+from mkidcontrol.controlflask.app import create_app, db, cli
+from mkidcontrol.controlflask.app.models import User, Post, Message, Notification, Task
 from mkidcontrol.util import setup_logging
 
 log = setup_logging('controlDirector')
