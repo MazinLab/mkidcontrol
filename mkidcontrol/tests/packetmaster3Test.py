@@ -1,7 +1,15 @@
+import os.path
+
 from mkidcontrol.packetmaster3.packetmaster import Packetmaster
 import time
 from mkidcore.objects import Beammap
 import numpy as np
+import logging
+import datetime
+from astropy.io import fits
+
+logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger(__name__)
 
 SHAREDIMAGE_LATENCY = 0.55 #0.53 #latency fudge factor for sharedmem, taken from dashboard.py
 
