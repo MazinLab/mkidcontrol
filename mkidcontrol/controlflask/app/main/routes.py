@@ -97,10 +97,11 @@ def before_request():
         current_user.last_seen = datetime.datetime.utcnow()
         db.session.commit()
     g.locale = str(get_locale())
-    if current_app.redis:
-        g.redis = current_app.redis
-    else:
-        g.redis = mkidcontrol.mkidredis.setup_redis(ts_keys=TS_KEYS)
+    g.redis = current_app.redis
+    # if current_app.redis:
+    #     g.redis = current_app.redis
+    # else:
+    #     g.redis = mkidcontrol.mkidredis.setup_redis(ts_keys=TS_KEYS)
 
 
 @bp.after_request
