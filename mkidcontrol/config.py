@@ -826,7 +826,7 @@ class Config:
     MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    ADMINS = ['nswimmer@ucsb.edu', 'baileyji@ucsb.edu']
+    ADMINS = ['bmazin@ucsb.edu', 'baileyji@ucsb.edu', 'nswimmer@ucsb.edu']
     SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', True)
 
     FLASK_RUN_HOST = '0.0.0.0'
