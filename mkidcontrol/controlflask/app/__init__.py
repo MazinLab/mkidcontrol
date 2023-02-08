@@ -11,16 +11,23 @@ import mkidcontrol.mkidredis as redis
 from mkidcontrol.util import setup_logging
 import threading
 import queue
+import time
+import logging
+import datetime
+from astropy.io import fits
+import click
+import sys
 from mkidcontrol.agents.xkid.heatswitchAgent import TS_KEYS as TS_KEYS_hs
 from mkidcontrol.agents.lakeshore336Agent import TS_KEYS as TS_KEYS_ls336
 from mkidcontrol.agents.lakeshore372Agent import TS_KEYS as TS_KEYS_ls372
 from mkidcontrol.agents.lakeshore625Agent import TS_KEYS as TS_KEYS_ls625
 from mkidcontrol.agents.xkid.magnetAgent import TS_KEYS as TS_KEYS_magnet
-# try:
-from ...config import Config
-# from ...config import schema_keys
-# except ValueError:
-#     from config import Config
+
+from mkidcontrol.config import Config
+
+from mkidcore.objects import Beammap
+
+from mkidcontrol.packetmaster3.packetmaster import Packetmaster
 
 TS_KEYS = tuple(TS_KEYS_hs) + tuple(TS_KEYS_ls336) + tuple(TS_KEYS_ls372) + tuple(TS_KEYS_ls625) + tuple(TS_KEYS_magnet)
 
@@ -91,6 +98,20 @@ def create_app(config_class=Config):
     moment.init_app(app)
     babel.init_app(app)
     redis.setup_redis(ts_keys=TS_KEYS)
+    app.redis = redis.mkidredis
+
+    ROACHNUMS = [115, 116, 117, 118, 119, 120, 121, 122]
+    CAPTUREPORT = 50000
+    OFFLINE = False
+    beammap = Beammap(specifier="XKID")
+    imgcfg = {'dashboard': dict(use_wave=False, wave_start=700, wave_stop=1500, n_wave_bins=1)}
+
+    packetmaster = Packetmaster(len(ROACHNUMS), CAPTUREPORT, useWriter=not OFFLINE, sharedImageCfg=imgcfg,
+                                beammap=beammap, forwarding=None, recreate_images=True)
+    app.packetmaster = packetmaster
+
+    liveimage = packetmaster.sharedImages['dashboard']
+    app.liveimage = liveimage
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)
