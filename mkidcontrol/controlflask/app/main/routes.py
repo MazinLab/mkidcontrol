@@ -585,56 +585,57 @@ def parse_schedule_cooldown(schedule_time):
     """
     pass
 
-def handle_validation(req, submission=False):
-    id = req.form.get('id')
-    field_info = FIELD_KEYS[id]
 
-    key = field_info['key']
-    value = req.form.get('data')
-
-    field_type = field_info['type']
-    prefix_cmd = field_info['prefix']
-
-    log.info(f"For field {id} (key: {key}), changing value to {value} with {field_type} methods.")
-    if field_type in ('sim921', 'sim960', 'heatswitch', 'magnet'):
-        try:
-            s = SimCommand(key, value)
-            is_legal = [True, '\u2713']
-            if submission:
-                if prefix_cmd:
-                    log.debug(f"Sending command:{key} -> {value}")
-                    redis.publish(f"command:{key}", value, store=False)
-                else:
-                    log.debug(f"Sending {key} -> {value}")
-                    redis.publish(key, value)
-        except ValueError:
-            is_legal = [False, '\u2717']
-        return jsonify({'cycle': False, 'key': key, 'value': value, 'legal': is_legal})
-    elif field_type == 'cycle':
-        if field_info['schedule']:
-            try:
-                x = parse_schedule_cooldown(value)
-                soak_current = float(redis.read(SOAK_CURRENT_KEY))
-                soak_time = float(redis.read(SOAK_TIME_KEY))
-                ramp_rate = float(redis.read(RAMP_SLOPE_KEY))
-                deramp_rate = float(redis.read(DERAMP_SLOPE_KEY))
-                time_to_cool = ((soak_current - 0) / ramp_rate) + soak_time + ((0 - soak_current) / deramp_rate)
-                if submission:
-                    log.debug(f"{key} -> {value}, {x[0]}")
-                    redis.publish(key, x[0], store=False)
-                if x[2] >= time_to_cool:
-                    return jsonify({'cycle': True, 'key': 'command:be-cold-at', 'value': datetime.datetime.strftime(x[1], "%m/%d/%y %H:%M:%S"), 'legal': [True, '\u2713']})
-                else:
-                    return jsonify({'cycle': True, 'key': 'command:be-cold-at', 'value': datetime.datetime.strftime(x[1], "%m/%d/%y %H:%M:%S"), 'legal': [False, '\u2717']})
-            except Exception as e:
-                return jsonify({'cycle': True, 'key': 'command:be-cold-at', 'value': value, 'legal': [False, '\u2717']})
-        else:
-            if submission:
-                log.debug(f"{key} at {time.time()}")
-                redis.publish(key, f"{time.time()}", store=False)
-            return jsonify({'mag': True, 'key': key, 'value': time.strftime("%m/%d/%y %H:%M:%S"), 'legal': [True, '\u2713']})
-    else:
-        log.critical(f"Field type '{field_type}' not implemented!")
+# def handle_validation(req, submission=False):
+#     id = req.form.get('id')
+#     field_info = FIELD_KEYS[id]
+#
+#     key = field_info['key']
+#     value = req.form.get('data')
+#
+#     field_type = field_info['type']
+#     prefix_cmd = field_info['prefix']
+#
+#     log.info(f"For field {id} (key: {key}), changing value to {value} with {field_type} methods.")
+#     if field_type in ('sim921', 'sim960', 'heatswitch', 'magnet'):
+#         try:
+#             s = SimCommand(key, value)
+#             is_legal = [True, '\u2713']
+#             if submission:
+#                 if prefix_cmd:
+#                     log.debug(f"Sending command:{key} -> {value}")
+#                     redis.publish(f"command:{key}", value, store=False)
+#                 else:
+#                     log.debug(f"Sending {key} -> {value}")
+#                     redis.publish(key, value)
+#         except ValueError:
+#             is_legal = [False, '\u2717']
+#         return jsonify({'cycle': False, 'key': key, 'value': value, 'legal': is_legal})
+#     elif field_type == 'cycle':
+#         if field_info['schedule']:
+#             try:
+#                 x = parse_schedule_cooldown(value)
+#                 soak_current = float(redis.read(SOAK_CURRENT_KEY))
+#                 soak_time = float(redis.read(SOAK_TIME_KEY))
+#                 ramp_rate = float(redis.read(RAMP_SLOPE_KEY))
+#                 deramp_rate = float(redis.read(DERAMP_SLOPE_KEY))
+#                 time_to_cool = ((soak_current - 0) / ramp_rate) + soak_time + ((0 - soak_current) / deramp_rate)
+#                 if submission:
+#                     log.debug(f"{key} -> {value}, {x[0]}")
+#                     redis.publish(key, x[0], store=False)
+#                 if x[2] >= time_to_cool:
+#                     return jsonify({'cycle': True, 'key': 'command:be-cold-at', 'value': datetime.datetime.strftime(x[1], "%m/%d/%y %H:%M:%S"), 'legal': [True, '\u2713']})
+#                 else:
+#                     return jsonify({'cycle': True, 'key': 'command:be-cold-at', 'value': datetime.datetime.strftime(x[1], "%m/%d/%y %H:%M:%S"), 'legal': [False, '\u2717']})
+#             except Exception as e:
+#                 return jsonify({'cycle': True, 'key': 'command:be-cold-at', 'value': value, 'legal': [False, '\u2717']})
+#         else:
+#             if submission:
+#                 log.debug(f"{key} at {time.time()}")
+#                 redis.publish(key, f"{time.time()}", store=False)
+#             return jsonify({'mag': True, 'key': key, 'value': time.strftime("%m/%d/%y %H:%M:%S"), 'legal': [True, '\u2713']})
+#     else:
+#         log.critical(f"Field type '{field_type}' not implemented!")
 
 
 @bp.route('/notifications')
