@@ -7,6 +7,7 @@ import numpy as np
 import logging
 import datetime
 from astropy.io import fits
+import threading
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
@@ -24,19 +25,68 @@ bindir = '/data/XKID/testdata'
 if not os.path.exists(bindir):
     os.mkdir(bindir)
 
-packetmaster = Packetmaster(len(roachNums), captureport, useWriter=not offline, sharedImageCfg=imgcfg,
-                                 beammap=beammap, forwarding=None, recreate_images=True)
+class LiveImageFetcher:
+    def __init__(self, sharedim, inttime=1, offline=False):
+        self.imagebuffer = sharedim
+        self.inttime = inttime
+        self.search = True
+        self.offline_mode = offline  #zeros ok
 
-# TODO: These lines break because you need an older-style wavecal. Need to look into this
-# wvl_coeffs = np.load(wavecal_file)
-# packetmaster.applyWvlSol(wvl_coeffs, beammap)
+    def update_inttime(self, it):
+        self.inttime = float(it)
 
-liveimage = packetmaster.sharedImages['dashboard']
+    def run(self):
+        self.search = True
+        while self.search:
+            try:
+                utc = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+                self.imagebuffer.startIntegration(integrationTime=self.inttime)
+                data = self.imagebuffer.receiveImage()
+                if not data.sum() and not self.offline_mode:
+                    log.warning('Received a frame of zeros from packetmaster!')
+                ret = fits.ImageHDU(data=data)
+                ret.header['utcstart'] = utc
+                ret.header['exptime'] = self.inttime
+                try:
+                    ret.header['wavecal'] = self.imagebuffer.wavecalID.decode('UTF-8', "backslashreplace")
+                except AttributeError:
+                    ret.header['wavecal'] = self.imagebuffer.wavecalID
 
-liveimage.startIntegration(startTime=time.time() - SHAREDIMAGE_LATENCY, integrationTime=1)
-data = liveimage.receiveImage()
+                if ret.header['wavecal']:
+                    ret.header['wmin'] = self.imagebuffer.wvlStart
+                    ret.header['wmax'] = self.imagebuffer.wvlStop
+                else:
+                    ret.header['wmin'] = 'NaN'
+                    ret.header['wmax'] = 'NaN'
+                yield ret
+            except RuntimeError as e:
+                log.debug('Image stream unavailable: {}'.format(e))
+            except Exception:
+                log.error('Problem', exc_info=True)
 
-liveimage.set_useWvl(True)
 
-packetmaster.startWriting(binDir=bindir)
-packetmaster.stopWriting()
+if __name__ == "__main__":
+    packetmaster = Packetmaster(len(roachNums), captureport, useWriter=not offline, sharedImageCfg=imgcfg,
+                                beammap=beammap, forwarding=None, recreate_images=True)
+
+    # TODO: These lines break because you need an older-style wavecal. Need to look into this
+    # wvl_coeffs = np.load(wavecal_file)
+    # packetmaster.applyWvlSol(wvl_coeffs, beammap)
+
+    liveimage = packetmaster.sharedImages['dashboard']
+
+    liveimage.startIntegration(startTime=time.time() - SHAREDIMAGE_LATENCY, integrationTime=1)
+    data = liveimage.receiveImage()
+
+    liveimage.set_useWvl(False)
+
+    packetmaster.startWriting(binDir=bindir)
+
+    imageFetcher = LiveImageFetcher(liveimage, 1, offline=offline)
+    # imageFetcher.run()
+
+    for frame in imageFetcher.run():
+        f = frame
+        # Do stuff with frame
+
+    packetmaster.stopWriting()
