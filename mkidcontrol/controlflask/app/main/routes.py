@@ -9,7 +9,7 @@ from mkidcontrol.util import get_service as mkidcontrol_service
 from mkidcontrol.util import get_services as mkidcontrol_services
 
 from flask import render_template, flash, redirect, url_for, g, request, \
-    jsonify, current_app, Response, copy_current_request_context
+    jsonify, current_app, Response, stream_with_context
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 
@@ -429,6 +429,7 @@ def listener():
     listener is a function that implements the python (server) side of a server sent event (SSE) communication protocol
     where data can be streamed directly to the flask app.
     """
+    @stream_with_context
     def _stream():
         while True:
             time.sleep(.75)
@@ -565,6 +566,7 @@ def dashplot():
     """
     TODO: Update appropriately following 'plot_data()' function from cloudflask
     """
+    @stream_with_context
     def _stream():
         while True:
             figdata = view_array_data()
