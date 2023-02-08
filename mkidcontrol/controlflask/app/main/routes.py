@@ -434,7 +434,7 @@ def listener():
     def _stream():
         while True:
             time.sleep(.75)
-            x = redis.read(KEYS)
+            x = current_app.redis.read(KEYS)
             y = mkidcontrol_services().items()
             s = {}
             for k,v in y:
@@ -544,12 +544,14 @@ def multi_sensor_fig(titles):
     return fig
 
 
-def view_array_data(max=2500):
+def view_array_data(max=2500, inttime=1):
     """
     Placeholding function to grab a frame from a (hard-coded, previously made) temporal drizzle to display as the
     'device view' on the homepage of the flask application.
     """
-    x = np.zeros((125, 80))
+    data = current_app.liveimage
+    data.startIntegration(integrationTime=inttime)
+    x = data.receiveImage()
     noise = 5 * np.random.randn(125, 80)
     y = x + noise
     m = y < 0
