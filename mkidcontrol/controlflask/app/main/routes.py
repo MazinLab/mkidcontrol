@@ -82,8 +82,6 @@ KEYS = list(COMMAND_DICT.keys()) + list(TS_KEYS) + ['status:device:heatswitch:po
                                                     'status:device:ls625:status',
                                                     'status:device:heatswitch:status']
 
-# DASHDATA = np.load('/mkidcontrol/mkidcontrol/frontend/dashboard_placeholder.npy')
-
 redis.setup_redis(ts_keys=TS_KEYS)
 
 log = setup_logging('controlDirector')
@@ -346,7 +344,6 @@ def service():
         return jsonify({'success': True})
     else:
         return jsonify(service.status_dict())
-
 
 
 @bp.route('/task', methods=['GET', 'POST'])
