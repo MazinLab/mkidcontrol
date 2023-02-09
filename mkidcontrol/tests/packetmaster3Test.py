@@ -73,20 +73,26 @@ if __name__ == "__main__":
     # wvl_coeffs = np.load(wavecal_file)
     # packetmaster.applyWvlSol(wvl_coeffs, beammap)
 
-    liveimage = packetmaster.sharedImages['dashboard']
-
-    liveimage.startIntegration(startTime=time.time() - SHAREDIMAGE_LATENCY, integrationTime=1)
-    data = liveimage.receiveImage()
-
-    liveimage.set_useWvl(False)
-
     packetmaster.startWriting(binDir=bindir)
 
-    imageFetcher = LiveImageFetcher(liveimage, 1, offline=offline)
-    # imageFetcher.run()
+    li = packetmaster.sharedImages['dashboard']
 
-    for frame in imageFetcher.run():
-        f = frame
-        # Do stuff with frame
+    li.startIntegration(startTime=time.time() - SHAREDIMAGE_LATENCY, integrationTime=1)
+    d = li.receiveImage()
+
+    # TODO: Seeing long latency in the receiveImage() function. Unsure why and don't have time to troubleshoot
+    while True:
+        try:
+            s = time.time()
+            li.startIntegration(integrationTime=1)
+            m = time.time()
+            d = li.receiveImage()
+            e = time.time()
+            print(m - s)
+            print(e - m)
+        except Exception as e:
+            break
+
+    print('here')
 
     packetmaster.stopWriting()
