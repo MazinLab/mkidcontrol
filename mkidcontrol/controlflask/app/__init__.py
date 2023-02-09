@@ -103,19 +103,19 @@ def create_app(config_class=Config):
 
     dashcfg = loadcfg(app.config['DASH_CFG'])
 
-    ROACHNUMS = dashcfg['roaches']['in_use']
-    CAPTUREPORT = dashcfg['packetmaster']['captureport']
-    OFFLINE = False  # TODO: How to choose offline/online
-    beammap = dashcfg['beammap']
-    imgcfg = dashcfg['dashboard']
+    ROACHNUMS = dashcfg.roaches.in_use
+    CAPTUREPORT = dashcfg.packetmaster.captureport
+    OFFLINE = dashcfg.roaches.offline
+    beammap = dashcfg.beammap
+    imgcfg = dict(dashcfg.dashboard)
     imgcfg['n_wave_bins'] = 1
 
-    if 'forwarding' in dashcfg['packetmaster'].keys():
-        forwarding = dict(dashcfg['packetmaster']['forwarding'])
+    if 'forwarding' in dashcfg.packetmaster.keys():
+        forwarding = dict(dashcfg.packetmaster.forwarding)
     else:
         forwarding = None
 
-    packetmaster = Packetmaster(len(ROACHNUMS), CAPTUREPORT, useWriter=not OFFLINE, sharedImageCfg=imgcfg,
+    packetmaster = Packetmaster(len(ROACHNUMS), CAPTUREPORT, useWriter=not OFFLINE, sharedImageCfg={'dashboard': imgcfg},
                                 beammap=beammap, forwarding=forwarding, recreate_images=True)
     app.packetmaster = packetmaster
 
