@@ -25,6 +25,7 @@ from mkidcontrol.agents.xkid.magnetAgent import TS_KEYS as TS_KEYS_magnet
 
 from mkidcontrol.config import Config
 
+from mkidcore.config import load as loadcfg
 from mkidcore.objects import Beammap
 
 from mkidcontrol.packetmaster3.packetmaster import Packetmaster
@@ -100,6 +101,9 @@ def create_app(config_class=Config):
     redis.setup_redis(ts_keys=TS_KEYS)
     app.redis = redis.mkidredis
 
+    dashcfg = loadcfg(app.config['DASH_CFG'])
+
+    # TODO parse values from dashcfg
     ROACHNUMS = [115, 116, 117, 118, 119, 120, 121, 122]
     CAPTUREPORT = 50000
     OFFLINE = False

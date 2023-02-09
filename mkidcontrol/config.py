@@ -810,7 +810,7 @@ def schema_keys():
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(pkg_resources.resource_filename('mkidcontrol', '../config/mkidcontrol.env'))
+load_dotenv(pkg_resources.resource_filename('mkidcontrol', '../configuration/mkidcontrol.env'))
 
 
 class Config:
@@ -828,6 +828,7 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['bmazin@ucsb.edu', 'baileyji@ucsb.edu', 'nswimmer@ucsb.edu']
     SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', True)
+    DASH_CFG = os.environ.get("DASH_CFG")
 
     FLASK_RUN_HOST = '0.0.0.0'
     FLASK_RUN_PORT = 8000
