@@ -14,9 +14,13 @@ from mkidcontrol.controlflask.app import create_app, db, cli
 from mkidcontrol.controlflask.app.models import User, Post, Message, Notification, Task
 from mkidcontrol.util import setup_logging
 
+import sys
+
 log = setup_logging('controlDirector')
 
-app = create_app()
+cliargs = sys.argv
+
+app = create_app(cliargs=cliargs)
 cli.register(app)
 
 

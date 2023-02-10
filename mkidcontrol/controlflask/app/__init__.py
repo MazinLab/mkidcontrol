@@ -85,8 +85,7 @@ def datagen(redis, announcer):
     datalistener = threading.Thread(target=datagen, args=(app.redis, app.announcer), daemon=True)
     datalistener.start()
 
-
-def create_app(config_class=Config):
+def create_app(config_class=Config, cliargs=None):
     # TODO: Login db stuff and mail stuff can reasonably go
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -101,26 +100,28 @@ def create_app(config_class=Config):
     redis.setup_redis(ts_keys=TS_KEYS)
     app.redis = redis.mkidredis
 
-    dashcfg = loadcfg(app.config['DASH_CFG'])
+    if 'run' in cliargs:
+        dashcfg = loadcfg(app.config['DASH_CFG'])
 
-    ROACHNUMS = dashcfg.roaches.in_use
-    CAPTUREPORT = dashcfg.packetmaster.captureport
-    OFFLINE = dashcfg.roaches.offline
-    beammap = dashcfg.beammap
-    imgcfg = dict(dashcfg.dashboard)
-    imgcfg['n_wave_bins'] = 1
+        ROACHNUMS = dashcfg.roaches.in_use
+        CAPTUREPORT = dashcfg.packetmaster.captureport
+        OFFLINE = dashcfg.roaches.offline
+        beammap = dashcfg.beammap
+        imgcfg = dict(dashcfg.dashboard)
+        imgcfg['n_wave_bins'] = 1
 
-    if 'forwarding' in dashcfg.packetmaster.keys():
-        forwarding = dict(dashcfg.packetmaster.forwarding)
-    else:
-        forwarding = None
+        if 'forwarding' in dashcfg.packetmaster.keys():
+            forwarding = dict(dashcfg.packetmaster.forwarding)
+        else:
+            forwarding = None
 
-    packetmaster = Packetmaster(len(ROACHNUMS), CAPTUREPORT, useWriter=not OFFLINE, sharedImageCfg={'dashboard': imgcfg},
-                                beammap=beammap, forwarding=forwarding, recreate_images=True)
-    app.packetmaster = packetmaster
+        packetmaster = Packetmaster(len(ROACHNUMS), CAPTUREPORT, useWriter=not OFFLINE,
+                                    sharedImageCfg={'dashboard': imgcfg}, beammap=beammap,
+                                    forwarding=forwarding, recreate_images=True)
+        app.packetmaster = packetmaster
 
-    liveimage = packetmaster.sharedImages['dashboard']
-    app.liveimage = liveimage
+        liveimage = packetmaster.sharedImages['dashboard']
+        app.liveimage = liveimage
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)
