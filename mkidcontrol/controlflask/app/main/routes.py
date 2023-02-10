@@ -1,4 +1,4 @@
-import os.path
+import os
 import subprocess
 from datetime import datetime
 import plotly.graph_objects as go
@@ -136,6 +136,8 @@ def index():
     hsform = HeatSwitchForm2()
     obsform = ObsControlForm()
 
+    sending_photons = os.path.exists(current_app.send_photons_file)
+
     form = FlaskForm()
     if request.method == 'POST':
         print(request.form)
@@ -144,11 +146,9 @@ def index():
     array_fig = view_array_data()
     pix_lightcurve = pixel_lightcurve()
 
-    return render_template('index.html', magnetform=magnetform, schedule=schedule,
-                           hsform=hsform, obsform=obsform, form=form,
-                           sensor_fig=sensor_fig, array_fig=array_fig,
-                           pix_lightcurve=pix_lightcurve,
-                           sensorkeys=list(CHART_KEYS.values()))
+    return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform,
+                           schedule=schedule, hsform=hsform, form=form, sensor_fig=sensor_fig, array_fig=array_fig,
+                           pix_lightcurve=pix_lightcurve, sensorkeys=list(CHART_KEYS.values()))
 
 
 @bp.route('/other_plots', methods=['GET'])
@@ -584,10 +584,10 @@ def dashplot():
 
 @bp.route('/send_photons/<startstop>', methods=["POST"])
 def send_photons(startstop):
-    # TODO: Make flask know whether it is started or stopped
     print(startstop)
     send_photons_file = current_app.send_photons_file
     bmap_filename = current_app.beammap.file
+
     log.debug(f"{startstop} sending photons")
     if startstop == "start":
         with open(send_photons_file, "w") as f:
