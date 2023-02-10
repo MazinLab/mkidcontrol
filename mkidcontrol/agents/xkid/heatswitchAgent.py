@@ -14,6 +14,8 @@ switch too tightly.
 
 Note: Documentation for zaber python library exists at https://www.zaber.com/software/docs/motion-library/
 Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdfa
+
+TODO: Use async movement calls for heatswitch?
 """
 
 import sys
@@ -41,7 +43,9 @@ VELOCITY_KEY = "device-settings:heatswitch:max-velocity"
 RUNNING_CURRENT_KEY = "device-settings:heatswitch:running-current"
 ACCELERATION_KEY = "device-settings:heatswitch:acceleration"
 
-COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
+STOP_KEY = "heatswitch:stop"
+
+COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS + tuple(STOP_KEY)]
 TS_KEYS = (MOTOR_POS,)
 
 
@@ -151,6 +155,8 @@ if __name__ == "__main__":
                                 log.warning("Illegal command that was not previously handled!")
                         elif key in [VELOCITY_KEY, RUNNING_CURRENT_KEY, ACCELERATION_KEY]:
                             hs.update_binary_setting(key, val)
+                        elif key == STOP_KEY:
+                            hs.stop()
                         else:
                             log.warning(f"Unknown command! Ignoring")
                         redis.store({cmd.setting: cmd.value})

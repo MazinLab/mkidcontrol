@@ -1017,6 +1017,12 @@ class HeatswitchMotor:
         self.hs.generic_command(CommandCode.SET_CURRENT_POSITION, value)
         self.move_by(0)
 
+    def stop(self):
+        """
+        Alias to heatswtich stop
+        """
+        self.hs.stop()
+
     def monitor(self, interval: float, monitor_func: (callable, tuple), value_callback: (callable, tuple) = None):
         """
         Given a monitoring function (or is of the same) and either one or the same number of optional callback
