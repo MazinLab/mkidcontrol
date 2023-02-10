@@ -594,7 +594,7 @@ def send_photons(startstop):
             f.write(bmap_filename)
         log.info(f"Wrote {bmap_filename} to {send_photons_file} to start sending photons")
         log.info("Starting packetmaster...")
-        current_app.packetmaster.startWriting(current_app.config.bindir)
+        current_app.packetmaster.startWriting(current_app.bindir)
         log.info("Packetmaster started")
     else:
         log.info("Stopping packetmaster...")
