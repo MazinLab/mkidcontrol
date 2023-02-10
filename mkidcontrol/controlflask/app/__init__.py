@@ -92,21 +92,22 @@ def create_app(config_class=Config, cliargs=None):
         imgcfg = dict(dashcfg.dashboard)
         imgcfg['n_wave_bins'] = 1
 
+
         if 'forwarding' in dashcfg.packetmaster.keys():
             forwarding = dict(dashcfg.packetmaster.forwarding)
         else:
             forwarding = None
 
-        packetmaster = Packetmaster(len(ROACHNUMS), CAPTUREPORT, useWriter=not OFFLINE,
-                                    sharedImageCfg={'dashboard': imgcfg}, beammap=beammap,
-                                    forwarding=forwarding, recreate_images=True)
+        packetmaster = Packetmaster(len(ROACHNUMS), CAPTUREPORT, useWriter=not OFFLINE, sharedImageCfg={'dashboard': imgcfg},
+                                    beammap=beammap, forwarding=forwarding, recreate_images=True)
         app.packetmaster = packetmaster
 
         liveimage = packetmaster.sharedImages['dashboard']
-
         app.liveimage = liveimage
+
         app.send_photons_file = dashcfg.paths.send_photons_file
         app.beammap = dashcfg.beammap
+        app.bindir = dashcfg.paths.data
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)

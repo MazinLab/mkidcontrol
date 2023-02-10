@@ -120,7 +120,7 @@ def index():
     soak settings) and publishes them to be interpreted by the necessary agents.
     Initializes sensor plot data to send for plotting.
     TODO: Make robust to redis not being up and running
-    TODO: Handle 'post' requests
+    TODO: Handle 'post' requests - via AJAX requests rather than submitting
     TODO: Support message flashing
     """
     try:
@@ -593,7 +593,13 @@ def send_photons(startstop):
         with open(send_photons_file, "w") as f:
             f.write(bmap_filename)
         log.info(f"Wrote {bmap_filename} to {send_photons_file} to start sending photons")
+        log.info("Starting packetmaster...")
+        current_app.packetmaster.startWriting(current_app.config.bindir)
+        log.info("Packetmaster started")
     else:
+        log.info("Stopping packetmaster...")
+        current_app.packetmaster.stopWriting()
+        log.info("Stopped packetmaster stopped")
         try:
             os.remove(send_photons_file)
         except:
