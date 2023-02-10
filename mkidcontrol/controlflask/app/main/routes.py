@@ -1,3 +1,4 @@
+import os.path
 import subprocess
 from datetime import datetime
 import plotly.graph_objects as go
@@ -579,6 +580,27 @@ def dashplot():
             time.sleep(1)  # TODO: Allow changed timesteps
 
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
+
+
+@bp.route('/send_photons/<startstop>', methods=["POST"])
+def send_photons(startstop):
+    # TODO: Make flask know whether it is started or stopped
+    print(startstop)
+    send_photons_file = current_app.send_photons_file
+    bmap_filename = current_app.beammap.file
+    log.debug(f"{startstop} sending photons")
+    if startstop == "start":
+        with open(send_photons_file, "w") as f:
+            f.write(bmap_filename)
+        log.info(f"Wrote {bmap_filename} to {send_photons_file} to start sending photons")
+    else:
+        try:
+            os.remove(send_photons_file)
+        except:
+            pass
+        log.info(f"Removed {send_photons_file} to stop sending photons")
+
+    return '', 204
 
 
 def parse_schedule_cooldown(schedule_time):

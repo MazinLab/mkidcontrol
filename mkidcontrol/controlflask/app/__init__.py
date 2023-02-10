@@ -103,7 +103,10 @@ def create_app(config_class=Config, cliargs=None):
         app.packetmaster = packetmaster
 
         liveimage = packetmaster.sharedImages['dashboard']
+
         app.liveimage = liveimage
+        app.send_photons_file = dashcfg.paths.send_photons_file
+        app.beammap = dashcfg.beammap
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)

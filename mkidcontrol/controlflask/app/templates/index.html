@@ -9,13 +9,14 @@
                 <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
                     <div class="flex-column col-4">
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
-                            <form method="post">
-                                {% for field in obsform %}
-                                <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
-                                    {{ render_field(field)}}
-                                </div>
-                                {% endfor %}
-                            </form>
+<!--                            <form method="post">-->
+<!--                                {% for field in obsform %}-->
+<!--                                <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">-->
+<!--                                    {{ render_field(field)}}-->
+<!--                                </div>-->
+<!--                                {% endfor %}-->
+<!--                            </form>-->
+                            <input type="button" class="btn btn-success" id="obsStartStop" onclick='obsctrl()' value="Start Observing">
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
                             <h2>Observation Info</h2>
@@ -72,6 +73,11 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
                             {{ render_form(hsform) }}
+                            <!-- Default switch -->
+                            <div class="custom-control custom-switch">
+                              <input type="checkbox" class="custom-control-input" id="customSwitches">
+                              <label class="custom-control-label" for="customSwitches">Toggle this switch element</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -174,6 +180,42 @@
         }, false);
         source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
         source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
+
+        function stop_photon_send(newclass, newtext){
+            $.ajax({
+                    type:'POST',
+                    url: "{{ url_for('main.send_photons', startstop='stop' ) }}",
+                    data: {},
+                    success:function(){
+                        document.getElementById("obsStartStop").setAttribute("class", newclass);
+                        document.getElementById("obsStartStop").setAttribute("value", newtext);
+                    }
+                })
+        }
+
+        function start_photon_send(newclass, newtext){
+            $.ajax({
+                    type:'POST',
+                    url: "{{ url_for('main.send_photons', startstop='start' ) }}",
+                    data: {},
+                    success:function(){
+                        document.getElementById("obsStartStop").setAttribute("class", newclass);
+                        document.getElementById("obsStartStop").setAttribute("value", newtext);
+                    }
+                })
+        }
+
+        function obsctrl(){
+            if (document.getElementById("obsStartStop").getAttribute("value").includes("Start")) {
+                var newClass = "btn btn-danger";
+                var newText = "Stop Observing";
+                start_photon_send(newClass, newText);
+            } else {
+                var newClass = "btn btn-success";
+                var newText = "Start Observing";
+                stop_photon_send(newClass, newText);
+            }
+        };
 
     </script>
 
