@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_mail import Mail
-from flask_bootstrap import Bootstrap
+from flask_bootstrap import Bootstrap4
 from flask_moment import Moment
 from flask_babel import Babel, lazy_gettext as _l
 import mkidcontrol.mkidredis as redis
@@ -38,7 +38,7 @@ login = LoginManager()
 login.login_view = 'auth.login'
 login.login_message = _l('Please log in to access this page.')
 mail = Mail()
-bootstrap = Bootstrap()
+bootstrap = Bootstrap4()
 moment = Moment()
 babel = Babel()
 
@@ -66,24 +66,6 @@ class MessageAnnouncer:
             except queue.Full:
                 del self.listeners[i]
 
-
-def datagen(redis, announcer):
-    import json
-    for k, v in redis.listen(schema_keys()):
-
-        event = 'update'
-        data = {k:v}
-
-        # plotid = 'temp:value'
-        # since = None
-        # kind = 'full' if since is None else 'partial'
-        # new = list(zip(*redis.range(plotid, since)))
-        # data = {'id': f'redisplot:{plotid}', 'kind': kind, 'data': {'x': new[0], 'y': new[1]}}
-
-        announcer.announce(f"event:{event}\nretry:5\ndata: {json.dumps(data)}\n\n")
-
-    datalistener = threading.Thread(target=datagen, args=(app.redis, app.announcer), daemon=True)
-    datalistener.start()
 
 def create_app(config_class=Config, cliargs=None):
     # TODO: Login db stuff and mail stuff can reasonably go
