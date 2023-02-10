@@ -33,3 +33,10 @@ def register(app):
         """Compile all languages."""
         if os.system('pybabel compile -d app/translations'):
             raise RuntimeError('compile command failed')
+
+    @app.cli.command("dash_update")
+    @click.argument("dash_cfg")
+    def update_dash_config(dash_cfg):
+        """Set environment variable DASH_CFG to the path containing the dashboard.yml file for
+        the flask gui"""
+        os.environ['DASH_CFG'] = dash_cfg
