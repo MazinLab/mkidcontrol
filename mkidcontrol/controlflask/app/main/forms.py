@@ -42,8 +42,6 @@ class LaserBoxForm(FlaskForm):
 
 
 class ObsControlForm(FlaskForm):
-    # TODO more clearly name buttons and talk about their functionality, also space them better
-    start_stop = SubmitField("Start Observation")
     target = StringField("Target")
     wavecal = SubmitField("Wavecal")
     flat = SubmitField("Take Flat")
@@ -66,6 +64,7 @@ class HeatSwitchForm2(FlaskForm):
     # Heatswitch form
     open = SubmitField("Open")
     close = SubmitField("Close")
+    stop = SubmitField("Stop")
 
 
 class ControlSensorForm(FlaskForm):
@@ -252,12 +251,6 @@ class Lakeshore625ControlForm(FlaskForm):
     update = SubmitField("Update")
 
 
-class ScheduleForm(FlaskForm):
-    # Magnet controller form
-    at = DateTimeLocalField('Schedule cycle for:', format='%m/%d/%Y %I:%M %p')
-    schedule = SubmitField("Schedule")
-
-
 class MagnetCycleSettingsForm(FlaskForm):
     # Magnet controller form
     # TODO: Turn this into something that can be used to either modify the standard/fast cycle OR run a custom cycle
@@ -273,9 +266,9 @@ class MagnetCycleForm(FlaskForm):
     # Magnet controller form
     # TODO: Ramp dropdown (standard ramp/fast ramp/custom ramp?)
     # TODO: make validators a function of the limits? We can just read them in from redis with no issue
-    start = SubmitField("Start Standard Cycle")
+    start = SubmitField("Start Cycle")
     fast = SubmitField("Start Fast Cycle")
-    custom = SubmitField("Start Custom Ramp")
     abort = SubmitField("Abort Cooldown")
     cancel_scheduled = SubmitField("Cancel Scheduled Cooldown")
-    update = SubmitField("Update")
+    at = DateTimeLocalField('Schedule cycle for:', format='%m/%d/%Y %I:%M %p')
+    schedule = SubmitField("Schedule")

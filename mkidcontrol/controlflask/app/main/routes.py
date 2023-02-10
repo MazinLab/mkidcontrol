@@ -132,7 +132,6 @@ def index():
 
     # from mkidcontrol.controlflask.app.main.forms import MagnetCycleForm, ScheduleForm, HeatSwitchForm2
     magnetform = MagnetCycleForm()
-    schedule = ScheduleForm()
     hsform = HeatSwitchForm2()
     obsform = ObsControlForm()
 
@@ -146,9 +145,9 @@ def index():
     array_fig = view_array_data()
     pix_lightcurve = pixel_lightcurve()
 
-    return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform,
-                           schedule=schedule, hsform=hsform, form=form, sensor_fig=sensor_fig, array_fig=array_fig,
-                           pix_lightcurve=pix_lightcurve, sensorkeys=list(CHART_KEYS.values()))
+    return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform,
+                           form=form, sensor_fig=sensor_fig, array_fig=array_fig, pix_lightcurve=pix_lightcurve,
+                           sensorkeys=list(CHART_KEYS.values()))
 
 
 @bp.route('/other_plots', methods=['GET'])
@@ -550,9 +549,10 @@ def view_array_data(max=2500, inttime=1):
     Placeholding function to grab a frame from a (hard-coded, previously made) temporal drizzle to display as the
     'device view' on the homepage of the flask application.
     """
-    data = current_app.liveimage
-    data.startIntegration(integrationTime=inttime)
-    x = data.receiveImage()
+    # data = current_app.liveimage
+    # data.startIntegration(integrationTime=inttime)
+    # x = data.receiveImage()
+    x = np.zeros((125,80))
     noise = 5 * np.random.randn(125, 80)
     y = x + noise
     m = y < 0
