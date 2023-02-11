@@ -130,10 +130,9 @@ def index():
     except KeyError:
         flash(f"Redis keys are missing!")
 
-    # from mkidcontrol.controlflask.app.main.forms import MagnetCycleForm, ScheduleForm, HeatSwitchForm2
     magnetform = MagnetCycleForm()
     hsform = HeatSwitchForm2()
-    obsform = ObsControlForm()
+    laserbox = LaserBoxForm()
 
     sending_photons = os.path.exists(current_app.send_photons_file)
 
@@ -146,8 +145,8 @@ def index():
     pix_lightcurve = pixel_lightcurve()
 
     return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform,
-                           form=form, sensor_fig=sensor_fig, array_fig=array_fig, pix_lightcurve=pix_lightcurve,
-                           sensorkeys=list(CHART_KEYS.values()))
+                           form=form, laserbox=laserbox, sensor_fig=sensor_fig, array_fig=array_fig,
+                           pix_lightcurve=pix_lightcurve, sensorkeys=list(CHART_KEYS.values()))
 
 
 @bp.route('/other_plots', methods=['GET'])
@@ -607,6 +606,25 @@ def send_photons(startstop):
         log.info(f"Removed {send_photons_file} to stop sending photons")
 
     return '', 204
+
+
+@bp.route('/update_laser_powers', methods=["POST"])
+def update_laser_powers():
+    if request.method == "POST":
+        powers = {wvl: min(100, max(0, request.values[wvl])) for wvl in request.values}
+
+    for k, v in powers.items():
+        log.debug(f"Setting {k} nm laser to {v}% power")
+        redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v, store=False)
+
+    return json.dumps(powers)
+
+
+@bp.route('/flip_mirror', methods=["POST"])
+def flip_mirror():
+    # TODO: Flip mirror control
+    if request.method == "POST":
+        request.form.get('position')
 
 
 def parse_schedule_cooldown(schedule_time):

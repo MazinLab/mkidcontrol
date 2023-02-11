@@ -27,18 +27,14 @@ class ConexForm(FlaskForm):
 
 
 class LaserBoxForm(FlaskForm):
-    power808 = IntegerField("Power", default=0)
-    update808 = SubmitField("Update")
-    power904 = IntegerField("Power", default=0)
-    update904 = SubmitField("Update")
-    power980 = IntegerField("Power", default=0)
-    update980 = SubmitField("Update")
-    power1120 = IntegerField("Power", default=0)
-    update1120 = SubmitField("Update")
-    power1310 = IntegerField("Power", default=0)
-    update1310 = SubmitField("Update")
-    update_all = SubmitField("Update All")
-    all_off = SubmitField("All Off")
+    power808 = IntegerField("808 nm", default=0)
+    power904 = IntegerField("904 nm", default=0)
+    power980 = IntegerField("980 nm", default=0)
+    power1120 = IntegerField("1120 nm", default=0)
+    power1310 = IntegerField("1310 nm", default=0)
+    update_all_lasers = SubmitField("Update Powers")
+    flipperposition = SelectField("Mirror Position", choices=["Up", "Down"])
+    all_lasers_off = SubmitField("All Lasers Off")
 
 
 class ObsControlForm(FlaskForm):

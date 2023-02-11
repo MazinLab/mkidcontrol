@@ -43,28 +43,37 @@
                                 <h4>Filter Control</h4>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                <h4>Laser+Flipper Control</h4>
-                            </div>
-                        </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                <h4>TCS</h4>
+                                <h4>Laser + Flipper Mirror</h4>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                                {{ render_field(laserbox.power808) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                                {{ render_field(laserbox.power904) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                                {{ render_field(laserbox.power980) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                                {{ render_field(laserbox.power1120) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                                {{ render_field(laserbox.power1310) }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
-                                Target: None
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
+                                {{ render_field(laserbox.flipperposition, onclick="flip_mirror()", class='btn btn-dark') }}
                             </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
-                                Count Rate: 0.0
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
+                                {{ render_field(laserbox.update_all_lasers, onclick="update_lasers(this.id)") }}
                             </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
-                                Exposure Time: 00:00
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
-                                SNR Est: 0.0
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
+                                {{ render_field(laserbox.all_lasers_off, onclick="update_lasers(this.id)", class='btn btn-danger') }}
                             </div>
                         </div>
                     </div>
@@ -219,6 +228,8 @@
         source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
         source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
 
+
+        // Helper functions for handling submits and clicked events
         function stop_photon_send(newclass, newtext){
             $.ajax({
                     type:'POST',
@@ -255,6 +266,37 @@
             }
         };
 
+        function update_lasers(buttonid){
+            var powers = {};
+            var lasers = ["808", "904", "980", "1120", "1310"]
+            for (let p = 0; p < 5; p++) {
+                if (buttonid.includes("update_all")) {
+                    powers[lasers[p]] = document.getElementById("power"+lasers[p]).value
+                } else {
+                    console.log('but')
+                    powers[lasers[p]] = "0"
+                }
+            }
+            $.ajax({
+                type:'POST',
+                url: "{{ url_for('main.update_laser_powers') }}",
+                data: powers,
+                success: function(d){
+                    for (let p = 0; p < 5; p++) {
+                        var response = JSON.parse(d);
+                        console.log(response)
+                        document.getElementById("power"+lasers[p]).value = response[Number(lasers[p])]
+                    }
+                }
+            })
+        }
+
+        function flip_mirror(){
+            document.getElementById("flipperposition")
+            $.ajax({
+
+            })
+        }
     </script>
 
 {% endblock %}

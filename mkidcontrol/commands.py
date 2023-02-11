@@ -483,12 +483,13 @@ COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {"O
 
 class Laserbox:
     def __init__(self, redis):
-        values = redis.read(redis.redis_keys("device-settings:laserflipperduino:laserbox:*"))
+        values = redis.read(redis.redis_keys("device-settings:laserflipperduino:*"))
         self.power808 = int(values['device-settings:laserflipperduino:laserbox:808:power'])
         self.power904 = int(values['device-settings:laserflipperduino:laserbox:904:power'])
         self.power980 = int(values['device-settings:laserflipperduino:laserbox:980:power'])
         self.power1120 = int(values['device-settings:laserflipperduino:laserbox:1120:power'])
         self.power1310 = int(values['device-settings:laserflipperduino:laserbox:1310:power'])
+        self.flipperposition = values['device-settings:laserflipperduino:flipper:position']
 
 # ---- Laserflipper Arduino Commands ----
 COMMANDSLASERFLIPPER = {'device-settings:laserflipperduino:laserbox:808:power': {'command': '0', 'vals': [0, 100]},
