@@ -83,6 +83,7 @@ def create_app(config_class=Config, cliargs=None):
     app.redis = redis.mkidredis
 
     if 'run' in cliargs:
+        # TODO: If offline, just send an array of zeros to the viewer, don't spin up packetmaster at all.
         dashcfg = loadcfg(app.config['DASH_CFG'])
 
         ROACHNUMS = dashcfg.roaches.in_use

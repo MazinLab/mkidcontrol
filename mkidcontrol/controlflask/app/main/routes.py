@@ -550,10 +550,8 @@ def view_array_data(max=2500, inttime=1):
     """
     # data = current_app.liveimage
     # data.startIntegration(integrationTime=inttime)
-    # x = data.receiveImage()
-    x = np.zeros((125,80))
-    noise = 5 * np.random.randn(125, 80)
-    y = x + noise
+    # y = data.receiveImage()
+    y = np.zeros((125,80))
     m = y < 0
     y[m] = 0
     fig = go.Figure()
@@ -567,7 +565,7 @@ def view_array_data(max=2500, inttime=1):
 @bp.route('/dashplot', methods=["GET"])
 def dashplot():
     """
-    TODO: Update appropriately following 'plot_data()' function from cloudflask
+    TODO: If packetmaster/roaches are offline, just send an array of zeros?
     """
     @stream_with_context
     def _stream():
@@ -577,6 +575,7 @@ def dashplot():
             data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
             yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
             time.sleep(1)  # TODO: Allow changed timesteps
+            # time.sleep(current_app.inttime)
 
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
