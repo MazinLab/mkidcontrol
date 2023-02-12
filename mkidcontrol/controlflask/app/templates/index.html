@@ -229,42 +229,29 @@
         source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
 
 
-        // Helper functions for handling submits and clicked events
-        function stop_photon_send(newclass, newtext){
-            $.ajax({
-                    type:'POST',
-                    url: "{{ url_for('main.send_photons', startstop='stop' ) }}",
-                    data: {},
-                    success:function(){
-                        document.getElementById("obsStartStop").setAttribute("class", newclass);
-                        document.getElementById("obsStartStop").setAttribute("value", newtext);
-                    }
-                })
-        }
-
-        function start_photon_send(newclass, newtext){
-            $.ajax({
-                    type:'POST',
-                    url: "{{ url_for('main.send_photons', startstop='start' ) }}",
-                    data: {},
-                    success:function(){
-                        document.getElementById("obsStartStop").setAttribute("class", newclass);
-                        document.getElementById("obsStartStop").setAttribute("value", newtext);
-                    }
-                })
-        }
-
+        // Helper functions for handling submitting data from clicked events
         function obsctrl(){
             if (document.getElementById("obsStartStop").getAttribute("value").includes("Start")) {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
+                var send_url = "{{ url_for('main.send_photons', startstop='start' ) }}";
                 start_photon_send(newClass, newText);
             } else {
                 var newClass = "btn btn-success";
                 var newText = "Start Observing";
+                var send_url = "{{ url_for('main.send_photons', startstop='stop' ) }}";
                 stop_photon_send(newClass, newText);
             }
-        };
+            $.ajax({
+                    type:'POST',
+                    url: send_url,
+                    data: {},
+                    success:function(){
+                        document.getElementById("obsStartStop").setAttribute("class", newclass);
+                        document.getElementById("obsStartStop").setAttribute("value", newtext);
+                    }
+                })
+        }
 
         function update_lasers(buttonid){
             var powers = {};
