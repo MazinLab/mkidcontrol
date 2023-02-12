@@ -581,6 +581,7 @@ def dashplot():
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
 
+# TODO: return the number of successful pubsub messages to determine the success/failure of the request so one can return success/failure to the gui
 @bp.route('/send_photons/<startstop>', methods=["POST"])
 def send_photons(startstop):
     print(startstop)
@@ -611,7 +612,12 @@ def send_photons(startstop):
 @bp.route('/update_laser_powers', methods=["POST"])
 def update_laser_powers():
     if request.method == "POST":
-        powers = {wvl: min(100, max(0, int(request.values[wvl]))) for wvl in request.values}
+        wvl = json.loads(request.values.get("wvl"))
+        power = json.loads(request.values.get("power"))
+        if isinstance(wvl, list):
+            powers = {w: min(100, max(p, 0)) for w,p in zip(wvl, power)}
+        else:
+            powers = {wvl: min(100, max(power, 0))}
 
     try:
         for k, v in powers.items():
@@ -622,7 +628,6 @@ def update_laser_powers():
         sys.exit(1)
 
     return json.dumps(powers)
-
 
 @bp.route('/flip_mirror/<position>', methods=["POST"])
 def flip_mirror(position):

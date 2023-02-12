@@ -23,6 +23,25 @@
                                 <h4>Target Info</h4>
                             </div>
                         </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                                <h4>TCS</h4>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
+                                Target: None
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
+                                Count Rate: 0.0
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
+                                Exposure Time: 00:00
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
+                                SNR Est: 0.0
+                            </div>
+                        </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
                                 <h4>Take Flat / Dark</h4>
@@ -50,19 +69,19 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power808) }}
+                                {{ render_field(laserbox.power808, onkeypress="update_lasers(event, this.id)" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power904) }}
+                                {{ render_field(laserbox.power904, onkeypress="update_lasers(event, this.id)" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power980) }}
+                                {{ render_field(laserbox.power980, onkeypress="update_lasers(event, this.id)" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power1120) }}
+                                {{ render_field(laserbox.power1120, onkeypress="update_lasers(event, this.id)" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power1310) }}
+                                {{ render_field(laserbox.power1310, onkeypress="update_lasers(event, this.id)" ) }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
@@ -70,10 +89,10 @@
                                 {{ render_field(laserbox.flipperposition, class='btn btn-dark') }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
-                                {{ render_field(laserbox.update_all_lasers, onclick="update_lasers(this.id)") }}
+                                {{ render_field(laserbox.update_all_lasers, onclick="update_lasers(event, this.id)") }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
-                                {{ render_field(laserbox.all_lasers_off, onclick="update_lasers(this.id)", class='btn btn-danger') }}
+                                {{ render_field(laserbox.all_lasers_off, onclick="update_lasers(event, this.id)", class='btn btn-danger') }}
                             </div>
                         </div>
                     </div>
@@ -253,29 +272,46 @@
                 })
         }
 
-        function update_lasers(buttonid){
-            var powers = {};
-            var lasers = ["808", "904", "980", "1120", "1310"]
-            for (let p = 0; p < 5; p++) {
-                if (buttonid.includes("update_all")) {
-                    powers[lasers[p]] = document.getElementById("power"+lasers[p]).value
-                } else {
-                    console.log('but')
-                    powers[lasers[p]] = "0"
-                }
-            }
-            $.ajax({
-                type:'POST',
-                url: "{{ url_for('main.update_laser_powers') }}",
-                data: powers,
-                success: function(d){
-                    for (let p = 0; p < 5; p++) {
-                        var response = JSON.parse(d);
-                        console.log(response)
-                        document.getElementById("power"+lasers[p]).value = response[Number(lasers[p])]
+        function update_lasers(event, buttonid){
+            if (event.key === "Enter"){
+                var power = document.getElementById(buttonid).value;
+                var wvl = buttonid.replace("power","");
+            } else if (buttonid.includes("update_all") || (buttonid.includes("all_lasers_off"))) {
+                var power = [];
+                var wvl = ["808", "904", "980", "1120", "1310"];
+                for (let p = 0; p < 5; p++) {
+                    if (buttonid.includes("update_all")) {
+                        power.push(document.getElementById("power"+wvl[p]).value)
+                    } else {
+                        power.push("0")
                     }
                 }
-            })
+                wvl = JSON.stringify(wvl)
+                power = JSON.stringify(power)
+            }
+            if ((event.key === "Enter") || (buttonid.includes("update_all")) || (buttonid.includes("all_lasers_off"))) {
+                $.ajax({
+                    type:'POST',
+                    url: "{{ url_for('main.update_laser_powers') }}",
+                    data: {
+                        wvl: wvl,
+                        power: power
+                    },
+                    success: function(d){
+                        var response = JSON.parse(d);
+                        console.log(response)
+                        if (event.key === "Emter") {
+                            document.getElementById("power"+wvl).value = response[Number(power[wvl])]
+                        } else if (buttonid.includes("update_all") || (buttonid.includes("all_lasers_off"))) {
+                            wvl = JSON.parse(wvl)
+                            power = JSON.parse(power)
+                            for (let p = 0; p < 5; p++) {
+                                document.getElementById("power"+wvl[p]).value = response[Number(wvl[p])]
+                            }
+                        }
+                    }
+                })
+            }
         }
 
         $(function () {
