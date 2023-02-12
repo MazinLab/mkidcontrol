@@ -1,3 +1,4 @@
+import sys
 import os
 import subprocess
 from datetime import datetime
@@ -610,20 +611,34 @@ def send_photons(startstop):
 @bp.route('/update_laser_powers', methods=["POST"])
 def update_laser_powers():
     if request.method == "POST":
-        powers = {wvl: min(100, max(0, request.values[wvl])) for wvl in request.values}
+        powers = {wvl: min(100, max(0, int(request.values[wvl]))) for wvl in request.values}
 
-    for k, v in powers.items():
-        log.debug(f"Setting {k} nm laser to {v}% power")
-        redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v, store=False)
+    try:
+        for k, v in powers.items():
+            log.debug(f"Setting {k} nm laser to {v}% power")
+            redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v, store=False)
+    except RedisError as e:
+        log.warning(f"Can't communicate with Redis Server! {e}")
+        sys.exit(1)
 
     return json.dumps(powers)
 
 
-@bp.route('/flip_mirror', methods=["POST"])
-def flip_mirror():
-    # TODO: Flip mirror control
-    if request.method == "POST":
-        request.form.get('position')
+@bp.route('/flip_mirror/<position>', methods=["POST"])
+def flip_mirror(position):
+    if position.lower() == "up":
+        new_pos = "up"
+    else:
+        new_pos = "down"
+
+    try:
+        log.debug(f"Setting flip mirror to position: {new_pos}")
+        redis.publish("command:device-settings:laserflipperduino:flipper:position", new_pos, store=False)
+    except RedisError as e:
+        log.warning(f"Can't communicate with Redis Server! {e}")
+        sys.exit(1)
+
+    return '', 204
 
 
 def parse_schedule_cooldown(schedule_time):

@@ -67,7 +67,7 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
-                                {{ render_field(laserbox.flipperposition, onclick="flip_mirror()", class='btn btn-dark') }}
+                                {{ render_field(laserbox.flipperposition, class='btn btn-dark') }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
                                 {{ render_field(laserbox.update_all_lasers, onclick="update_lasers(this.id)") }}
@@ -278,12 +278,23 @@
             })
         }
 
-        function flip_mirror(){
-            document.getElementById("flipperposition")
-            $.ajax({
-
-            })
-        }
+        $(function () {
+            var send_url = "";
+            var mirrorpos_id = $('#flipperposition');
+            mirrorpos_id.on('change', function () {
+                var moveto = mirrorpos_id.val();
+                if (moveto.includes("Up")) {
+                    send_url = "{{ url_for('main.flip_mirror', position='up') }}"
+                } else (
+                    send_url = "{{ url_for('main.flip_mirror', position='down') }}"
+                )
+                $.ajax({
+                    type: 'POST',
+                    url: send_url,
+                    data: {}
+                })
+            });
+        });
     </script>
 
 {% endblock %}
