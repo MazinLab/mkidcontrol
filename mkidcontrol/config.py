@@ -11,7 +11,8 @@ REDIS_TS_RETENTION = 60 * 60 * 1000  # 60 min
 REDIS_TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
                  'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
                  'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current',
-                 'status:magnet:field', 'status:device:ls625:output-voltage', 'status:device:heatswitch:motor:position')
+                 'status:magnet:field', 'status:device:ls625:output-voltage', 'status:device:heatswitch:motor:position',
+                 'status:device:focus:position:mm', 'status:device:focus:position:encoder')
 
 REDIS_STATUS_KEYS = () # TODO: Grab all device status keys
 
