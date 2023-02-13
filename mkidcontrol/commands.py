@@ -4,7 +4,6 @@ Author: Noah Swimmer, 10 May 2022
 
 import numpy as np
 
-
 class SimCommand:
     def __init__(self, schema_key, value=None):
         """
@@ -499,6 +498,21 @@ COMMANDSLASERFLIPPER = {'device-settings:laserflipperduino:laserbox:808:power': 
                         'device-settings:laserflipperduino:laserbox:1310:power': {'command': '4', 'vals': [0, 100]},
                         'device-settings:laserflipperduino:flipper:position': {'command': '', 'vals': {"Up": "Up", "Down": "Down"}}
                         }
+
+FILTERS = {0: 'Closed',
+           1: 'Y',
+           2: 'Zs',
+           3: 'J',
+           4: '220+125',
+           5: '125',
+           6: 'Open'}
+
+
+class Filterwheel:
+    def __init__(self, redis):
+        self.filterposition = int(redis.read(redis.redis_keys("device-settings:filterwheel:position")))
+        self.filter = f"{self.filterposition}:{FILTERS[self.filterposition]}"
+
 
 # ---- Fitler Wheel Commands ----
 COMMANDSFILTERWHEEL = {'device-settings:filterwheel:position': {'command': '', 'vals': {'0': 0, '1': 1, '2': 2,

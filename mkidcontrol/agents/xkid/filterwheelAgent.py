@@ -14,11 +14,10 @@ import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
 from mkidcontrol.mkidredis import RedisError
 from mkidcontrol.devices import FilterWheel
-from mkidcontrol.commands import COMMANDSFILTERWHEEL, LakeShoreCommand
+from mkidcontrol.commands import COMMANDSFILTERWHEEL, LakeShoreCommand, FILTERS
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
-
 
 QUERY_INTERVAL = 1
 
@@ -31,14 +30,6 @@ COMMAND_KEYS = (f"command:{key}" for key in SETTING_KEYS)
 
 FILTERWHEEL_POSITION_KEY = 'device-settings:filterwheel:position'
 FILTERWHEEL_FILTER_KEY = 'device-settings:filterwheel:filter'
-
-FILTERS = {0: 'Closed',
-           1: 'Y',
-           2: 'Zs',
-           3: 'J',
-           4: '220+125',
-           5: '125',
-           6: 'Open'}
 
 if __name__ == "__main__":
 
