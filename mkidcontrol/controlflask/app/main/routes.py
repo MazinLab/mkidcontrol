@@ -623,7 +623,7 @@ def update_laser_powers():
         wvl = json.loads(request.values.get("wvl"))
         power = json.loads(request.values.get("power"))
         if isinstance(wvl, list):
-            powers = {w: min(100, max(p, 0)) for w,p in zip(wvl, power)}
+            powers = {w: min(100, max(int(p), 0)) for w,p in zip(wvl, power)}
         else:
             powers = {wvl: min(100, max(power, 0))}
 
