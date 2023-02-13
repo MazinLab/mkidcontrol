@@ -26,6 +26,11 @@ class ConexForm(FlaskForm):
     stop = SubmitField("Stop")
 
 
+class FilterWheelForm(FlaskForm):
+    from mkidcontrol.commands import FILTERS
+    filter = SelectField("Filter", choices=[f"{f[0]}:{f[1]}" for f in FILTERS.items()])
+
+
 class LaserBoxForm(FlaskForm):
     power808 = IntegerField("808 nm", default=0)
     power904 = IntegerField("904 nm", default=0)
@@ -35,6 +40,13 @@ class LaserBoxForm(FlaskForm):
     update_all_lasers = SubmitField("Update Powers")
     flipperposition = SelectField("Mirror Position", choices=["Up", "Down"])
     all_lasers_off = SubmitField("All Lasers Off")
+
+
+class FocusForm(FlaskForm):
+    position = FloatField("Position", default=0)  # Allowed values run from 0-50 mm
+    home = SubmitField("Home")
+    jogforward = SubmitField("Jog Forward")
+    jogbackward = SubmitField("Jog Backward")
 
 
 class ObsControlForm(FlaskForm):
