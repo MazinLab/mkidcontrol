@@ -657,6 +657,21 @@ def flip_mirror(position):
     return '', 204
 
 
+@bp.route('/change_filter/<filter>', methods=['POST'])
+def change_filter(filter):
+
+    filterno, filtername = filter.split(':')
+
+    try:
+        log.debug(f"Setting filter mirror to position: {filterno} ({filtername})")
+        redis.publish() # TODO
+    except RedisError as e:
+        log.warning(f"Can't communicate with Redis Server! {e}")
+        sys.exit(1)
+
+    return '', 204
+
+
 def parse_schedule_cooldown(schedule_time):
     """
     Takes a string input from the schedule cooldown field and parses it to determine if it is in a proper format to be
