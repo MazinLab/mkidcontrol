@@ -54,12 +54,21 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                <h4>Focus Control</h4>
+                                {{ render_field(focus.position, onkeypress="move_focus(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                                {{ render_field(focus.jogforward, class='btn btn-dark', onclick="move_focus(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                                {{ render_field(focus.jogbackward, class='btn btn-dark', onclick="move_focus(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                                {{ render_field(focus.home, class='btn btn-success', onclick="move_focus(event, this.id)" ) }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                <h4>Filter Control</h4>
+                                {{ render_field( fw.filter, class='btn btn-dark' ) }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
@@ -254,20 +263,18 @@
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
                 var send_url = "{{ url_for('main.send_photons', startstop='start' ) }}";
-                start_photon_send(newClass, newText);
             } else {
                 var newClass = "btn btn-success";
                 var newText = "Start Observing";
                 var send_url = "{{ url_for('main.send_photons', startstop='stop' ) }}";
-                stop_photon_send(newClass, newText);
             }
             $.ajax({
                     type:'POST',
                     url: send_url,
                     data: {},
                     success:function(){
-                        document.getElementById("obsStartStop").setAttribute("class", newclass);
-                        document.getElementById("obsStartStop").setAttribute("value", newtext);
+                        document.getElementById("obsStartStop").setAttribute("class", newClass);
+                        document.getElementById("obsStartStop").setAttribute("value", newText);
                     }
                 })
         }
@@ -276,7 +283,7 @@
             if (event.key === "Enter"){
                 var power = document.getElementById(buttonid).value;
                 var wvl = buttonid.replace("power","");
-            } else if (buttonid.includes("update_all") || (buttonid.includes("all_lasers_off"))) {
+            } else if (buttonid.includes("all_lasers")) {
                 var power = [];
                 var wvl = ["808", "904", "980", "1120", "1310"];
                 for (let p = 0; p < 5; p++) {
@@ -289,7 +296,7 @@
                 wvl = JSON.stringify(wvl)
                 power = JSON.stringify(power)
             }
-            if ((event.key === "Enter") || (buttonid.includes("update_all")) || (buttonid.includes("all_lasers_off"))) {
+            if ((event.key === "Enter") || (buttonid.includes("all_lasers"))) {
                 $.ajax({
                     type:'POST',
                     url: "{{ url_for('main.update_laser_powers') }}",
@@ -315,18 +322,24 @@
         }
 
         $(function () {
-            var send_url = "";
             var mirrorpos_id = $('#flipperposition');
             mirrorpos_id.on('change', function () {
-                var moveto = mirrorpos_id.val();
-                if (moveto.includes("Up")) {
-                    send_url = "{{ url_for('main.flip_mirror', position='up') }}"
-                } else (
-                    send_url = "{{ url_for('main.flip_mirror', position='down') }}"
-                )
+                var flippermoveto = mirrorpos_id.val();
                 $.ajax({
                     type: 'POST',
-                    url: send_url,
+                    url: "{{ url_for('main.flip_mirror', position='') }}" + flippermoveto,
+                    data: {}
+                })
+            });
+        });
+
+        $(function () {
+            var filterpos_id = $('#filter');
+            filterpos_id.on('change', function () {
+                var filtermoveto = filterpos_id.val();
+                $.ajax({
+                    type: 'POST',
+                    url: "{{ url_for('main.change_filter', filter='' ) }}" + filtermoveto,
                     data: {}
                 })
             });
