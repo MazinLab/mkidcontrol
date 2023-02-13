@@ -40,11 +40,14 @@ TS_KEYS = (FOCUS_POSITION_MM_KEY, FOCUS_POSITION_ENCODER_KEY)
 
 MOVE_BY_MM_KEY = 'device-settings:focus:desired-move:mm'
 MOVE_BY_ENC_KEY = 'device-settings:focus:desired-move:encoder'
+MOVE_TO_MM_KEY = 'device-settings:focus:desired-position:mm'
+MOVE_TO_ENC_KEY = 'device-settings:focus:desired-position:encoder'
 HOME_KEY = 'device-settings:focus:home'
 JOG_KEY = 'device-settings:focus:jog'
 
 SETTING_KEYS = tuple(COMMANDSFOCUS.keys())
-COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY, JOG_KEY, HOME_KEY]])
+COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY, JOG_KEY,
+                                                                        HOME_KEY, MOVE_TO_MM_KEY, MOVE_TO_ENC_KEY]])
 
 
 def callback(pos_mm, pos_enc):
