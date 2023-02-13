@@ -96,7 +96,7 @@ if __name__ == "__main__":
                         units = key.split(":")[-1]
                         f.move_to(val, units=units)
                     elif key in [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY]:
-                        unts = key.split(":")[-1]
+                        units = key.split(":")[-1]
                         f.move_by(val, units=units)
                     elif key == JOG_KEY:
                         f.jog(direction=val)
