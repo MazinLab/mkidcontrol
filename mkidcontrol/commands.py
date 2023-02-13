@@ -519,6 +519,13 @@ COMMANDSFILTERWHEEL = {'device-settings:filterwheel:position': {'command': '', '
                                                                                         '3': 3, '4': 4, '5': 5,
                                                                                         '6': 6}}}
 
+
+class Focus:
+    def __init__(self, redis):
+        self.position_mm = redis.read('status:device:focus:position:mm')[1]
+        self.position_encoder = redis.read('status:device:focus:position:encoder')[1]
+
+
 # ---- Focus Slider Commands ----
 COMMANDSFOCUS = {'device-settings:focus:home-params:velocity': {'command': '', 'vals': [0, 164931]},
                  'device-settings:focus:home-params:offset-distance': {'command': '', 'vals': [0, 1727750]},
