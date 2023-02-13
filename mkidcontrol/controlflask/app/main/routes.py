@@ -31,7 +31,7 @@ import select
 
 from mkidcontrol.controlflask.config import Config
 import mkidcontrol.mkidredis as redis
-from mkidcontrol.commands import COMMAND_DICT, SimCommand
+from mkidcontrol.commands import COMMAND_DICT, SimCommand, LakeShoreCommand
 from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
@@ -61,6 +61,8 @@ from mkidcontrol.controlflask.app.main.forms import *
 # TODO: Rework statuses, no need for 'ok'/'enabled', just flash an error along the top of screen
 
 # TODO: Where is TCS data on the home screen?
+
+# TODO: Focus settings page
 
 # TODO: Move all these key definitions to config.py where all the other redis db and key stuff lives
 CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
@@ -130,6 +132,9 @@ def index():
         return redirect(url_for('main.redis_error_page'))
     except KeyError:
         flash(f"Redis keys are missing!")
+
+    # TODO: Parse in current values at startup when endpoint gets hit
+    from mkidcontrol.commands import Laserbox, Filterwheel
 
     magnetform = MagnetCycleForm()
     hsform = HeatSwitchForm2()
@@ -611,6 +616,7 @@ def send_photons(startstop):
 
 @bp.route('/update_laser_powers', methods=["POST"])
 def update_laser_powers():
+    # TODO: Return success vs failure code
     if request.method == "POST":
         wvl = json.loads(request.values.get("wvl"))
         power = json.loads(request.values.get("power"))
@@ -622,6 +628,7 @@ def update_laser_powers():
     try:
         for k, v in powers.items():
             log.debug(f"Setting {k} nm laser to {v}% power")
+            # TODO: Make key value discoverable or a global variable?
             redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v, store=False)
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
@@ -631,6 +638,7 @@ def update_laser_powers():
 
 @bp.route('/flip_mirror/<position>', methods=["POST"])
 def flip_mirror(position):
+    # TODO: Return success vs. failure code
     if position.lower() == "up":
         new_pos = "up"
     else:
@@ -638,6 +646,7 @@ def flip_mirror(position):
 
     try:
         log.debug(f"Setting flip mirror to position: {new_pos}")
+        # TODO: Make key value discoverable or a global variable?
         redis.publish("command:device-settings:laserflipperduino:flipper:position", new_pos, store=False)
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
