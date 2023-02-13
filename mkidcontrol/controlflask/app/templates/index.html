@@ -11,18 +11,87 @@
 <!--                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">-->
 <!--                            <h1>Observing</h1>-->
 <!--                        </div>-->
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-2 border-bottom">
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-2">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
+                                {{ render_field(obs.target, onkeypress="update_target()") }}
+                            </div>
                             {% if sending_photons %}
-                                <input type="button" class="btn btn-danger" id="obsStartStop" onclick='obsctrl()' value="Stop Observing">
+                                {{ render_field(obs.obsStartStop, class="btn btn-danger", onclick="obsctrl()", value="Stop Observing") }}
                             {% else %}
-                                <input type="button" class="btn btn-success" id="obsStartStop" onclick='obsctrl()' value="Start Observing">
+                                {{ render_field(obs.obsStartStop, class="btn btn-primary", onclick="obsctrl()",  value="Start Observing") }}
                             {% endif %}
+
                         </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                <h4>Target Info</h4>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-2 border-bottom">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3 border-right">
+                                {{ render_field( fw.filter, class='btn btn-dark' ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(obs.flat, class="btn btn-dark", disabled='disabled', onclick="do_nothing()" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(obs.dark, class="btn btn-dark", disabled='disabled', onclick="do_nothing()" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(obs.wavecal, class="btn btn-dark", disabled='disabled', onclick="do_nothing()" ) }}
                             </div>
                         </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2">
+                                <span class="dot" id="focus_success_dot"></span>
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 border-right">
+                                <h5>Focus</h5>
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2">
+                                {{ render_field(focus.focus_position, onkeypress="move_focus(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2">
+                                {{ render_field(focus.home_focus, class='btn btn-primary', onclick="move_focus(event, this.id)" ) }}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border-bottom">
+                                <h5>Laser + Flipper Mirror</h5>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(laserbox.power808, onkeypress="update_lasers(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(laserbox.power904, onkeypress="update_lasers(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(laserbox.power980, onkeypress="update_lasers(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(laserbox.power1120, onkeypress="update_lasers(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(laserbox.power1310, onkeypress="update_lasers(event, this.id)" ) }}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-right">
+                                {{ render_field(laserbox.flipperposition, class='btn btn-dark') }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
+                                {{ render_field(laserbox.update_all_lasers, onclick="update_lasers(event, this.id)") }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
+                                {{ render_field(laserbox.all_lasers_off, onclick="update_lasers(event, this.id)", class='btn btn-danger') }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-column col-4 border-left">
+                        <div class="flex-column flex-wrap flex-md-nowrap py-2 mb-3">
+                            <div id="dash"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex-column col-4 border-left">
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
                                 <h4>TCS</h4>
@@ -44,92 +113,21 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                <h4>Take Flat / Dark</h4>
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
                                 <h4>Dither Control</h4>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(focus.position, onkeypress="move_focus(event, this.id)" ) }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(focus.jogforward, class='btn btn-dark', onclick="move_focus(event, this.id)" ) }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(focus.jogbackward, class='btn btn-dark', onclick="move_focus(event, this.id)" ) }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(focus.home, class='btn btn-success', onclick="move_focus(event, this.id)" ) }}
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field( fw.filter, class='btn btn-dark' ) }}
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                <h4>Laser + Flipper Mirror</h4>
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power808, onkeypress="update_lasers(event, this.id)" ) }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power904, onkeypress="update_lasers(event, this.id)" ) }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power980, onkeypress="update_lasers(event, this.id)" ) }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power1120, onkeypress="update_lasers(event, this.id)" ) }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                {{ render_field(laserbox.power1310, onkeypress="update_lasers(event, this.id)" ) }}
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
-                                {{ render_field(laserbox.flipperposition, class='btn btn-dark') }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
-                                {{ render_field(laserbox.update_all_lasers, onclick="update_lasers(event, this.id)") }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
-                                {{ render_field(laserbox.all_lasers_off, onclick="update_lasers(event, this.id)", class='btn btn-danger') }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex-column col-4 border-left">
-                        <div class="flex-column flex-wrap flex-md-nowrap py-2 mb-3">
-                            <div id="dash"></div>
-                        </div>
-                    </div>
-
-                    <div class="flex-column col-4 border-left">
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border-bottom">
                             <h4>Fridge Control</h4>
                         </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(magnetform.start) }}
+                                {{ render_field(magnetform.start, class="btn btn-dark" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(magnetform.fast) }}
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(magnetform.abort) }}
+                                {{ render_field(magnetform.fast, class="btn btn-dark" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(magnetform.cancel_scheduled) }}
+                                {{ render_field(magnetform.abort, class='btn btn-danger') }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border-bottom">
@@ -137,7 +135,7 @@
                                 {{ render_field(magnetform.at) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(magnetform.schedule) }}
+                                {{ render_field(magnetform.schedule, class="btn btn-dark") }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mt-2">
@@ -145,13 +143,13 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(hsform.open) }}
+                                {{ render_field(hsform.open, class="btn btn-dark") }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(hsform.close) }}
+                                {{ render_field(hsform.close, class="btn btn-dark") }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(hsform.stop) }}
+                                {{ render_field(hsform.stop, class="btn btn-danger") }}
                             </div>
                         </div>
                     </div>
@@ -264,7 +262,7 @@
                 var newText = "Stop Observing";
                 var send_url = "{{ url_for('main.send_photons', startstop='start' ) }}";
             } else {
-                var newClass = "btn btn-success";
+                var newClass = "btn btn-primary";
                 var newText = "Start Observing";
                 var send_url = "{{ url_for('main.send_photons', startstop='stop' ) }}";
             }
