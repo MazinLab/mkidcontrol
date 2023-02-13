@@ -33,11 +33,11 @@ class FilterWheelForm(FlaskForm):
 
 
 class LaserBoxForm(FlaskForm):
-    power808 = IntegerField("808 nm", default=0)
-    power904 = IntegerField("904 nm", default=0)
-    power980 = IntegerField("980 nm", default=0)
-    power1120 = IntegerField("1120 nm", default=0)
-    power1310 = IntegerField("1310 nm", default=0)
+    power808 = FloatField("808 nm", default=0)
+    power904 = FloatField("904 nm", default=0)
+    power980 = FloatField("980 nm", default=0)
+    power1120 = FloatField("1120 nm", default=0)
+    power1310 = FloatField("1310 nm", default=0)
     update_all_lasers = SubmitField("Update Powers")
     flipperposition = SelectField("Mirror Position", choices=["Up", "Down"])
     all_lasers_off = SubmitField("All Lasers Off")
