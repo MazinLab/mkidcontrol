@@ -83,7 +83,7 @@ def create_app(config_class=Config, cliargs=None):
     moment.init_app(app)
     babel.init_app(app)
     redis.setup_redis(ts_keys=TS_KEYS)
-    app.redis = redis.mkidredis
+    app.redis = redis
 
     if 'run' in cliargs:
         # TODO: If offline, just send an array of zeros to the viewer, don't spin up packetmaster at all.
