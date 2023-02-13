@@ -138,7 +138,9 @@ def index():
 
     magnetform = MagnetCycleForm()
     hsform = HeatSwitchForm2()
-    laserbox = LaserBoxForm()
+    laserbox = LaserBoxForm(**vars(Laserbox(redis)))
+    fw = FilterWheelForm(**vars(Filterwheel(redis)))
+    focus = FocusForm()
 
     sending_photons = os.path.exists(current_app.send_photons_file)
 
@@ -150,8 +152,8 @@ def index():
     array_fig = view_array_data()
     pix_lightcurve = pixel_lightcurve()
 
-    return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform,
-                           form=form, laserbox=laserbox, sensor_fig=sensor_fig, array_fig=array_fig,
+    return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform, fw=fw,
+                           focus=focus, form=form, laserbox=laserbox, sensor_fig=sensor_fig, array_fig=array_fig,
                            pix_lightcurve=pix_lightcurve, sensorkeys=list(CHART_KEYS.values()))
 
 
