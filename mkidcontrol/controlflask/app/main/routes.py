@@ -115,6 +115,7 @@ def index():
     fw = FilterWheelForm(**vars(Filterwheel(redis)))
     focus = FocusForm(**vars(Focus(redis)))
     obs = ObsControlForm()
+    conex = ConexForm()
 
     sending_photons = os.path.exists(current_app.send_photons_file)
 
@@ -127,8 +128,8 @@ def index():
     pix_lightcurve = pixel_lightcurve()
 
     return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform, fw=fw,
-                           focus=focus, form=form, laserbox=laserbox, obs=obs, sensor_fig=sensor_fig, array_fig=array_fig,
-                           pix_lightcurve=pix_lightcurve, sensorkeys=list(CHART_KEYS.values()))
+                           focus=focus, form=form, laserbox=laserbox, obs=obs, conex=conex, sensor_fig=sensor_fig,
+                           array_fig=array_fig, pix_lightcurve=pix_lightcurve, sensorkeys=list(CHART_KEYS.values()))
 
 
 @bp.route('/other_plots', methods=['GET'])

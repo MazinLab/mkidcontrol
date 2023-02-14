@@ -126,13 +126,40 @@
                                 Az : 0.0
                             </div>
                         </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                                <h4>Dither Control</h4>
+                                <h4>Dither</h4>
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
-                            <h4>Fridge Control</h4>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.start_pos) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.stop_pos) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.dither_start, class = "btn btn-dark" ) }}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border-bottom">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.dwell_time) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.n_steps) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 border-top border-left">
+                                {{ render_field(conex.position) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 border-top">
+                                {{ render_field(conex.conex_stop, class = "btn btn-dark" ) }}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
+                                <h4>Fridge Control</h4>
+                            </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
