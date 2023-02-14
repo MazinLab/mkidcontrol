@@ -279,6 +279,5 @@ class MagnetCycleForm(FlaskForm):
     start = SubmitField("Start Cycle")
     fast = SubmitField("Start Fast Cycle")
     abort = SubmitField("Abort Cooldown")
-    cancel_scheduled = SubmitField("Cancel Scheduled Cooldown")
-    at = DateTimeLocalField('Schedule cycle for:', format='%m/%d/%Y %I:%M %p')
-    schedule = SubmitField("Schedule")
+    at = DateTimeLocalField('Schedule cycle for:', format='%m/%d/%YT%I:%M %p')
+    schedule = SubmitField("Schedule")  # TODO: Turn schedule to "Cancel Scheduled" if there is a scheduled cooldown
