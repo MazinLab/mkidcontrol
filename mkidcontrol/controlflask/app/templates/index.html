@@ -51,7 +51,7 @@
                                 {{ render_field(focus.focus_position, onkeypress="move_focus(event, this.id)" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2">
-                                {{ render_field(focus.home_focus, class='btn btn-primary', onclick="move_focus(event, this.id)" ) }}
+                                {{ render_field(focus.home_focus, class='btn btn-dark', onclick="move_focus(event, this.id)" ) }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
@@ -87,7 +87,7 @@
                                 {{ render_field(laserbox.flipperposition, class='btn btn-dark') }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
-                                {{ render_field(laserbox.update_all_lasers, onclick="update_lasers(event, this.id)") }}
+                                {{ render_field(laserbox.update_all_lasers, class='btn btn-dark', onclick="update_lasers(event, this.id)") }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
                                 {{ render_field(laserbox.all_lasers_off, onclick="update_lasers(event, this.id)", class='btn btn-danger') }}
@@ -107,18 +107,18 @@
                                 <h4>TCS</h4>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
-                                Count Rate: 0.0
+                                Airmass: 1.00
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
-                                Exposure Time: 00:00
+                                Rotator: Off
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
-                                RA : 0.0
+                                RA : 0.0"
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
-                                Dec : 0.0
+                                Dec : 0.0"
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
                                 Alt : 0.0
