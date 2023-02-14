@@ -319,6 +319,31 @@
             }
         }
 
+        function move_focus(event, buttonid){
+            if (event.key === "Enter"){
+                var position = document.getElementById(buttonid).value;
+            } else if (buttonid.includes("home_focus")) {
+                var position = "home"
+            }
+            if ((event.key === "Enter") || (buttonid.includes("home_focus"))) {
+                $.ajax({
+                    type:'POST',
+                    url: "{{ url_for('main.move_focus', position='') }}"+position,
+                    data: {},
+                    success: function(d){
+                        var response = JSON.parse(d);
+                        console.log(response)
+                        if (response['success'] == 1) {
+                            document.getElementById("focus_success_dot").style.backgroundColor = "green"
+                        } else {
+                            document.getElementById("focus_success_dot").style.backgroundColor = "red"
+                        }
+                        document.getElementById("focus_position").value = response['position']
+                    }
+                })
+            }
+        }
+
         $(function () {
             var mirrorpos_id = $('#flipperposition');
             mirrorpos_id.on('change', function () {

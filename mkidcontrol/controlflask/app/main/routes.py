@@ -39,7 +39,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Make sure columns/divs support resizing
 
-# TODO: Focus settings form, add focus control to homepage
 # TODO: Add clearer magnet control/status to homepage
 # TODO: Observation control on home screen
 # TODO: Laser box control on home screen
@@ -61,8 +60,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 # TODO: Rework statuses, no need for 'ok'/'enabled', just flash an error along the top of screen
 
 # TODO: Where is TCS data on the home screen?
-
-# TODO: Focus settings page
 
 # TODO: Move all these key definitions to config.py where all the other redis db and key stuff lives
 CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
@@ -134,13 +131,13 @@ def index():
         flash(f"Redis keys are missing!")
 
     # TODO: Parse in current values at startup when endpoint gets hit
-    from mkidcontrol.commands import Laserbox, Filterwheel
+    from mkidcontrol.commands import Laserbox, Filterwheel, Focus
 
     magnetform = MagnetCycleForm()
     hsform = HeatSwitchForm2()
     laserbox = LaserBoxForm(**vars(Laserbox(redis)))
     fw = FilterWheelForm(**vars(Filterwheel(redis)))
-    focus = FocusForm()
+    focus = FocusForm(**vars(Focus(redis)))
 
     sending_photons = os.path.exists(current_app.send_photons_file)
 
@@ -153,7 +150,7 @@ def index():
     pix_lightcurve = pixel_lightcurve()
 
     return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform, fw=fw,
-                           focus=focus, form=form, laserbox=laserbox, sensor_fig=sensor_fig, array_fig=array_fig,
+                           focus=focus, form=form, laserbox=laserbox, obs=obs, sensor_fig=sensor_fig, array_fig=array_fig,
                            pix_lightcurve=pix_lightcurve, sensorkeys=list(CHART_KEYS.values()))
 
 
@@ -655,6 +652,24 @@ def flip_mirror(position):
         sys.exit(1)
 
     return '', 204
+
+
+@bp.route('/move_focus/<position>', methods=["POST"])
+def move_focus(position):
+    msg_success = 0
+    if position == "home":
+        log.debug("Sending command to home focus stage")
+        msg_success += current_app.redis.publish('command:device-settings:focus:home', 'home', store=False)
+    else:
+        position = min(50, max(0, float(position)))  # Can only move between 0-50 mm
+        log.debug(f"Command focus stage to move to {position}")
+        msg_success += current_app.redis.publish('command:device-settings:focus:desired-position:mm', position, store=False)
+
+    position = current_app.redis.read('status:device:focus:position:mm')[1]
+
+    resp = {'success': msg_success, 'position': position}
+
+    return json.dumps(resp)
 
 
 @bp.route('/change_filter/<filter>', methods=['POST'])
