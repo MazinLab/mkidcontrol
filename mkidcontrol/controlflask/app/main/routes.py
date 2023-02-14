@@ -213,15 +213,14 @@ def heater(device, channel):
     return render_template('heater.html', title=_(f"{title} Control"), form=form)
 
 
-@bp.route('/thermometry/<device>/<channel>', methods=['GET', 'POST'])
-def thermometry(device, channel):
-    # TODO: Add ls372 input filter
+@bp.route('/thermometry/<device>/<channel>/<filter>', methods=['GET', 'POST'])
+def thermometry(device, channel, filter):
     try:
         title = current_app.redis.read(f'device-settings:{device}:input-channel-{channel.lower()}:name')
     except:
         return redirect(url_for('main.page_not_found'))
 
-    from ....commands import LakeShoreCommand
+    from mkidcontrol.commands import LakeShoreCommand
 
     if request.method == 'POST':
         print(f"Form: {request.form}")
@@ -275,10 +274,9 @@ def thermometry(device, channel):
 
 @bp.route('/ls625', methods=['POST', 'GET'])
 def ls625():
-    # from mkidcontrol.controlflask.app.main.forms import Lakeshore625ControlForm
-    from ....commands import LakeShoreCommand, LS625MagnetSettings
+    from mkidcontrol.commands import LakeShoreCommand, LS625MagnetSettings
 
-    ls625settings = LS625MagnetSettings(redis)
+    ls625settings = LS625MagnetSettings(current_app.redis)
 
     if request.method == 'POST':
         for key in request.form.keys():
