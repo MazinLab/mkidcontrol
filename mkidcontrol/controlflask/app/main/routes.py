@@ -631,21 +631,26 @@ def update_laser_powers():
 
 @bp.route('/flip_mirror/<position>', methods=["POST"])
 def flip_mirror(position):
-    # TODO: Return success vs. failure code
+    msg_success = 0
+
     if position.lower() == "up":
-        new_pos = "up"
+        new_pos = "Up"
     else:
-        new_pos = "down"
+        new_pos = "Down"
 
     try:
         log.debug(f"Setting flip mirror to position: {new_pos}")
-        current_app.redis.publish("command:device-settings:laserflipperduino:flipper:position", new_pos, store=False)
+        msg_success += current_app.redis.publish("command:device-settings:laserflipperduino:flipper:position", new_pos, store=False)
         log.info(f"Flip mirror set to position: {new_pos}")
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
         sys.exit(1)
 
-    return '', 204
+    position = current_app.redis.read('device-settings:laserflipperduino:flipper:position')
+
+    resp = {'success': msg_success, 'position': position}
+
+    return json.dumps(resp)
 
 
 @bp.route('/move_focus/<position>', methods=["POST"])
@@ -668,18 +673,23 @@ def move_focus(position):
 
 @bp.route('/change_filter/<filter>', methods=['POST'])
 def change_filter(filter):
-
+    # TODO: Add dot showing if message was sent to redis successfully.
     filterno, filtername = filter.split(':')
-    current_filter = current_app.redis.read('device-settings:filterwheel:position')
+    msg_success = 0
+
+    FDATA = {k: f"{k}:{v}" for k, v in FILTERS.items()}
 
     try:
         log.debug(f"Setting filter mirror to position: {filterno} ({filtername})")
-        current_app.redis.publish('command:device-settings:filterwheel:position', filterno, store=False) # TODO
+        msg_success += current_app.redis.publish('command:device-settings:filterwheel:position', filterno, store=False) # TODO
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
         sys.exit(1)
 
-    return '', 204
+    filterpos = current_app.redis.read('device-settings:filterwheel:position')
+    resp = {'success': msg_success, 'filter': FDATA[int(filterpos)]}
+
+    return json.dumps(resp)
 
 
 def parse_schedule_cooldown(schedule_time):

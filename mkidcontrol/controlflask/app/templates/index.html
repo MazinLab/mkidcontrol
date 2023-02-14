@@ -23,7 +23,10 @@
 
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-2 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3 border-right">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-top">
+                                <span class="dot" id="filter_success_dot"></span>
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3 border-right border-top">
                                 {{ render_field( fw.filter, class='btn btn-dark' ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
@@ -73,7 +76,10 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-right">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-top">
+                                <span class="dot" id="flipper_success_dot"></span>
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-right border-top">
                                 {{ render_field(laserbox.flipperposition, class='btn btn-dark') }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
@@ -332,7 +338,6 @@
                     data: {},
                     success: function(d){
                         var response = JSON.parse(d);
-                        console.log(response)
                         if (response['success'] == 1) {
                             document.getElementById("focus_success_dot").style.backgroundColor = "green"
                         } else {
@@ -351,7 +356,16 @@
                 $.ajax({
                     type: 'POST',
                     url: "{{ url_for('main.flip_mirror', position='') }}" + flippermoveto,
-                    data: {}
+                    data: {},
+                    success: function(d){
+                        var response = JSON.parse(d);
+                        if (response['success'] == 1) {
+                            document.getElementById("flipper_success_dot").style.backgroundColor = "green"
+                        } else {
+                            document.getElementById("flipper_success_dot").style.backgroundColor = "red"
+                        }
+                        document.getElementById("flipperposition").value = response['position']
+                    }
                 })
             });
         });
@@ -363,7 +377,16 @@
                 $.ajax({
                     type: 'POST',
                     url: "{{ url_for('main.change_filter', filter='' ) }}" + filtermoveto,
-                    data: {}
+                    data: {},
+                    success: function(d){
+                        var response = JSON.parse(d);
+                        if (response['success'] == 1) {
+                            document.getElementById("filter_success_dot").style.backgroundColor = "green"
+                        } else {
+                            document.getElementById("filter_success_dot").style.backgroundColor = "red"
+                        }
+                        document.getElementById("filter").value = response['filter']
+                    }
                 })
             });
         });
