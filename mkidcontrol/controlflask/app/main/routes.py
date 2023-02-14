@@ -239,25 +239,34 @@ def thermometry(device, channel):
 
     # TODO: Turn all of this if/else into a single 'thermometry' form
     if device == 'ls336':
-        from mkidcontrol.controlflask.app.main.forms import RTDForm, DiodeForm, DisabledInputForm
-        from ....commands import LS336InputSensor
+        from mkidcontrol.commands import LS336InputSensor
 
-        sensor = LS336InputSensor(channel=channel, redis=redis)
+        sensor = LS336InputSensor(channel=channel, redis=current_app.redis)
         if sensor.sensor_type == "NTC RTD":
             form = RTDForm(**vars(sensor))
         elif sensor.sensor_type == "Diode":
             form = DiodeForm(**vars(sensor))
         elif sensor.sensor_type == "Disabled":
-            form = DisabledInputForm(**vars(sensor))
+            form = DisabledInput336Form(**vars(sensor))
     elif device == 'ls372':
-        from mkidcontrol.controlflask.app.main.forms import ControlSensorForm, InputSensorForm
-        from ....commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS
-        sensor = LS372InputSensor(channel=channel, redis=redis)
-        # TODO: Enable/disable
-        if channel == "A":
-            form = ControlSensorForm(**vars(sensor))
-        elif channel in ALLOWED_372_INPUT_CHANNELS[1:]:
-            form = Input372SensorForm(**vars(sensor))
+        from mkidcontrol.commands import LS372InputSensor, ALLOWED_372_INPUT_CHANNELS
+        sensor = LS372InputSensor(channel=channel, redis=current_app.redis)
+        if sensor.enable == "True":
+            if channel == "A":
+                if filter == "filter":
+                    form = Input372FilterForm(**vars(sensor))
+                else:
+                    form = ControlSensorForm(**vars(sensor))
+            elif channel in ALLOWED_372_INPUT_CHANNELS[1:]:
+                if filter == "filter":
+                    form = Input372FilterForm(**vars(sensor))
+                else:
+                    form = Input372SensorForm(**vars(sensor))
+        else:
+            if channel == "A":
+                form = DiasbledControlSensorForm(**vars(sensor))
+            elif channel in ALLOWED_372_INPUT_CHANNELS[1:]:
+                form = DisabledInput372SensorForm(**vars(sensor))
     else:
         return redirect(url_for('main.page_not_found'))
 

@@ -58,12 +58,13 @@
                             Thermometry
                         </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls372', channel='A') }}">Device Thermometer</a>
-                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls372', channel='1') }}">1K Thermometer</a>
-                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls336', channel='C') }}">3K Thermometer</a>
-                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls336', channel='D') }}">50K Thermometer</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls372', channel='A', filter='0' ) }}">Device Thermometer</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls372', channel='1', filter='0' ) }}">1K Thermometer</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls336', channel='C', filter='0' ) }}">3K Thermometer</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls336', channel='D', filter='0' ) }}">50K Thermometer</a>
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="#">Something else here</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls372', channel='A', filter='filter') }}">Device Readout Filter</a>
+                        <a class="dropdown-item" href="{{ url_for('main.thermometry', device='ls372', channel='1', filter='filter') }}">1K Readout Filter</a>
                     </div>
                     </li>
                     <li class="nav-item active">
