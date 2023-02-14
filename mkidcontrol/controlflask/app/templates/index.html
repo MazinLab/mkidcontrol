@@ -357,6 +357,7 @@
             }
         }
 
+        // Handle the flipper mirror position changing
         $(function () {
             var flipperpos_id = $('#flipperposition');
             flipperpos_id.on('change', function () {
@@ -380,6 +381,7 @@
             });
         });
 
+        // Handle the filter wheel position changing
         $(function () {
             var filterpos_id = $('#filter');
             filterpos_id.on('change', function () {
@@ -403,6 +405,7 @@
             });
         });
 
+        // Helper function to change color of a command status div back to grey
         function fade_color (div_id, timeout=3000) {
             setInterval(function() {
                 div_id.style.backgroundColor = '#bbb'
