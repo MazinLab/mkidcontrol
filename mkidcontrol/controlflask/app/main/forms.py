@@ -44,13 +44,14 @@ class LaserBoxForm(FlaskForm):
 
 
 class FocusForm(FlaskForm):
-    position = FloatField("Position", default=0)  # Allowed values run from 0-50 mm
-    home = SubmitField("Home")
+    focus_position = FloatField("Position (0-50 mm)", default=0)  # Allowed values run from 0-50 mm
+    home_focus = SubmitField("Home")
     jogforward = SubmitField("Jog Forward")
     jogbackward = SubmitField("Jog Backward")
 
 
 class ObsControlForm(FlaskForm):
+    obsStartStop = SubmitField("")
     target = StringField("Target")
     wavecal = SubmitField("Wavecal")
     flat = SubmitField("Take Flat")
