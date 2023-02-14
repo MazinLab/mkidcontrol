@@ -11,15 +11,13 @@ class EmptyForm(FlaskForm):
 
 
 class ConexForm(FlaskForm):
-    # TODO: Subdither
-    start_pos = StringField("Start Position (x, y)", default="0.0, 0.0")
-    stop_pos = StringField("Stop Position (x, y)", default="0.0, 0.0")
+    start_pos = StringField("Start (x, y)", default="0.0, 0.0")
+    stop_pos = StringField("Stop (x, y)", default="0.0, 0.0")
     n_steps = IntegerField("N Steps", default=5)
-    dwell_time = IntegerField("Dwell Time (s)", default=30)
+    dwell_time = IntegerField("Dwell (s)", default=30)
     dither_start = SubmitField("Dither")
     position = StringField("Position (x, y)", default="0.0, 0.0")
-    go = SubmitField("Go")
-    stop = SubmitField("Stop")
+    conex_stop = SubmitField("Stop")
 
 
 class FilterWheelForm(FlaskForm):
