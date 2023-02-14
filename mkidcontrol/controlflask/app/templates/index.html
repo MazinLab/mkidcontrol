@@ -24,7 +24,7 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-2 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-top">
-                                <span class="dot" id="filter_success_dot"></span>
+                                <span class="dot" id="filter_status_dot"></span>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3 border-right border-top">
                                 {{ render_field( fw.filter, class='btn btn-dark' ) }}
@@ -41,7 +41,7 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2">
-                                <span class="dot" id="focus_success_dot"></span>
+                                <span class="dot" id="focus_status_dot"></span>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 border-right">
                                 <h5>Focus</h5>
@@ -55,7 +55,7 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2">
-                                <span class="dot" id="laserbox_success_dot"></span>
+                                <span class="dot" id="laserbox_status_dot"></span>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border-bottom">
                                 <h5>Laser + Flipper Mirror</h5>
@@ -80,7 +80,7 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-top">
-                                <span class="dot" id="flipper_success_dot"></span>
+                                <span class="dot" id="flipper_status_dot"></span>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-right border-top">
                                 {{ render_field(laserbox.flipperposition, class='btn btn-dark') }}
@@ -322,12 +322,13 @@
                                 document.getElementById("power"+wvl[p]).value = response['powers'][Number(wvl[p])]
                             }
                         }
-                        console.log(response)
+                        var status_dot = document.getElementById("laserbox_status_dot");
                         if ((response['success'] == 1) || (response['success'] == 5)) {
-                            document.getElementById("laserbox_success_dot").style.backgroundColor = "green"
+                            status_dot.style.backgroundColor = "green"
                         } else {
-                            document.getElementById("laserbox_success_dot").style.backgroundColor = "red"
+                            status_dot.style.backgroundColor = "red"
                         }
+                        fade_color(status_dot, 5000)
                     }
                 })
             }
@@ -346,33 +347,37 @@
                     data: {},
                     success: function(d){
                         var response = JSON.parse(d);
+                        var status_dot = document.getElementById("focus_status_dot");
                         if (response['success'] == 1) {
-                            document.getElementById("focus_success_dot").style.backgroundColor = "green"
+                            status_dot.style.backgroundColor = "green"
                         } else {
-                            document.getElementById("focus_success_dot").style.backgroundColor = "red"
+                            status_dot.style.backgroundColor = "red"
                         }
                         document.getElementById("focus_position").value = response['position']
+                        fade_color(status_dot, 5000)
                     }
                 })
             }
         }
 
         $(function () {
-            var mirrorpos_id = $('#flipperposition');
-            mirrorpos_id.on('change', function () {
-                var flippermoveto = mirrorpos_id.val();
+            var flipperpos_id = $('#flipperposition');
+            flipperpos_id.on('change', function () {
+                var flippermoveto = flipperpos_id.val();
                 $.ajax({
                     type: 'POST',
                     url: "{{ url_for('main.flip_mirror', position='') }}" + flippermoveto,
                     data: {},
                     success: function(d){
                         var response = JSON.parse(d);
+                        var status_dot = document.getElementById("flipper_status_dot");
                         if (response['success'] == 1) {
-                            document.getElementById("flipper_success_dot").style.backgroundColor = "green"
+                            status_dot.style.backgroundColor = "green"
                         } else {
-                            document.getElementById("flipper_success_dot").style.backgroundColor = "red"
+                            status_dot.style.backgroundColor = "red"
                         }
-                        document.getElementById("flipperposition").value = response['position']
+                        flipperpos_id[0].value = response['position']
+                        fade_color(status_dot, 5000)
                     }
                 })
             });
@@ -388,16 +393,24 @@
                     data: {},
                     success: function(d){
                         var response = JSON.parse(d);
+                        var status_dot = document.getElementById("filter_status_dot");
                         if (response['success'] == 1) {
-                            document.getElementById("filter_success_dot").style.backgroundColor = "green"
+                            status_dot.style.backgroundColor = "green"
                         } else {
-                            document.getElementById("filter_success_dot").style.backgroundColor = "red"
+                            status_dot.style.backgroundColor = "red"
                         }
-                        document.getElementById("filter").value = response['filter']
+                        filterpos_id[0].value = response['filter']
+                        fade_color(status_dot, 5000)
                     }
                 })
             });
         });
+
+        function fade_color (div_id, timeout=3000) {
+            setInterval(function() {
+                div_id.style.backgroundColor = '#bbb'
+            }, timeout)
+        }
     </script>
 
 {% endblock %}
