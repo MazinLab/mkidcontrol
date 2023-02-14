@@ -31,7 +31,7 @@ import select
 
 from mkidcontrol.controlflask.config import Config
 import mkidcontrol.mkidredis as redis
-from mkidcontrol.commands import COMMAND_DICT, SimCommand, LakeShoreCommand
+from mkidcontrol.commands import COMMAND_DICT, SimCommand, LakeShoreCommand, FILTERS
 from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
@@ -39,15 +39,9 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Make sure columns/divs support resizing
 
-# TODO: Add clearer magnet control/status to homepage
-# TODO: Observation control on home screen
-# TODO: Laser box control on home screen
-
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
 
-# TODO: Make sure 'submit' keys don't need to reload pages, just submit values and update accordingly
-# TODO: Handle commands without a reloading page (i.e. clicking 'update' or 'submit' doesn't cause a reload) OR have a 'write_settings' that allows reloading
 # TODO: Command handling
 
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
@@ -58,8 +52,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
 
 # TODO: Rework statuses, no need for 'ok'/'enabled', just flash an error along the top of screen
-
-# TODO: Where is TCS data on the home screen?
 
 # TODO: Move all these key definitions to config.py where all the other redis db and key stuff lives
 CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
@@ -124,7 +116,7 @@ def index():
     TODO: Support message flashing
     """
     try:
-        redis.read(KEYS)
+        current_app.redis.read(KEYS)
     except RedisError:
         return redirect(url_for('main.redis_error_page'))
     except KeyError:
@@ -138,6 +130,7 @@ def index():
     laserbox = LaserBoxForm(**vars(Laserbox(redis)))
     fw = FilterWheelForm(**vars(Filterwheel(redis)))
     focus = FocusForm(**vars(Focus(redis)))
+    obs = ObsControlForm()
 
     sending_photons = os.path.exists(current_app.send_photons_file)
 
@@ -192,7 +185,7 @@ def settings():
 def log_viewer():
     """
     Flask endpoint for log viewer. This page is solely for observing the journalctl output from each agent.
-    # TODO: Update html
+    # TODO: Update for xkid logs
     """
     form = FlaskForm()
     return render_template('log_viewer.html', title=_('Log Viewer'), form=form)
@@ -208,7 +201,7 @@ def heater(device, channel):
             try:
                 x = LakeShoreCommand(f"device-settings:{device}:heater-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                redis.publish(f"command:{x.setting}", x.value)
+                current_app.redis.publish(f"command:{x.setting}", x.value)
                 log.info(f"Command sent successfully")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
@@ -238,8 +231,9 @@ def heater(device, channel):
 
 @bp.route('/thermometry/<device>/<channel>', methods=['GET', 'POST'])
 def thermometry(device, channel):
+    # TODO: Add ls372 input filter
     try:
-        title = redis.read(f'device-settings:{device}:input-channel-{channel.lower()}:name')
+        title = current_app.redis.read(f'device-settings:{device}:input-channel-{channel.lower()}:name')
     except:
         return redirect(url_for('main.page_not_found'))
 
@@ -252,7 +246,7 @@ def thermometry(device, channel):
             try:
                 x = LakeShoreCommand(f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                redis.publish(f"command:{x.setting}", x.value)
+                current_app.redis.publish(f"command:{x.setting}", x.value)
                 log.info(f"Command sent successfully")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
@@ -299,7 +293,7 @@ def ls625():
             try:
                 x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_','-')}", request.form.get(key), limit_vals=ls625settings.limits)
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                redis.publish(f"command:{x.setting}", x.value)
+                current_app.redis.publish(f"command:{x.setting}", x.value)
                 log.info(f"Command sent successfully")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
@@ -492,7 +486,7 @@ def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
     if init:
         fig.update_layout(title=f"Pixel Not Selected")
     else:
-        fig.update_layout(title=f"Pixel ({pix_x}, {pix_y})")
+        fig.update_layout(title=f"Pixel ({pix_x}, {pix_y})") #, xaxis=dict(tickangle=0, nticks=3))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
@@ -500,7 +494,7 @@ def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
 def create_fig(name):
     since = None
     first_tval = int((datetime.datetime.now() - timedelta(hours=5)).timestamp() * 1000) if not since else since
-    timestream = np.array(redis.mkr_range(CHART_KEYS[name], f"{first_tval}"))
+    timestream = np.array(current_app.redis.mkr_range(CHART_KEYS[name], f"{first_tval}"))
     if timestream[0][0] is not None:
         times = [datetime.datetime.fromtimestamp(t / 1000).strftime("%m/%d/%Y %H:%M:%S") for t in timestream[:, 0]]
         vals = list(timestream[:, 1])
@@ -519,7 +513,7 @@ def multi_sensor_fig(titles):
     first_tval = int((datetime.datetime.now() - timedelta(hours=0.5)).timestamp() * 1000) if not since else since
     keys = [CHART_KEYS[title] for title in titles]
 
-    timestreams = [np.array(redis.mkr_range(key, f"{first_tval}")) for key in keys]
+    timestreams = [np.array(current_app.redis.mkr_range(key, f"{first_tval}")) for key in keys]
     times = []
     for ts in timestreams:
         if ts[0][0] is not None:
@@ -628,12 +622,13 @@ def update_laser_powers():
         for k, v in powers.items():
             log.debug(f"Setting {k} nm laser to {v}% power")
             # TODO: Make key value discoverable or a global variable?
-            redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v, store=False)
+            current_app.redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v, store=False)
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
         sys.exit(1)
 
     return json.dumps(powers)
+
 
 @bp.route('/flip_mirror/<position>', methods=["POST"])
 def flip_mirror(position):
@@ -645,8 +640,8 @@ def flip_mirror(position):
 
     try:
         log.debug(f"Setting flip mirror to position: {new_pos}")
-        # TODO: Make key value discoverable or a global variable?
-        redis.publish("command:device-settings:laserflipperduino:flipper:position", new_pos, store=False)
+        current_app.redis.publish("command:device-settings:laserflipperduino:flipper:position", new_pos, store=False)
+        log.info(f"Flip mirror set to position: {new_pos}")
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
         sys.exit(1)
@@ -676,10 +671,11 @@ def move_focus(position):
 def change_filter(filter):
 
     filterno, filtername = filter.split(':')
+    current_filter = current_app.redis.read('device-settings:filterwheel:position')
 
     try:
         log.debug(f"Setting filter mirror to position: {filterno} ({filtername})")
-        redis.publish() # TODO
+        current_app.redis.publish('command:device-settings:filterwheel:position', filterno, store=False) # TODO
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
         sys.exit(1)
