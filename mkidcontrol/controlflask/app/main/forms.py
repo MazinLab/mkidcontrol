@@ -77,6 +77,15 @@ class HeatSwitchForm2(FlaskForm):
     stop = SubmitField("Stop")
 
 
+class Input372FilterForm(FlaskForm):
+    from mkidcontrol.commands import LS372_INPUT_FILTER_STATES
+    channel = HiddenField("")
+    state = SelectField("State", default="Off", choices=list(LS372_INPUT_FILTER_STATES.keys()))
+    settle_time = FloatField("Settle Time", default=5, validators=[NumberRange(1, 200)])
+    window = FloatField("Window", default=10, validators=[NumberRange(1, 80)])
+    update = SubmitField("Update")
+
+
 class ControlSensorForm(FlaskForm):
     # Lakeshore 372 Form
     from mkidcontrol.commands import LS372_SENSOR_MODE, LS372_AUTORANGE_VALUES, LS372_CONTROL_INPUT_CURRENT_RANGE, \
