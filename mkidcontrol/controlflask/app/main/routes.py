@@ -608,25 +608,29 @@ def send_photons(startstop):
 
 @bp.route('/update_laser_powers', methods=["POST"])
 def update_laser_powers():
-    # TODO: Return success vs failure code
+    msg_success = 0
+
     if request.method == "POST":
         wvl = json.loads(request.values.get("wvl"))
         power = json.loads(request.values.get("power"))
         if isinstance(wvl, list):
-            powers = {w: min(100, max(int(p), 0)) for w,p in zip(wvl, power)}
+            new_powers = {w: min(100, max(int(p), 0)) for w,p in zip(wvl, power)}
         else:
-            powers = {wvl: min(100, max(power, 0))}
+            new_powers = {wvl: min(100, max(power, 0))}
 
     try:
-        for k, v in powers.items():
+        for k, v in new_powers.items():
             log.debug(f"Setting {k} nm laser to {v}% power")
-            # TODO: Make key value discoverable or a global variable?
-            current_app.redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v, store=False)
+            msg_success += current_app.redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v, store=False)
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
         sys.exit(1)
 
-    return json.dumps(powers)
+    powers = {k: int(float(current_app.redis.read(f"device-settings:laserflipperduino:laserbox:{k}:power"))) for k in new_powers.keys()}
+
+    resp = {'success': msg_success, 'powers': powers}
+
+    return json.dumps(resp)
 
 
 @bp.route('/flip_mirror/<position>', methods=["POST"])

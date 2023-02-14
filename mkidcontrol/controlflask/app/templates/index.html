@@ -54,6 +54,9 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2">
+                                <span class="dot" id="laserbox_success_dot"></span>
+                            </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border-bottom">
                                 <h5>Laser + Flipper Mirror</h5>
                             </div>
@@ -263,6 +266,7 @@
 
         // Helper functions for handling submitting data from clicked events
         function obsctrl(){
+            var target = document.getElementById("target").value
             if (document.getElementById("obsStartStop").getAttribute("value").includes("Start")) {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
@@ -310,15 +314,19 @@
                     },
                     success: function(d){
                         var response = JSON.parse(d);
-                        console.log(response)
-                        if (event.key === "Emter") {
-                            document.getElementById("power"+wvl).value = response[Number(power[wvl])]
+                        if (event.key === "Enter") {
+                            document.getElementById("power"+wvl).value = response['powers'][Number(wvl)]
                         } else if (buttonid.includes("update_all") || (buttonid.includes("all_lasers_off"))) {
                             wvl = JSON.parse(wvl)
-                            power = JSON.parse(power)
                             for (let p = 0; p < 5; p++) {
-                                document.getElementById("power"+wvl[p]).value = response[Number(wvl[p])]
+                                document.getElementById("power"+wvl[p]).value = response['powers'][Number(wvl[p])]
                             }
+                        }
+                        console.log(response)
+                        if ((response['success'] == 1) || (response['success'] == 5)) {
+                            document.getElementById("laserbox_success_dot").style.backgroundColor = "green"
+                        } else {
+                            document.getElementById("laserbox_success_dot").style.backgroundColor = "red"
                         }
                     }
                 })
