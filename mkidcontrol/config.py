@@ -16,6 +16,18 @@ REDIS_TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage'
 
 REDIS_STATUS_KEYS = () # TODO: Grab all device status keys
 
+FLASK_CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
+                    'Device R': 'status:temps:device-stage:resistance',
+                    '1k Stage T': 'status:temps:1k-stage:temp',
+                    '1k Stage R': 'status:temps:1k-stage:resistance',
+                    '3k Stage T': 'status:temps:3k-stage:temp',
+                    '3k Stage V': 'status:temps:3k-stage:voltage',
+                    '50k Stage T': 'status:temps:50k-stage:temp',
+                    '50k Stage V': 'status:temps:50k-stage:voltage',
+                    'Magnet I': 'status:magnet:current',
+                    'Magnet Field': 'status:magnet:field',
+                    'LS625 Output V': 'status:device:ls625:output-voltage'}
+
 REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                 'channels': (),
                 'keys': {'device-settings:ls336:input-channel-a:name': '',

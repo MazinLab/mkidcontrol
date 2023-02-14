@@ -29,13 +29,12 @@ import json
 from rq.job import Job, NoSuchJobError
 import select
 
-from mkidcontrol.controlflask.config import Config
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMAND_DICT, SimCommand, LakeShoreCommand, FILTERS
 from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
+from mkidcontrol.config import FLASK_CHART_KEYS as CHART_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
-
 
 # TODO: Make sure columns/divs support resizing
 
@@ -52,20 +51,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
 
 # TODO: Rework statuses, no need for 'ok'/'enabled', just flash an error along the top of screen
-
-# TODO: Move all these key definitions to config.py where all the other redis db and key stuff lives
-CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
-              'Device R': 'status:temps:device-stage:resistance',
-              '1k Stage T': 'status:temps:1k-stage:temp',
-              '1k Stage R': 'status:temps:1k-stage:resistance',
-              '3k Stage T': 'status:temps:3k-stage:temp',
-              '3k Stage V': 'status:temps:3k-stage:voltage',
-              '50k Stage T': 'status:temps:50k-stage:temp',
-              '50k Stage V': 'status:temps:50k-stage:voltage',
-              'Magnet I': 'status:magnet:current',
-              'Magnet Field': 'status:magnet:field',
-              'LS625 Output V': 'status:device:ls625:output-voltage'}
-
 
 # TODO: status:*:status is not super useful, consider renaming
 # TODO: Keys would be useful where the rest of the keys are defined in mkidcontrol.config
