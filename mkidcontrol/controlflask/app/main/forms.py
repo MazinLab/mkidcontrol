@@ -1,14 +1,9 @@
-import datetime
-
 import numpy as np
 
 from wtforms.fields import *
-from wtforms.widgets import HiddenInput
 from wtforms.fields.html5 import *
 from wtforms.validators import *
-from wtforms import Form
 from flask_wtf import FlaskForm
-from serial import SerialException
 
 
 class EmptyForm(FlaskForm):
