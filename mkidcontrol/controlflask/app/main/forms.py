@@ -54,8 +54,8 @@ class ObsControlForm(FlaskForm):
     obsStartStop = SubmitField("")
     target = StringField("Target")
     wavecal = SubmitField("Wavecal")
-    flat = SubmitField("Take Flat")
-    dark = SubmitField("Take Dark")
+    flat = SubmitField("Flat")
+    dark = SubmitField("Dark")
 
 
 class HeatSwitchForm(FlaskForm):
