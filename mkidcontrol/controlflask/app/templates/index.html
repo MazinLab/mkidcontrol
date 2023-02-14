@@ -13,12 +13,13 @@
 <!--                        </div>-->
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-2">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
-                                {{ render_field(obs.target, onkeypress="update_target()") }}
+                                {{ render_field(obs.target) }}
+<!--                                {{ render_field(obs.target, onkeypress="update_target()") }}-->
                             </div>
                             {% if sending_photons %}
-                                {{ render_field(obs.obsStartStop, class="btn btn-danger", onclick="obsctrl()", value="Stop Observing") }}
+                                {{ render_field(obs.obsStartStop, class="btn btn-danger", onclick="obsctrl(this.id)", value="Stop Observing") }}
                             {% else %}
-                                {{ render_field(obs.obsStartStop, class="btn btn-primary", onclick="obsctrl()",  value="Start Observing") }}
+                                {{ render_field(obs.obsStartStop, class="btn btn-primary", onclick="obsctrl(this.id)",  value="Start Observing") }}
                             {% endif %}
 
                         </div>
@@ -30,13 +31,13 @@
                                 {{ render_field( fw.filter, class='btn btn-dark' ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
-                                {{ render_field(obs.flat, class="btn btn-dark", disabled='disabled', onclick="do_nothing()" ) }}
+                                {{ render_field(obs.flat, class="btn btn-dark", onclick="obsctrl(this.id)" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
-                                {{ render_field(obs.dark, class="btn btn-dark", disabled='disabled', onclick="do_nothing()" ) }}
+                                {{ render_field(obs.dark, class="btn btn-dark", onclick="obsctrl(this.id)" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
-                                {{ render_field(obs.wavecal, class="btn btn-dark", disabled='disabled', onclick="do_nothing()" ) }}
+                                {{ render_field(obs.wavecal, class="btn btn-dark", onclick="obsctrl(this.id)" ) }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
@@ -298,22 +299,40 @@
 
 
         // Helper functions for handling submitting data from clicked events
-        function obsctrl(){
-            var target = document.getElementById("target").value
-            if (document.getElementById("obsStartStop").getAttribute("value").includes("Start")) {
+        function obsctrl(buttonid){
+            var obs_button = document.getElementById(buttonid)
+            var to_disable = ["wavecal", "flat", "dark"]
+
+            var target;
+            if (to_disable.includes(buttonid)) {
+                target = obs_button.value
+            } else {
+                target = document.getElementById("target").value
+            }
+
+            if (document.getElementById("obsStartStop").value.includes("Start")) {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
-                var send_url = "{{ url_for('main.send_photons', startstop='start' ) }}";
+                var send_url = "{{ url_for('main.send_photons', startstop='start', target='' ) }}"+target;
+                document.getElementById("target").value = target
             } else {
                 var newClass = "btn btn-primary";
                 var newText = "Start Observing";
-                var send_url = "{{ url_for('main.send_photons', startstop='stop' ) }}";
+                var send_url = "{{ url_for('main.send_photons', startstop='stop', target='' ) }}"+target;
             }
             $.ajax({
                     type:'POST',
                     url: send_url,
                     data: {},
                     success:function(){
+                        for (let i=0; i< to_disable.length; i++) {
+                            if (document.getElementById("obsStartStop").value.includes("Start")){
+                                console.log("disabling "+to_disable[i])
+                                document.getElementById(to_disable[i]).disabled = true
+                            } else {
+                                document.getElementById(to_disable[i]).disabled = false
+                            }
+                        }
                         document.getElementById("obsStartStop").setAttribute("class", newClass);
                         document.getElementById("obsStartStop").setAttribute("value", newText);
                     }

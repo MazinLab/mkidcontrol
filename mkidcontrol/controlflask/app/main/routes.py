@@ -572,21 +572,22 @@ def dashplot():
 
 
 # TODO: return the number of successful pubsub messages to determine the success/failure of the request so one can return success/failure to the gui
-@bp.route('/send_photons/<startstop>', methods=["POST"])
-def send_photons(startstop):
-    print(startstop)
+@bp.route('/send_photons/<startstop>/<target>', methods=["POST"])
+def send_photons(startstop, target=None):
     send_photons_file = current_app.send_photons_file
     bmap_filename = current_app.beammap.file
 
     log.debug(f"{startstop} sending photons")
     if startstop == "start":
+        log.info(f"Start observing target: {target}")
         with open(send_photons_file, "w") as f:
             f.write(bmap_filename)
         log.info(f"Wrote {bmap_filename} to {send_photons_file} to start sending photons")
-        log.info("Starting packetmaster...")
+        log.info("Start packetmaster writing bin files...")
         current_app.packetmaster.startWriting(current_app.bindir)
         log.info("Packetmaster started")
     else:
+        log.info(f"Stop observing target: {target}")
         log.info("Stopping packetmaster...")
         current_app.packetmaster.stopWriting()
         log.info("Stopped packetmaster stopped")
