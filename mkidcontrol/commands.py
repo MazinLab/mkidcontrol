@@ -332,6 +332,10 @@ class LS372InputSensor:
         self.curve_number = values[f'device-settings:ls372:input-channel-{channel.lower()}:curve-number']
         self.temperature_coefficient = values[f'device-settings:ls372:input-channel-{channel.lower()}:temperature-coefficient']
 
+        # Filter values
+        self.state = values[f'device-settings:ls372:input-channel-{channel.lower()}:filter:state']
+        self.settle_time = values[f'device-settings:ls372:input-channel-{channel.lower()}:filter:settle-time']
+        self.window = values[f'device-settings:ls372:input-channel-{channel.lower()}:filter:window']
 
 class LS372HeaterOutput:
     def __init__(self, channel, redis):
@@ -356,16 +360,6 @@ class LS372HeaterOutput:
         self.integral = values[f'device-settings:ls372:heater-channel-{channel}:integral']
         self.ramp_rate = values[f'device-settings:ls372:heater-channel-{channel}:ramp_rate']
         self.range = values[f'device-settings:ls372:heater-channel-{channel}:range']
-
-
-class LS372InputFilter:
-    def __init__(self, channel, redis):
-        values = redis.read(redis.redis_keys(f'device-settings:ls372:input-channel-{channel}:filter:*'))
-        self.channel = channel
-
-        self.state = values[f'device-settings:ls372:input-channel-{channel}:filter:state']
-        self.settle_time = values[f'device-settings:ls372:input-channel-{channel}:filter:settle-time']
-        self.window = values[f'device-settings:ls372:input-channel-{channel}:filter:window']
 
 
 COMMANDS372 = {}
