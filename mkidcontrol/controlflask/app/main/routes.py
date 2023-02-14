@@ -111,7 +111,6 @@ def index():
     Processes requests from the magnet cycle form (start/abort/cancel/schedule cooldown) and magnet form (ramp rates/
     soak settings) and publishes them to be interpreted by the necessary agents.
     Initializes sensor plot data to send for plotting.
-    TODO: Make robust to redis not being up and running
     TODO: Handle 'post' requests - via AJAX requests rather than submitting
     TODO: Support message flashing
     """
@@ -125,7 +124,7 @@ def index():
     # TODO: Parse in current values at startup when endpoint gets hit
     from mkidcontrol.commands import Laserbox, Filterwheel, Focus
 
-    magnetform = MagnetCycleForm()
+    magnetform = MagnetCycleForm()  # TODO: Should start ramp pull up a modal with settings?
     hsform = HeatSwitchForm2()
     laserbox = LaserBoxForm(**vars(Laserbox(redis)))
     fw = FilterWheelForm(**vars(Filterwheel(redis)))
