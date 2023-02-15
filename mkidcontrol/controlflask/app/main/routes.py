@@ -534,19 +534,19 @@ def multi_sensor_fig(titles):
     return fig
 
 
-def view_array_data(max=2500, inttime=1):
+def view_array_data(min=0, max=2500, int_time=1):
     """
     Placeholding function to grab a frame from a (hard-coded, previously made) temporal drizzle to display as the
     'device view' on the homepage of the flask application.
     """
     # data = current_app.liveimage
-    # data.startIntegration(integrationTime=inttime)
+    # data.startIntegration(integrationTime=int_time)
     # y = data.receiveImage()
     y = np.zeros((125,80))
     m = y < 0
     y[m] = 0
     fig = go.Figure()
-    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale=[[0, "black"], [0.5,"white"], [0.5, "red"], [1, "red"]], zmin=0, zmax=max*2)
+    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale=[[0, "black"], [0.5,"white"], [0.5, "red"], [1, "red"]], zmin=min, zmax=max*2)
     fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'), yaxis=dict(visible=False, ticks='')))
     fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
@@ -561,19 +561,19 @@ def dashplot():
     @stream_with_context
     def _stream():
         while True:
-            figdata = view_array_data()
+            figdata = view_array_data(current_app.min_cts, current_app.max_cts, current_app.int_time)
             t = time.time()
             data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
             yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
-            time.sleep(1)  # TODO: Allow changed timesteps
-            # time.sleep(current_app.inttime)
+            # time.sleep(1)  # TODO: Allow changed timesteps
+            time.sleep(current_app.int_time)
 
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
 
-# TODO: return the number of successful pubsub messages to determine the success/failure of the request so one can return success/failure to the gui
 @bp.route('/send_photons/<startstop>/<target>', methods=["POST"])
 def send_photons(startstop, target=None):
+    # TODO: Store target name for metadata/obslog ingestion
     send_photons_file = current_app.send_photons_file
     bmap_filename = current_app.beammap.file
 
@@ -686,6 +686,24 @@ def change_filter(filter):
 
     filterpos = current_app.redis.read('device-settings:filterwheel:position')
     resp = {'success': msg_success, 'filter': FDATA[int(filterpos)]}
+
+    return json.dumps(resp)
+
+
+@bp.route('/update_array_viewer_params/<param>/<value>', methods=['POST'])
+def update_array_viewer_params(param, value):
+    print(f"Updating {param} to {value}")
+    if param == "int_time":
+        new_val = min(max(float(value), 0.1), 10.0)
+        current_app.int_time = new_val
+    elif param == "min_cts":
+        new_val = min(int(value), current_app.max_cts-10)
+        current_app.min_cts = new_val
+    elif param == "max_cts":
+        new_val = max(int(value), current_app.min_cts+10)
+        current_app.max_cts = new_val
+
+    resp = {'value': new_val}
 
     return json.dumps(resp)
 

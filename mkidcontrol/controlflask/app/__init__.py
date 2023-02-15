@@ -96,6 +96,10 @@ def create_app(config_class=Config, cliargs=None):
         imgcfg = dict(dashcfg.dashboard)
         imgcfg['n_wave_bins'] = 1
 
+        # Array viewer
+        app.int_time = 1
+        app.min_cts = 0
+        app.max_cts = 2500
 
         if 'forwarding' in dashcfg.packetmaster.keys():
             forwarding = dict(dashcfg.packetmaster.forwarding)

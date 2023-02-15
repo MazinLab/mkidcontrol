@@ -45,10 +45,13 @@ class FocusForm(FlaskForm):
 
 class ObsControlForm(FlaskForm):
     obsStartStop = SubmitField("")
-    target = StringField("Target")
+    target = StringField("Target", default='------')
     wavecal = SubmitField("Wavecal")
     flat = SubmitField("Flat")
     dark = SubmitField("Dark")
+    min_cts = IntegerField("Min:", default=0)
+    max_cts = IntegerField("Max:", default=2500)
+    int_time = FloatField("Integrate (s):", default=1.0)
 
 
 class HeatSwitchForm(FlaskForm):

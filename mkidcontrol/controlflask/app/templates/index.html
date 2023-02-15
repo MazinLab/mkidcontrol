@@ -41,6 +41,17 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(obs.int_time, onkeypress="update_array_view_params(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(obs.min_cts, onkeypress="update_array_view_params(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(obs.max_cts, onkeypress="update_array_view_params(event, this.id)" ) }}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2">
                                 <span class="dot" id="focus_status_dot"></span>
                             </div>
@@ -327,7 +338,6 @@
                     success:function(){
                         for (let i=0; i< to_disable.length; i++) {
                             if (document.getElementById("obsStartStop").value.includes("Start")){
-                                console.log("disabling "+to_disable[i])
                                 document.getElementById(to_disable[i]).disabled = true
                             } else {
                                 document.getElementById(to_disable[i]).disabled = false
@@ -411,6 +421,22 @@
                 })
             }
         }
+
+        function update_array_view_params(event, buttonid){
+            if (event.key === "Enter"){
+                var val = document.getElementById(buttonid).value;
+                $.ajax({
+                    type:'POST',
+                    url: "{{ url_for('main.update_array_viewer_params', param='', value='' ) }}" + '/' + buttonid + '/' + val,
+                    data: {},
+                    success: function (d){
+                        var new_val = JSON.parse(d)['value'];
+                        document.getElementById(buttonid).value = new_val
+                    }
+                })
+            }
+        }
+
 
         // Handle the flipper mirror position changing
         $(function () {
