@@ -37,8 +37,7 @@ SN_KEY = "status:device:conex:sn"
 FIRMWARE_KEY = "status:device:conex:firmware"
 
 CONEX_STATUS_KEY = "status:device:conex:controller-status"
-MOVE_STATUS_KEY = "status:device:conex:move-status"
-DITHER_STATUS_KEY = "status:device:conex:dither-status"
+OPERATION_STATUS_KEY = "status:device:conex:operation-status"
 
 MOVE_COMMAND_KEY = "conex:move"
 DITHER_COMMAND_KEY = "conex:dither"
@@ -52,10 +51,10 @@ SETTING_KEYS = tuple(COMMANDSCONEX.keys())
 COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + list(CONEX_COMMANDS)])
 
 
-def callback(move_status, dither_status, conex_status):
-    statuses = [move_status, dither_status, conex_status]
+def callback(conex_status, operation_status):
+    statuses = [conex_status, operation_status]
     vals = [json.dumps(status) for status in statuses]
-    keys = [MOVE_STATUS_KEY, DITHER_STATUS_KEY, CONEX_STATUS_KEY]
+    keys = [CONEX_STATUS_KEY, OPERATION_STATUS_KEY]
     d = {k: x for k, x in zip(keys, vals)}
     try:
         if all(i is None for i in statuses):
@@ -64,7 +63,7 @@ def callback(move_status, dither_status, conex_status):
             redis.store(d)
             redis.store({STATUS_KEY: "OK"})
     except RedisError:
-        log.warning('Storing LakeShore336 data to redis failed!')
+        log.warning('Storing Conex Controller data to redis failed!')
 
 
 def status(controller):
@@ -101,6 +100,8 @@ if __name__ == "__main__":
     # ultimately reformatting over redis and flask connections.
     # TODO: give the conex contoller a threadsafe wait4move/wait4dither thread and statusupdate attribute that will be
     #  used by the flask application to write to the conex status location
+
+
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
@@ -128,18 +129,18 @@ if __name__ == "__main__":
                     elif key == MOVE_COMMAND_KEY:
                         log.debug(f"Starting conex move...")
                         val = json.loads(val)
-                        cc.start_move(val['x'], val['y'])
+                        cc.do_go_to(val['x'], val['y'])
                         redis.store({STATUS_KEY: "OK"})
                         log.info(f"Conex move to ({val['x']}, {val['y']}) successful")
                     elif key == DITHER_COMMAND_KEY:
                         log.debug(f"Starting dither...")
                         val = json.loads(val)
-                        cc.start_dither(val)
+                        cc.do_dither(val)
                         redis.store({STATUS_KEY: "OK"})
                         log.info(f"Started dither with params: {val}")
                     elif key == STOP_COMMAND_KEY:
                         log.debug("Stopping conex")
-                        cc.stop()
+                        cc.do_halt()
                         redis.store({STATUS_KEY: "OK"})
                         log.info("Conex stopped!")
                 except IOError as e:
