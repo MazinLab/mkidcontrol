@@ -8,20 +8,16 @@
             <main role="main" class="col-12">
                 <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
                     <div class="flex-column col-4">
-<!--                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">-->
-<!--                            <h1>Observing</h1>-->
-<!--                        </div>-->
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-2">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
-                                {{ render_field(obs.target) }}
-<!--                                {{ render_field(obs.target, onkeypress="update_target()") }}-->
-                            </div>
                             {% if sending_photons %}
                                 {{ render_field(obs.obsStartStop, class="btn btn-danger", onclick="obsctrl(this.id)", value="Stop Observing") }}
                             {% else %}
                                 {{ render_field(obs.obsStartStop, class="btn btn-primary", onclick="obsctrl(this.id)",  value="Start Observing") }}
                             {% endif %}
-
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
+                                {{ render_field(obs.target) }}
+<!--                                {{ render_field(obs.target, onkeypress="update_target()") }}-->
+                            </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-2 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-top">
@@ -136,6 +132,9 @@
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
                                 Az : 0.0
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1">
+                                SR : 100%
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
