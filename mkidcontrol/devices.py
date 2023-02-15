@@ -2930,6 +2930,7 @@ class Conex(SerialDevice):
 
 class ConexController:
     """
+    TODO: Add monitor function
     The ConexController manages the Conex() base class
 
     It also implements a thread safe dither routine
