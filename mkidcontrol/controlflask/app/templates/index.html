@@ -272,7 +272,7 @@
         function delete_pixel_lightcurve_trace(){
             pixel = [-1, -1]
             Plotly.deleteTraces('pixel_lightcurve', 0);
-            Plotly.react('pixel_lightcurve', lightcurve_init)
+            Plotly.react('pixel_lightcurve', {{ pix_lightcurve | safe }})
         };
 
         var myPlot = document.getElementById('dash');
@@ -421,6 +421,7 @@
             }
         }
 
+        // Update the max/min count rates on the array viewer or the update rate
         function update_array_view_params(event, buttonid){
             if (event.key === "Enter"){
                 var val = document.getElementById(buttonid).value;
@@ -435,7 +436,6 @@
                 })
             }
         }
-
 
         // Handle the flipper mirror position changing
         $(function () {
