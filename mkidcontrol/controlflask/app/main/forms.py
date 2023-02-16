@@ -16,7 +16,7 @@ class ConexForm(FlaskForm):
     n_steps = IntegerField("N Steps", default=5)
     dwell_time = IntegerField("Dwell (s)", default=30)
     dither_start = SubmitField("Dither")
-    position = StringField("Position (x, y)", default="0.0, 0.0")
+    conex_position = StringField("Position (x, y)", default="0.0, 0.0")
     conex_stop = SubmitField("Stop")
 
 
