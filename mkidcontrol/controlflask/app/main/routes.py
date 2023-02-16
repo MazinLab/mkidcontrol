@@ -580,6 +580,7 @@ def send_photons(startstop, target=None):
     bmap_filename = current_app.beammap.file
 
     log.debug(f"{startstop} sending photons")
+    current_app.redis.store({"observing:target": target}, timeseries=True)
     if startstop == "start":
         log.info(f"Start observing target: {target}")
         with open(send_photons_file, "w") as f:
