@@ -424,6 +424,40 @@
             }
         }
 
+        function command_conex(event, buttonid){
+            console.log(event, buttonid)
+            if (event.key == "Enter") {
+                const position = document.getElementById('conex_position').value;
+                var send_data = {'cmd': 'move', 'position': position};
+            } else if (buttonid == "dither_start") {
+                const start = document.getElementById('start_pos').value;
+                const stop = document.getElementById('stop_pos').value;
+                const t = document.getElementById('dwell_time').value;
+                const n = document.getElementById('n_steps').value;
+                var send_data = {'cmd': 'dither', 'n': n, 't': t, 'start': start, 'stop': stop};
+            } else if (buttonid == "conex_stop") {
+                var send_data = {'cmd': 'stop'};
+            }
+            console.log(send_data)
+            $.ajax({
+                    type:'POST',
+                    url: "{{ url_for('main.conex_command') }}",
+                    data: {},
+                    success: function (d){
+                        var new_val = JSON.parse(d)['value'];
+                        document.getElementById(buttonid).value = new_val
+                    }
+            })
+        }
+
+        function command_hs(buttonid){
+            console.log(buttonid)
+        }
+
+        function command_magnet(buttonid){
+            console.log(buttonid)
+        }
+
         // Update the max/min count rates on the array viewer or the update rate
         function update_array_view_params(event, buttonid){
             if (event.key === "Enter"){

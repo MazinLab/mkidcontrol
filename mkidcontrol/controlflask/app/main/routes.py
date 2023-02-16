@@ -711,22 +711,11 @@ def update_array_viewer_params(param, value):
     return json.dumps(resp)
 
 
-@bp.route('/conex_go_to/<x>/<y>', methods=['POST'])
-def conex_go_to(x,y):
+@bp.route('/conex_command', methods=['POST'])
+def conex_command():
     # TODO
     return '', 204
 
-
-@bp.route('/conex_halt', methods=['POST'])
-def conex_halt():
-    # TODO
-    return '', 204
-
-
-@bp.route('/conex_start_dither/<dither_info>', methods=['POST'])
-def conex_start_dither(dither_info):
-    # TODO
-    return '', 204
 
 def parse_schedule_cooldown(schedule_time):
     """
