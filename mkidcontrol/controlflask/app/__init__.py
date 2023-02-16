@@ -86,14 +86,13 @@ def create_app(config_class=Config, cliargs=None):
     app.redis = redis
 
     if 'run' in cliargs:
-        # TODO: If offline, just send an array of zeros to the viewer, don't spin up packetmaster at all.
-        dashcfg = loadcfg(app.config['DASH_CFG'])
+        app.dashcfg = loadcfg(app.config['DASH_CFG'])
 
-        ROACHNUMS = dashcfg.roaches.in_use
-        CAPTUREPORT = dashcfg.packetmaster.captureport
-        OFFLINE = dashcfg.roaches.offline
-        beammap = dashcfg.beammap
-        imgcfg = dict(dashcfg.dashboard)
+        ROACHNUMS = app.dashcfg.roaches.in_use
+        CAPTUREPORT = app.dashcfg.packetmaster.captureport
+        OFFLINE = app.dashcfg.roaches.offline
+        beammap = app.dashcfg.beammap
+        imgcfg = dict(app.dashcfg.dashboard)
         imgcfg['n_wave_bins'] = 1
 
         # Array viewer
@@ -101,8 +100,8 @@ def create_app(config_class=Config, cliargs=None):
         app.min_cts = 0
         app.max_cts = 2500
 
-        if 'forwarding' in dashcfg.packetmaster.keys():
-            forwarding = dict(dashcfg.packetmaster.forwarding)
+        if 'forwarding' in app.dashcfg.packetmaster.keys():
+            forwarding = dict(app.dashcfg.packetmaster.forwarding)
         else:
             forwarding = None
 
@@ -113,9 +112,9 @@ def create_app(config_class=Config, cliargs=None):
         liveimage = packetmaster.sharedImages['dashboard']
         app.liveimage = liveimage
 
-        app.send_photons_file = dashcfg.paths.send_photons_file
-        app.beammap = dashcfg.beammap
-        app.bindir = dashcfg.paths.data
+        app.send_photons_file = app.dashcfg.paths.send_photons_file
+        app.beammap = app.dashcfg.beammap
+        app.bindir = app.dashcfg.paths.data
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)
