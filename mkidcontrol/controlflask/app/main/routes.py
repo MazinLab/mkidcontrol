@@ -710,6 +710,23 @@ def update_array_viewer_params(param, value):
     return json.dumps(resp)
 
 
+@bp.route('/conex_go_to/<x>/<y>', methods=['POST'])
+def conex_go_to(x,y):
+    # TODO
+    return '', 204
+
+
+@bp.route('/conex_halt', methods=['POST'])
+def conex_halt():
+    # TODO
+    return '', 204
+
+
+@bp.route('/conex_start_dither/<dither_info>', methods=['POST'])
+def conex_start_dither(dither_info):
+    # TODO
+    return '', 204
+
 def parse_schedule_cooldown(schedule_time):
     """
     Takes a string input from the schedule cooldown field and parses it to determine if it is in a proper format to be
