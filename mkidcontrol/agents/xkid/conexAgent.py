@@ -36,8 +36,10 @@ STATUS_KEY = "status:device:conex:status"
 SN_KEY = "status:device:conex:sn"
 FIRMWARE_KEY = "status:device:conex:firmware"
 
-CONEX_STATUS_KEY = "status:device:conex:controller-status"
+CONEX_CONTROLLER_STATUS_KEY = "status:device:conex:controller-status"
 OPERATION_STATUS_KEY = "status:device:conex:operation-status"
+
+TS_KEYS = (CONEX_CONTROLLER_STATUS_KEY, OPERATION_STATUS_KEY)
 
 MOVE_COMMAND_KEY = "conex:move"
 DITHER_COMMAND_KEY = "conex:dither"
@@ -54,7 +56,7 @@ COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + list(CONE
 def callback(conex_status, operation_status):
     statuses = [conex_status, operation_status]
     vals = [json.dumps(status) for status in statuses]
-    keys = [CONEX_STATUS_KEY, OPERATION_STATUS_KEY]
+    keys = [CONEX_CONTROLLER_STATUS_KEY, OPERATION_STATUS_KEY]
     d = {k: x for k, x in zip(keys, vals)}
     try:
         if all(i is None for i in statuses):
