@@ -4,4 +4,4 @@
 # at boot time, one per line. Lines beginning with "#" are ignored.
 cp210x
 fliusb
-# ftdi_sio
+ftdi_sio
