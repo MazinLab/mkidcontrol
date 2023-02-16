@@ -299,9 +299,9 @@ def ls625():
     return render_template('ls625.html', title=_("Magnet Power Supply Control"), form=form)
 
 
-@bp.route('/heatswitch/<mode>', methods=['POST', 'GET'])
-def heatswitch(mode):
-    # from mkidcontrol.controlflask.app.main.forms import HeatSwitchForm, HeatSwitchEngineeringModeForm
+@bp.route('/heatswitch/', methods=['POST', 'GET'])
+def heatswitch():
+    # TODO: Handle commands
     if request.method == "POST":
         print(f"Form: {request.form}")
         for key in request.form.keys():
