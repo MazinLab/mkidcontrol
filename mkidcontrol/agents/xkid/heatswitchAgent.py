@@ -147,12 +147,18 @@ if __name__ == "__main__":
                     try:
                         log.info(f"Processing command '{cmd}'")
                         if key == HEATSWITCH_MOVE_KEY:
-                            if val.lower() == "open":
-                                hs.open()
-                            elif val.lower() == "close":
-                                hs.close()
+                            current_pos = redis.read(HEATSWITCH_POSITION_KEY)
+                            if current_pos.lower() in ['opening', 'closing']:
+                                # N.B. Don't try to reverse motion while the heatswitch is opening/closing
+                                log.warning(f"Trying to send command {val} while heatswitch is {current_pos}. Command ignored!")
                             else:
-                                log.warning("Illegal command that was not previously handled!")
+                                log.info(f"Commanding heatswitch to {val} from heatswitch {current_pos}")
+                                if val.lower() == "open":
+                                    hs.open()
+                                elif val.lower() == "close":
+                                    hs.close()
+                                else:
+                                    log.warning("Illegal command that was not previously handled!")
                         elif key in [VELOCITY_KEY, RUNNING_CURRENT_KEY, ACCELERATION_KEY]:
                             hs.update_binary_setting(key, val)
                         elif key == STOP_KEY:
