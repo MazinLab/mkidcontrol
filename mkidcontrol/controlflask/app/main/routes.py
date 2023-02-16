@@ -36,6 +36,10 @@ from mkidcontrol.config import FLASK_CHART_KEYS as CHART_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
 
+# TODO: ObsLog, ditherlog, dashboardlog
+
+# TODO: Add redis key capturing whether we are observing or not!
+
 # TODO: Make sure columns/divs support resizing
 
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
@@ -49,8 +53,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 #  sync?), do pages need to reload to show status updates or do they just update?
 
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
-
-# TODO: Rework statuses, no need for 'ok'/'enabled', just flash an error along the top of screen
 
 # TODO: status:*:status is not super useful, consider renaming
 # TODO: Keys would be useful where the rest of the keys are defined in mkidcontrol.config
