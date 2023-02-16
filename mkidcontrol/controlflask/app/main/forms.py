@@ -61,16 +61,16 @@ class HeatSwitchForm(FlaskForm):
     max_velocity = IntegerField("Max Velocity", default=HeatswitchMotor.DEFAULT_MAX_VELOCITY, validators=[NumberRange(0, 1e4)])
     running_current = IntegerField("Running Current", default=HeatswitchMotor.DEFAULT_RUNNING_CURRENT, validators=[NumberRange(10, 127)])
     acceleration = IntegerField("Acceleration", default=HeatswitchMotor.DEFAULT_ACCELERATION, validators=[NumberRange(0, 100)])
-    open = SubmitField("Open")
-    close = SubmitField("Close")
-    update = SubmitField("Update")
+    hs_open = SubmitField("Open")
+    hs_close = SubmitField("Close")
+    hs_update = SubmitField("Update")
 
 
 class HeatSwitchForm2(FlaskForm):
     # Heatswitch form
-    open = SubmitField("Open")
-    close = SubmitField("Close")
-    stop = SubmitField("Stop")
+    hs_open = SubmitField("Open")
+    hs_close = SubmitField("Close")
+    hs_stop = SubmitField("Stop")
 
 
 class Input372FilterForm(FlaskForm):
@@ -281,8 +281,8 @@ class MagnetCycleForm(FlaskForm):
     # Magnet controller form
     # TODO: Ramp dropdown (standard ramp/fast ramp/custom ramp?)
     # TODO: make validators a function of the limits? We can just read them in from redis with no issue
-    start = SubmitField("Start Cycle")
-    fast = SubmitField("Start Fast Cycle")
-    abort = SubmitField("Abort Cooldown")
+    start_cycle = SubmitField("Start Cycle")
+    fast_cycle = SubmitField("Start Fast Cycle")
+    abort_cycle = SubmitField("Abort Cooldown")
     at = DateTimeLocalField('Schedule cycle for:', format='%m/%d/%YT%I:%M %p')
-    schedule = SubmitField("Schedule")  # TODO: Turn schedule to "Cancel Scheduled" if there is a scheduled cooldown
+    schedule_cycle = SubmitField("Schedule")  # TODO: Turn schedule to "Cancel Scheduled" if there is a scheduled cooldown
