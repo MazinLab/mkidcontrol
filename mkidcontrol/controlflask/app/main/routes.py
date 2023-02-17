@@ -691,13 +691,11 @@ def update_array_viewer_params(param, value):
     print(f"Updating {param} to {value}")
     if param == "int_time":
         new_val = min(max(float(value), 0.1), 10.0)
-        current_app.int_time = new_val
     elif param == "min_cts":
-        new_val = min(int(value), current_app.max_cts-10)
-        current_app.min_cts = new_val
+        new_val = min(int(value), current_app.array_view_params['max_cts']-10)
     elif param == "max_cts":
-        new_val = max(int(value), current_app.min_cts+10)
-        current_app.max_cts = new_val
+        new_val = max(int(value), current_app.array_view_params['min_cts']+10)
+    current_app.array_view_params[param] = new_val
 
     resp = {'value': new_val}
 
