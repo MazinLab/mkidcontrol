@@ -2,6 +2,7 @@ import json
 import pkg_resources
 import os
 from dotenv import load_dotenv
+from mkidcontrol.commands import COMMAND_DICT
 #TODO: Make sure all schema keys are accounted for
 REDIS_DB = 0
 
@@ -27,6 +28,17 @@ FLASK_CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
                     'Magnet I': 'status:magnet:current',
                     'Magnet Field': 'status:magnet:field',
                     'LS625 Output V': 'status:device:ls625:output-voltage'}
+
+
+FLASK_KEYS = list(COMMAND_DICT.keys()) + list(REDIS_TS_KEYS) + ['status:device:heatswitch:position',
+                                                                'status:device:ls336:status',
+                                                                'status:device:ls372:status',
+                                                                'status:device:ls625:status',
+                                                                'status:device:heatswitch:status',
+                                                                'status:device:conex:controller-status',
+                                                                'status:device:conex:controller-state',
+                                                                'status:device:conex:controller-state:last-change',
+                                                                'status:device:conex:operation-status']
 
 REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                 'channels': (),

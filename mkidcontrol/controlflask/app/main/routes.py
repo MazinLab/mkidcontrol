@@ -31,8 +31,7 @@ import select
 
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMAND_DICT, SimCommand, LakeShoreCommand, FILTERS
-from mkidcontrol.config import REDIS_TS_KEYS as TS_KEYS
-from mkidcontrol.config import FLASK_CHART_KEYS as CHART_KEYS
+from mkidcontrol.config import FLASK_KEYS, REDIS_TS_KEYS, FLASK_CHART_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
 
@@ -54,15 +53,8 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
 
-# TODO: status:*:status is not super useful, consider renaming
-# TODO: Keys would be useful where the rest of the keys are defined in mkidcontrol.config
-KEYS = list(COMMAND_DICT.keys()) + list(TS_KEYS) + ['status:device:heatswitch:position',
-                                                    'status:device:ls336:status',
-                                                    'status:device:ls372:status',
-                                                    'status:device:ls625:status',
-                                                    'status:device:heatswitch:status']
 
-redis.setup_redis(ts_keys=TS_KEYS)
+redis.setup_redis(ts_keys=REDIS_TS_KEYS)
 
 log = setup_logging('controlDirector')
 
@@ -102,7 +94,7 @@ def index():
     TODO: Support message flashing
     """
     try:
-        current_app.redis.read(KEYS)
+        current_app.redis.read(FLASK_KEYS)
     except RedisError:
         return redirect(url_for('main.redis_error_page'))
     except KeyError:
@@ -125,13 +117,13 @@ def index():
     if request.method == 'POST':
         print(request.form)
 
-    sensor_fig = multi_sensor_fig(CHART_KEYS.keys())
+    sensor_fig = multi_sensor_fig(FLASK_CHART_KEYS.keys())
     array_fig = view_array_data()
     pix_lightcurve = pixel_lightcurve()
 
     return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform, fw=fw,
                            focus=focus, form=form, laserbox=laserbox, obs=obs, conex=conex, sensor_fig=sensor_fig,
-                           array_fig=array_fig, pix_lightcurve=pix_lightcurve, sensorkeys=list(CHART_KEYS.values()))
+                           array_fig=array_fig, pix_lightcurve=pix_lightcurve, sensorkeys=list(FLASK_CHART_KEYS.values()))
 
 
 @bp.route('/other_plots', methods=['GET'])
@@ -143,7 +135,7 @@ def other_plots():
 
     form = FlaskForm()
 
-    plots = [create_fig(title) for title in CHART_KEYS.keys()]
+    plots = [create_fig(title) for title in FLASK_CHART_KEYS.keys()]
 
     ids = ['device_t', 'device_r',
            'onek_t', 'onek_r',
@@ -153,7 +145,7 @@ def other_plots():
            'ls625_ov']
 
     return render_template('other_plots.html', title=_('Other Plots'), form=form,
-                           plots=plots, ids=ids, sensorkeys=list(CHART_KEYS.values()))
+                           plots=plots, ids=ids, sensorkeys=list(FLASK_CHART_KEYS.values()))
 
 
 @bp.route('/settings', methods=['GET', 'POST'])
@@ -387,7 +379,7 @@ def system():
         # return jsonify({'success': True})
     elif cmd == 'reinit':
         import mkidcontrol.redis as redis
-        redis.setup_redis(ts_keys=TS_KEYS)
+        redis.setup_redis(ts_keys=REDIS_TS_KEYS)
         return jsonify({'success': True})
     else:
         return bad_request('Invalid shutdown command')
@@ -425,8 +417,8 @@ def listener():
     @stream_with_context
     def _stream():
         while True:
-            time.sleep(.75)
-            x = current_app.redis.read(KEYS)
+            time.sleep(.5)
+            x = current_app.redis.read(FLASK_KEYS)
             y = mkidcontrol_services().items()
             s = {}
             for k,v in y:
@@ -488,7 +480,7 @@ def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
 def create_fig(name):
     since = None
     first_tval = int((datetime.datetime.now() - timedelta(hours=5)).timestamp() * 1000) if not since else since
-    timestream = np.array(current_app.redis.mkr_range(CHART_KEYS[name], f"{first_tval}"))
+    timestream = np.array(current_app.redis.mkr_range(FLASK_CHART_KEYS[name], f"{first_tval}"))
     if timestream[0][0] is not None:
         times = [datetime.datetime.fromtimestamp(t / 1000).strftime("%m/%d/%Y %H:%M:%S") for t in timestream[:, 0]]
         vals = list(timestream[:, 1])
@@ -505,7 +497,7 @@ def create_fig(name):
 def multi_sensor_fig(titles):
     since = None
     first_tval = int((datetime.datetime.now() - timedelta(hours=0.5)).timestamp() * 1000) if not since else since
-    keys = [CHART_KEYS[title] for title in titles]
+    keys = [FLASK_CHART_KEYS[title] for title in titles]
 
     timestreams = [np.array(current_app.redis.mkr_range(key, f"{first_tval}")) for key in keys]
     times = []
@@ -567,7 +559,6 @@ def dashplot():
             t = time.time()
             data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
             yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
-            # time.sleep(1)  # TODO: Allow changed timesteps
             time.sleep(current_app.int_time)
 
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
@@ -575,7 +566,7 @@ def dashplot():
 
 @bp.route('/send_photons/<startstop>/<target>', methods=["POST"])
 def send_photons(startstop, target=None):
-    # TODO: Store target name for metadata/obslog ingestion
+
     send_photons_file = current_app.send_photons_file
     bmap_filename = current_app.beammap.file
 
