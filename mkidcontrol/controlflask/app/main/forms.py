@@ -282,7 +282,6 @@ class MagnetCycleForm(FlaskForm):
     # TODO: Ramp dropdown (standard ramp/fast ramp/custom ramp?)
     # TODO: make validators a function of the limits? We can just read them in from redis with no issue
     start_cycle = SubmitField("Start Cycle")
-    fast_cycle = SubmitField("Start Fast Cycle")
     abort_cycle = SubmitField("Abort Cooldown")
-    at = DateTimeLocalField('Schedule cycle for:', format='%m/%d/%YT%I:%M %p')
-    schedule_cycle = SubmitField("Schedule")  # TODO: Turn schedule to "Cancel Scheduled" if there is a scheduled cooldown
+    schedule_at = DateTimeLocalField('Schedule cycle for:', format='%Y-%m-%dT%H:%M')
+    schedule_cycle = SubmitField("Schedule")
