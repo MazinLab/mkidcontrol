@@ -707,8 +707,52 @@ def update_array_viewer_params(param, value):
 
 @bp.route('/conex_command', methods=['POST'])
 def conex_command():
-    # TODO
-    return '', 204
+    msg_success = 0
+
+    if request.method == "POST":
+        cmd = request.values.get("cmd")
+        if cmd == "move":
+            pos = request.values.get("position")
+            x, y = pos.split(',')
+            conex_cmd = "conex:move"
+            send_dict = {'x': x, 'y': y}
+        elif cmd == "dither":
+            dith_info = json.loads(request.values.get("dither_info"))
+            startx, starty = dith_info['start'].split(',')
+            endx, endy = dith_info['stop'].split(',')
+            conex_cmd = "conex:dither"
+            send_dict = {'startx': float(startx), 'endx': float(endx),
+                         'starty': float(starty), 'endy': float(endy),
+                         'n':int(float(dith_info['n'])), 't':float(dith_info['t'])}
+        elif cmd == "stop":
+            conex_cmd = "conex:stop"
+            send_dict = {}
+
+    msg_success += current_app.redis.publish(conex_cmd, json.dumps(send_dict), store=False)
+    log.debug(f"Commanding conex to {cmd}. Params: {send_dict}")
+
+    return json.dumps({'success': msg_success})
+
+
+@bp.route('/command_heatswtich/<to_position>', methods=['POST'])
+def command_heatswtich(move_to):
+    # TODO: Enable/disable heatswitch commands?
+    move_to = move_to.lstrip('hs_')
+    msg_success = 0
+
+    log.info(f"Commanding heatswitch to {move_to}")
+
+    if move_to in ('open', 'close'):
+        hs_key = "command:device-settings:heatswitch:position"
+    elif move_to == "stop":
+        hs_key = "command:heatswitch:stop"
+    else:
+        log.warning(f"Trying to command the heatswitch to an unknown state!")
+
+    msg_success += redis.publish(hs_key, move_to, store=False)
+
+    return json.dumps({'success': msg_success})
+
 
 
 def parse_schedule_cooldown(schedule_time):

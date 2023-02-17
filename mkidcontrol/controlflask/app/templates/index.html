@@ -425,27 +425,33 @@
         }
 
         function command_conex(event, buttonid){
-            console.log(event, buttonid)
+
             if (event.key == "Enter") {
-                const position = document.getElementById('conex_position').value;
+                var position = document.getElementById('conex_position').value;
                 var send_data = {'cmd': 'move', 'position': position};
             } else if (buttonid == "dither_start") {
-                const start = document.getElementById('start_pos').value;
-                const stop = document.getElementById('stop_pos').value;
-                const t = document.getElementById('dwell_time').value;
-                const n = document.getElementById('n_steps').value;
-                var send_data = {'cmd': 'dither', 'n': n, 't': t, 'start': start, 'stop': stop};
+                var start = document.getElementById('start_pos').value;
+                var stop = document.getElementById('stop_pos').value;
+                var t = document.getElementById('dwell_time').value;
+                var n = document.getElementById('n_steps').value;
+                var send_data = {'cmd': 'dither', 'dither_info': JSON.stringify({'n': n, 't': t, 'start': start, 'stop': stop})};
             } else if (buttonid == "conex_stop") {
                 var send_data = {'cmd': 'stop'};
             }
-            console.log(send_data)
             $.ajax({
                     type:'POST',
                     url: "{{ url_for('main.conex_command') }}",
-                    data: {},
-                    success: function (d){
-                        var new_val = JSON.parse(d)['value'];
-                        document.getElementById(buttonid).value = new_val
+                    data: send_data,
+                    success: function(d){
+                        var response = JSON.parse(d);
+
+                        var status_dot = document.getElementById("conex_status_dot");
+                        if (response['success'] == 1) {
+                            status_dot.style.backgroundColor = "green"
+                        } else {
+                            status_dot.style.backgroundColor = "red"
+                        }
+                        fade_color(status_dot, 5000)
                     }
             })
         }
