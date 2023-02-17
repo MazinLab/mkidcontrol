@@ -98,7 +98,8 @@ def create_app(config_class=Config, cliargs=None):
 
         app.array_view_params = {'int_time': 1,
                                  'min_cts': 0,
-                                 'max_cts': 2500}
+                                 'max_cts': 2500,
+                                 'changed': False}
 
         if 'forwarding' in app.dashcfg.packetmaster.keys():
             forwarding = dict(app.dashcfg.packetmaster.forwarding)

@@ -232,6 +232,34 @@
                     </div>
                 </div>
 
+                <!-- Starting attempt to turn pixel lightcurve into a modal -->
+<!--                <div class="modal fade" id="pixellightcurvemodal" tabindex="-1" role="dialog" aria-labelledby="pixellightcurvemodaltitle" aria-hidden="true">-->
+<!--                    <div class="modal-dialog" role="document">-->
+<!--                        <div class="modal-content">-->
+<!--                            <div class="modal-header">-->
+<!--                                <h5 class="modal-title" id="pixellightcurvemodaltitle">Pixel Light Curve</h5>-->
+<!--                                <button type="button" class="close" onclick="delete_pixel_lightcurve_trace()" data-dismiss="modal" aria-label="Close">-->
+<!--                                    <span aria-hidden="true">&times;</span>-->
+<!--                                </button>-->
+<!--                            </div>-->
+<!--                            <div class="modal-body">-->
+<!--                                <div class="container-fluid">-->
+<!--                                    <div class="row">-->
+<!--                                        <div class="col-12 justify-content-center align-items-center">-->
+<!--                                            <div class="flex-column flex-wrap flex-md-nowrap py-2 mb-3">-->
+<!--                                                <div id="pixel_lightcurve"></div>-->
+<!--                                            </div>-->
+<!--                                            <div id="stopper" class="column" style="float: left; margin-left: 50%; width: 20%">-->
+<!--                                                <button onclick="delete_pixel_lightcurve_trace()">Stop</button>-->
+<!--                                            </div>-->
+<!--                                        </div>-->
+<!--                                    </div>-->
+<!--                                </div>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+
             </main>
         </div>
     </div>
@@ -262,7 +290,7 @@
                         Plotly.react(update['id'], data);
                         break;
                     case "partial":
-                        Plotly.extendTraces(update['id'], {z: [data.data[0]['z']]});
+                        Plotly.restyle(update['id'], {z: [data.data[0]['z']]});
                         break;
                 }
             }
@@ -478,6 +506,15 @@
 
         function command_magnet(buttonid){
             console.log(buttonid)
+            if (buttonid == "start_cycle") {
+
+            } else if (buttonid == "fast_cycle") {
+
+            } else if (buttonid == "abort_cycle") {
+
+            } else if (buttonid == "scedule_cycle") {
+
+            }
         }
 
         // Update the max/min count rates on the array viewer or the update rate

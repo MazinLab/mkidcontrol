@@ -562,7 +562,7 @@ def view_array_data(view_params):
     # y = data.receiveImage()
 
 
-    y = np.zeros((125, 80))
+    y = 10* np.random.random((125, 80))
     m = y < 0
     y[m] = 0
     fig = go.Figure()
@@ -586,7 +586,13 @@ def dashplot():
         while True:
             figdata = view_array_data(current_app.array_view_params)
             t = time.time()
-            data = {'id': 'dash', 'kind': 'full', 'data': figdata,
+            if current_app.array_view_params['changed']:
+                data_kind = 'full'
+                current_app.array_view_params['changed'] = False
+            else:
+                data_kind = 'partial'
+
+            data = {'id': 'dash', 'kind': data_kind, 'data': figdata,
                     'time': datetime.datetime.fromtimestamp(t).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
             yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
             time.sleep(current_app.array_view_params['int_time'])
@@ -721,13 +727,13 @@ def change_filter(filter):
 def update_array_viewer_params(param, value):
     print(f"Updating {param} to {value}")
     if param == "int_time":
-        new_val = min(max(float(value), 0.1), 10.0)
+        new_val = min(max(float(value), 0.01), 10.0)
     elif param == "min_cts":
         new_val = min(int(value), current_app.array_view_params['max_cts'] - 10)
     elif param == "max_cts":
         new_val = max(int(value), current_app.array_view_params['min_cts'] + 10)
     current_app.array_view_params[param] = new_val
-
+    current_app.array_view_params['changed'] = True
     resp = {'value': new_val}
 
     return json.dumps(resp)
