@@ -676,7 +676,7 @@ def change_filter(filter):
 
     try:
         log.debug(f"Setting filter mirror to position: {filterno} ({filtername})")
-        msg_success += current_app.redis.publish('command:device-settings:filterwheel:position', filterno, store=False) # TODO
+        msg_success += current_app.redis.publish('command:device-settings:filterwheel:position', filterno, store=False)
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
         sys.exit(1)
