@@ -596,7 +596,7 @@ def send_photons(startstop, target=None):
 
     return '', 204
 
-
+# TODO: In command functions, import the proper command keys if appropriate
 @bp.route('/update_laser_powers', methods=["POST"])
 def update_laser_powers():
     msg_success = 0
