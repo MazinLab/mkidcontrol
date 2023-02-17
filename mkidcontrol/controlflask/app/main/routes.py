@@ -668,7 +668,6 @@ def move_focus(position):
 
 @bp.route('/change_filter/<filter>', methods=['POST'])
 def change_filter(filter):
-    # TODO: Add dot showing if message was sent to redis successfully.
     filterno, filtername = filter.split(':')
     msg_success = 0
 
