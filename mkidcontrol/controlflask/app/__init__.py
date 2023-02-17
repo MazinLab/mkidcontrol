@@ -19,6 +19,7 @@ import click
 import sys
 import numpy as np
 
+# TODO: Move TS_KEY ingestion into config and import from there
 from mkidcontrol.agents.xkid.heatswitchAgent import TS_KEYS as TS_KEYS_hs
 from mkidcontrol.agents.lakeshore336Agent import TS_KEYS as TS_KEYS_ls336
 from mkidcontrol.agents.lakeshore372Agent import TS_KEYS as TS_KEYS_ls372
