@@ -123,7 +123,8 @@ def index():
 
     return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform, fw=fw,
                            focus=focus, form=form, laserbox=laserbox, obs=obs, conex=conex, sensor_fig=sensor_fig,
-                           array_fig=array_fig, pix_lightcurve=pix_lightcurve, sensorkeys=list(FLASK_CHART_KEYS.values()))
+                           array_fig=array_fig, pix_lightcurve=pix_lightcurve,
+                           sensorkeys=list(FLASK_CHART_KEYS.values()))
 
 
 @bp.route('/other_plots', methods=['GET'])
@@ -178,7 +179,9 @@ def heater(device, channel):
         for key in request.form.keys():
             print(f"{key} : {request.form.get(key)}")
             try:
-                x = LakeShoreCommand(f"device-settings:{device}:heater-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
+                x = LakeShoreCommand(
+                    f"device-settings:{device}:heater-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
+                    request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
                 current_app.redis.publish(f"command:{x.setting}", x.value)
                 log.info(f"Command sent successfully")
@@ -222,7 +225,9 @@ def thermometry(device, channel, filter):
         for key in request.form.keys():
             print(f"{key} : {request.form.get(key)}")
             try:
-                x = LakeShoreCommand(f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_','-')}", request.form.get(key))
+                x = LakeShoreCommand(
+                    f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
+                    request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
                 current_app.redis.publish(f"command:{x.setting}", x.value)
                 log.info(f"Command sent successfully")
@@ -277,7 +282,8 @@ def ls625():
         for key in request.form.keys():
             print(f"{key} : {request.form.get(key)}")
             try:
-                x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_','-')}", request.form.get(key), limit_vals=ls625settings.limits)
+                x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_', '-')}", request.form.get(key),
+                                     limit_vals=ls625settings.limits)
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
                 current_app.redis.publish(f"command:{x.setting}", x.value)
                 log.info(f"Command sent successfully")
@@ -364,7 +370,6 @@ def task():
                         'progress': job.meta.get('progress', 0)})
 
 
-
 # NOTE (N.S.) 19 July 2022: I'm disinclined to include this as a route and leave it to only be allowable by a
 # responsible superuser
 @bp.route('/system', methods=['POST'])
@@ -387,7 +392,6 @@ def system():
 
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
-
     from mkidcontrol.controlflask.app.main.forms import MagnetCycleSettingsForm
     if request.method == "POST":
         print(request.form)
@@ -407,6 +411,7 @@ def page_not_found():
 def redis_error_page():
     return render_template('/errors/6379.html'), 412
 
+
 # ----------------------------------- Helper Functions Below -----------------------------------
 @bp.route('/listener', methods=["GET"])
 def listener():
@@ -414,6 +419,7 @@ def listener():
     listener is a function that implements the python (server) side of a server sent event (SSE) communication protocol
     where data can be streamed directly to the flask app.
     """
+
     @stream_with_context
     def _stream():
         while True:
@@ -421,7 +427,7 @@ def listener():
             x = current_app.redis.read(FLASK_KEYS)
             y = mkidcontrol_services().items()
             s = {}
-            for k,v in y:
+            for k, v in y:
                 sd = v.status_dict()
                 if sd['enabled']:
                     if sd['running']:
@@ -435,6 +441,7 @@ def listener():
             x = json.dumps(x)
             msg = f"retry:5\ndata: {x}\n\n"
             yield msg
+
     return current_app.response_class(_stream(), mimetype='text/event-stream', content_type='text/event-stream')
 
 
@@ -446,6 +453,7 @@ def journalctl_streamer(service):
     endpoint is called.
     """
     args = ['journalctl', '--lines', '0', '--follow', f'_SYSTEMD_UNIT={service}.service']
+
     def st(arg):
         f = subprocess.Popen(arg, stdout=subprocess.PIPE)
         p = select.poll()
@@ -454,12 +462,12 @@ def journalctl_streamer(service):
             if p.poll(100):
                 line = f.stdout.readline()
                 yield f"retry:5\ndata: {line.strip().decode('utf-8')}\n\n"
+
     return Response(st(args), mimetype='text/event-stream', content_type='text/event-stream')
 
 
 @bp.route('/pixel_lightcurve', methods=["POST"])
 def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
-
     if request.method == "POST":
         init = bool(int(request.form.get("init")))
         time = request.form.get("time")
@@ -472,7 +480,7 @@ def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
     if init:
         fig.update_layout(title=f"Pixel Not Selected")
     else:
-        fig.update_layout(title=f"Pixel ({pix_x}, {pix_y})") #, xaxis=dict(tickangle=0, nticks=3))
+        fig.update_layout(title=f"Pixel ({pix_x}, {pix_y})")  # , xaxis=dict(tickangle=0, nticks=3))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
@@ -523,7 +531,8 @@ def multi_sensor_fig(titles):
             fig.add_trace(go.Scatter(x=data[0], y=data[1], mode='lines', name=data[2], visible=True))
         else:
             fig.add_trace(go.Scatter(x=data[0], y=data[1], mode='lines', name=data[2], visible=False))
-    fig.update_layout(dict(updatemenus=list([dict(buttons=update_menus, x=0.01, xanchor='left', y=1.1, yanchor='top')])))
+    fig.update_layout(
+        dict(updatemenus=list([dict(buttons=update_menus, x=0.01, xanchor='left', y=1.1, yanchor='top')])))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
@@ -538,13 +547,14 @@ def view_array_data(view_params):
     # data = current_app.liveimage
     # data.startIntegration(integrationTime=view_params['int_time'])
     # y = data.receiveImage()
-    y = np.zeros((125,80))
+    y = np.zeros((125, 80))
     m = y < 0
     y[m] = 0
     fig = go.Figure()
-    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale=[[0, "black"], [0.5,"white"], [0.5, "red"], [1, "red"]],
-                    zmin=view_params['min_cts'], zmax=view_params['max_cts']*2)
-    fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'), yaxis=dict(visible=False, ticks='')))
+    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale=[[0, "black"], [0.5, "white"], [0.5, "red"], [1, "red"]],
+                    zmin=view_params['min_cts'], zmax=view_params['max_cts'] * 2)
+    fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'),
+                           yaxis=dict(visible=False, ticks='')))
     fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
@@ -555,12 +565,14 @@ def dashplot():
     """
     TODO: If roaches are offline, just send an array of zeros?
     """
+
     @stream_with_context
     def _stream():
         while True:
             figdata = view_array_data(current_app.array_view_params)
             t = time.time()
-            data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
+            data = {'id': 'dash', 'kind': 'full', 'data': figdata,
+                    'time': datetime.datetime.fromtimestamp(t).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
             yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
             time.sleep(current_app.array_view_params['int_time'])
 
@@ -569,7 +581,6 @@ def dashplot():
 
 @bp.route('/send_photons/<startstop>/<target>', methods=["POST"])
 def send_photons(startstop, target=None):
-
     send_photons_file = current_app.dashcfg.paths.send_photons_file
     bmap_filename = current_app.dashcfg.beammap.file
 
@@ -590,11 +601,12 @@ def send_photons(startstop, target=None):
         log.info("Stopped packetmaster stopped")
         try:
             os.remove(send_photons_file)
+            log.debug(f"Removed {send_photons_file} to stop sending photons")
         except:
-            pass
-        log.info(f"Removed {send_photons_file} to stop sending photons")
-
+            # TODO this is an error that requires immediate attention
+            log.critical(f"Failed to remove {send_photons_file} to stop sending photons")
     return '', 204
+
 
 # TODO: In command functions, import the proper command keys if appropriate
 @bp.route('/update_laser_powers', methods=["POST"])
@@ -605,19 +617,21 @@ def update_laser_powers():
         wvl = json.loads(request.values.get("wvl"))
         power = json.loads(request.values.get("power"))
         if isinstance(wvl, list):
-            new_powers = {w: min(100, max(int(p), 0)) for w,p in zip(wvl, power)}
+            new_powers = {w: min(100, max(int(p), 0)) for w, p in zip(wvl, power)}
         else:
             new_powers = {wvl: min(100, max(power, 0))}
 
     try:
         for k, v in new_powers.items():
             log.debug(f"Setting {k} nm laser to {v}% power")
-            msg_success += current_app.redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v, store=False)
+            msg_success += current_app.redis.publish(f"command:device-settings:laserflipperduino:laserbox:{k}:power", v,
+                                                     store=False)
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
         sys.exit(1)
 
-    powers = {k: int(float(current_app.redis.read(f"device-settings:laserflipperduino:laserbox:{k}:power"))) for k in new_powers.keys()}
+    powers = {k: int(float(current_app.redis.read(f"device-settings:laserflipperduino:laserbox:{k}:power"))) for k in
+              new_powers.keys()}
 
     resp = {'success': msg_success, 'powers': powers}
 
@@ -635,7 +649,8 @@ def flip_mirror(position):
 
     try:
         log.debug(f"Setting flip mirror to position: {new_pos}")
-        msg_success += current_app.redis.publish("command:device-settings:laserflipperduino:flipper:position", new_pos, store=False)
+        msg_success += current_app.redis.publish("command:device-settings:laserflipperduino:flipper:position", new_pos,
+                                                 store=False)
         log.info(f"Flip mirror set to position: {new_pos}")
     except RedisError as e:
         log.warning(f"Can't communicate with Redis Server! {e}")
@@ -657,7 +672,8 @@ def move_focus(position):
     else:
         position = min(50, max(0, float(position)))  # Can only move between 0-50 mm
         log.debug(f"Command focus stage to move to {position}")
-        msg_success += current_app.redis.publish('command:device-settings:focus:desired-position:mm', position, store=False)
+        msg_success += current_app.redis.publish('command:device-settings:focus:desired-position:mm', position,
+                                                 store=False)
 
     position = current_app.redis.read('status:device:focus:position:mm')[1]
 
@@ -692,9 +708,9 @@ def update_array_viewer_params(param, value):
     if param == "int_time":
         new_val = min(max(float(value), 0.1), 10.0)
     elif param == "min_cts":
-        new_val = min(int(value), current_app.array_view_params['max_cts']-10)
+        new_val = min(int(value), current_app.array_view_params['max_cts'] - 10)
     elif param == "max_cts":
-        new_val = max(int(value), current_app.array_view_params['min_cts']+10)
+        new_val = max(int(value), current_app.array_view_params['min_cts'] + 10)
     current_app.array_view_params[param] = new_val
 
     resp = {'value': new_val}
@@ -720,7 +736,7 @@ def conex_command():
             conex_cmd = "conex:dither"
             send_dict = {'startx': float(startx), 'endx': float(endx),
                          'starty': float(starty), 'endy': float(endy),
-                         'n':int(float(dith_info['n'])), 't':float(dith_info['t'])}
+                         'n': int(float(dith_info['n'])), 't': float(dith_info['t'])}
         elif cmd == "stop":
             conex_cmd = "conex:stop"
             send_dict = {}
@@ -749,7 +765,6 @@ def command_heatswtich(move_to):
     msg_success += redis.publish(hs_key, move_to, store=False)
 
     return json.dumps({'success': msg_success})
-
 
 
 def parse_schedule_cooldown(schedule_time):
