@@ -457,23 +457,24 @@
             })
         }
 
-        function command_hs(buttonid){
+        function command_hs(buttonid) {
             $.ajax({
-                    type:'POST',
-                    url: "{{ url_for('main.command_heatswitch', 'to_position') }}" + '/' + buttonid,
-                    data: {},
-                    success: function(d){
-                        var response = JSON.parse(d);
+                type: 'POST',
+                url: "{{ url_for('main.command_heatswitch', to_position='' ) }}" + '/' + buttonid,
+                data: {},
+                success: function (d) {
+                    var response = JSON.parse(d);
 
-                        var status_dot = document.getElementById("conex_status_dot");
-                        if (response['success'] == 1) {
-                            status_dot.style.backgroundColor = "green"
-                        } else {
-                            status_dot.style.backgroundColor = "red"
-                        }
-                        fade_color(status_dot, 5000)
+                    var status_dot = document.getElementById("conex_status_dot");
+                    if (response['success'] == 1) {
+                        status_dot.style.backgroundColor = "green"
+                    } else {
+                        status_dot.style.backgroundColor = "red"
                     }
+                    fade_color(status_dot, 5000)
+                }
             })
+        }
 
         function command_magnet(buttonid){
             console.log(buttonid)
