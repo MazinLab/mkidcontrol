@@ -80,59 +80,85 @@ def sort_key_change(element, did_anything_change):
 
 sort_key_change
 
-def get_fits_keys():
-
 
 for k in MAG2_KEYS:
     a,b,c = k.split('.')
     c.devices[a].properties[b].elements[c].add_watcher(sort_key_change)
 
 
+from mkidcore.fits import CalFactory, combineHDU, summarize
+
+
+def get_obslog_record():
+
+
+
+def get_fits_atom(live, obslog_record):
+
+    im, start, et = live.receiveImage()
+
+    ret = fits.ImageHDU(data=im)
+    ret.header['utcstart'] = start
+    ret.header['exptime'] = et
+    ret.header['wmin'] = 'NaN'
+    ret.header['wmax'] = 'NaN'
+    ret.header['wavecal'] = live.wavecalID.decode('UTF-8', "backslashreplace")
+    if ret.header['wavecal']:
+        ret.header['wmin'] = live.wvlStart
+        ret.header['wmax'] = live.wvlStop
+
+    header.update(obslog_record)  #TODO
+
+
 
 if __name__ == "__main__":
     redis.setup_redis(ts_keys=TS_KEYS)
-    util.setup_logging('focusAgent')
+    util.setup_logging('observingLogAgent')
 
-    try:
-        f = Focus(name='focus', port='/dev/focus')
-        redis.store({STATUS_KEY: "OK"})
-    except RedisError as e:
-        log.error(f"Redis server error! {e}")
-        sys.exit(1)
-    except Exception as e:
-        log.critical(f"Could not connect to the filter wheel! Error {e}")
-        redis.store({STATUS_KEY: f"Error: {e}"})
-        sys.exit(1)
+    live = ImageCube(name=image, nRows=nRows, nCols=nCols,
+                     useWvl=False, nWvlBins=1, wvlStart=False, wvlStop=False)
 
-    f.monitor(QUERY_INTERVAL, (f.position_mm, f.position_encoder), value_callback=callback)
+    while run:
+        observation = redis.listen('observation:start', block=True).decode('json')
+        target = observation['type']
+        md = get_obslog_record()
+        im = get_fits_atom(md)
+        if target=='flat':
+            dark = fits.open(redis.get(CURRENT_DARK_FILE_KEY))
+            flatFac = CalFactory('flat', images=(im,), dark=dark)
+            fn = redis.get(FLAT_FILE_TEMPLATE_KEY).format(md)
+            badmask = fits.get_data(redis.get(BAD_PIXEL_MASK_KEY).format(md))
+            flatFac.generate(fname=fn, badmask=badmask, save=True,
+                             name=os.path.splitext(os.path.basename(fn))[0], overwrite=True)
+            redis.store(CURRENT_FLAT_FILE_KEY, fn)
+        elif target =='dark':
+            darkFac.CalFactory('dark', images=(im,))
+            fn = redis.get(DARK_FILE_TEMPLATE_KEY).format(md)
+            badmask = fits.get_data(redis.get(BAD_PIXEL_MASK_KEY).format(md))
+            darkFac.generate(fname=fn, badmask=badmask, save=True,
+                             name=os.path.splitext(os.path.basename(fn))[0], overwrite=True)
+            redis.store(CURRENT_DARK_FILE_KEY, fn)
+        elif target in ('dwell', 'object'):
+            fn = redis.get(SCI_FILE_TEMPLATE_KEY).format(md)
+            dark = fits.open(redis.get(CURRENT_DARK_FILE_KEY))
+            flat = fits.open(redis.get(CURRENT_FLAT_FILE_KEY))
+            sciFac = CalFactory('sum', dark=dark, flat=flat)
+            sciFac.addimage(im)
+            sciFac.generate(threaded=True, fname=fn, name=observation['target'], save=True)
 
-    try:
-        while True:
-            for key, val in redis.listen(COMMAND_KEYS):
-                log.debug(f"focusAgent received {key} -> {val}!")
-                try:
-                    cmd = LakeShoreCommand(key.removeprefix('command:'), val)
-                except ValueError as e:
-                    log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
-                    continue
-                try:
-                    if 'params' in key:
-                        f.update_param(key, val)
-                        redis.store({cmd.setting: cmd.value})
-                        redis.store({STATUS_KEY: "OK"})
-                    elif 'desired-position' in key:
-                        units = key.split(":")[-1]
-                        f.move_to(val, units=units)
-                    elif key in [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY]:
-                        unts = key.split(":")[-1]
-                        f.move_by(val, units=units)
-                    elif key == JOG_KEY:
-                        f.jog(direction=val)
-                    elif key == HOME_KEY:
-                        f.home()
-                except IOError as e:
-                    redis.store({STATUS_KEY: f"Error {e}"})
-                    log.error(f"Comm error: {e}")
-    except RedisError as e:
-        log.critical(f"Redis server error! {e}")
-        sys.exit(1)
+
+
+
+    # # Set up worker object and thread for the display.
+    # #  All of this code could be axed if the live image was broken out into a separate program
+    # cf = CalFactory('avg', images=self.imageList[-1:],
+    #                 dark=self.darkField if self.checkbox_darkImage.isChecked() else None,
+    #                 flat=self.flatField if self.checkbox_flatImage.isChecked() else None,
+    #                 mask=self.beammapFailed)
+
+    # cf = CalFactory('sum', images=self.imageList[-numImages2Sum:], dark=self.darkField if applyDark else None)
+    # im = cf.generate(name='pixelcount')
+    # pixelList = np.asarray(pixelList)
+    # im.data[(pixelList[:, 1], pixelList[:, 0])].sum()
+    #
+    # self.sciFactory = CalFactory('sum', dark=self.darkField, flat=self.flatField)

@@ -543,10 +543,25 @@ def view_array_data(view_params):
     'device view' on the homepage of the flask application.
 
     TODO: Ingest dark/flats and apply
+        #From darshboard
+        # # Set up worker object and thread for the display.
+        # #  All of this code could be axed if the live image was broken out into a separate program
+        # cf = CalFactory('avg', images=self.imageList[-1:],
+        #                 dark=self.darkField if self.checkbox_darkImage.isChecked() else None,
+        #                 flat=self.flatField if self.checkbox_flatImage.isChecked() else None,
+        #                 mask=self.beammapFailed)
+        vals = cf.generate(name='LiveImage', bias=0, maskvalue=np.nan).data
+        also
+        # cf = CalFactory('sum', images=self.imageList[-numImages2Sum:], dark=self.darkField if applyDark else None)
+        # im = cf.generate(name='pixelcount')
+        # pixelList = np.asarray(pixelList)
+        # im.data[(pixelList[:, 1], pixelList[:, 0])].sum()
     """
     # data = current_app.liveimage
     # data.startIntegration(integrationTime=view_params['int_time'])
     # y = data.receiveImage()
+
+
     y = np.zeros((125, 80))
     m = y < 0
     y[m] = 0
