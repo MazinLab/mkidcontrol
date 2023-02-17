@@ -111,14 +111,14 @@ def index():
     obs = ObsControlForm()
     conex = ConexForm()
 
-    sending_photons = os.path.exists(current_app.send_photons_file)
+    sending_photons = os.path.exists(current_app.dashcfg.paths.send_photons_file)
 
     form = FlaskForm()
     if request.method == 'POST':
         print(request.form)
 
     sensor_fig = multi_sensor_fig(FLASK_CHART_KEYS.keys())
-    array_fig = view_array_data()
+    array_fig = view_array_data(current_app.array_view_params)
     pix_lightcurve = pixel_lightcurve()
 
     return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform, fw=fw,
@@ -528,7 +528,7 @@ def multi_sensor_fig(titles):
     return fig
 
 
-def view_array_data(min=0, max=2500, int_time=1):
+def view_array_data(view_params):
     """
     Placeholding function to grab a frame from a (hard-coded, previously made) temporal drizzle to display as the
     'device view' on the homepage of the flask application.
@@ -536,13 +536,14 @@ def view_array_data(min=0, max=2500, int_time=1):
     TODO: Ingest dark/flats and apply
     """
     # data = current_app.liveimage
-    # data.startIntegration(integrationTime=int_time)
+    # data.startIntegration(integrationTime=view_params['int_time'])
     # y = data.receiveImage()
     y = np.zeros((125,80))
     m = y < 0
     y[m] = 0
     fig = go.Figure()
-    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale=[[0, "black"], [0.5,"white"], [0.5, "red"], [1, "red"]], zmin=min, zmax=max*2)
+    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale=[[0, "black"], [0.5,"white"], [0.5, "red"], [1, "red"]],
+                    zmin=view_params['min_cts'], zmax=view_params['max_cts']*2)
     fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'), yaxis=dict(visible=False, ticks='')))
     fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
@@ -557,11 +558,11 @@ def dashplot():
     @stream_with_context
     def _stream():
         while True:
-            figdata = view_array_data(current_app.min_cts, current_app.max_cts, current_app.int_time)
+            figdata = view_array_data(current_app.array_view_params)
             t = time.time()
             data = {'id':'dash', 'kind':'full', 'data':figdata, 'time':datetime.datetime.fromtimestamp(t).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
             yield f"event:dashplot\nretry:5\ndata: {json.dumps(data)}\n\n"
-            time.sleep(current_app.int_time)
+            time.sleep(current_app.array_view_params['int_time'])
 
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
@@ -569,18 +570,18 @@ def dashplot():
 @bp.route('/send_photons/<startstop>/<target>', methods=["POST"])
 def send_photons(startstop, target=None):
 
-    send_photons_file = current_app.send_photons_file
-    bmap_filename = current_app.beammap.file
+    send_photons_file = current_app.dashcfg.paths.send_photons_file
+    bmap_filename = current_app.dashcfg.beammap.file
 
     log.debug(f"{startstop} sending photons")
-    current_app.redis.store({"observing:target": target}, timeseries=True)
+    current_app.redis.store({"observing:target": target})
     if startstop == "start":
         log.info(f"Start observing target: {target}")
         with open(send_photons_file, "w") as f:
             f.write(bmap_filename)
         log.info(f"Wrote {bmap_filename} to {send_photons_file} to start sending photons")
         log.info("Start packetmaster writing bin files...")
-        current_app.packetmaster.startWriting(current_app.bindir)
+        current_app.packetmaster.startWriting(current_app.dashcfg.paths.data)
         log.info("Packetmaster started")
     else:
         log.info(f"Stop observing target: {target}")

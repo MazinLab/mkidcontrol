@@ -96,10 +96,9 @@ def create_app(config_class=Config, cliargs=None):
         imgcfg = dict(app.dashcfg.dashboard)
         imgcfg['n_wave_bins'] = 1
 
-        # Array viewer
-        app.int_time = 1
-        app.min_cts = 0
-        app.max_cts = 2500
+        app.array_view_params = {'int_time': 1,
+                                 'min_cts': 0,
+                                 'max_cts': 2500}
 
         if 'forwarding' in app.dashcfg.packetmaster.keys():
             forwarding = dict(app.dashcfg.packetmaster.forwarding)
@@ -113,9 +112,6 @@ def create_app(config_class=Config, cliargs=None):
         liveimage = packetmaster.sharedImages['dashboard']
         app.liveimage = liveimage
 
-        app.send_photons_file = app.dashcfg.paths.send_photons_file
-        app.beammap = app.dashcfg.beammap
-        app.bindir = app.dashcfg.paths.data
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)
