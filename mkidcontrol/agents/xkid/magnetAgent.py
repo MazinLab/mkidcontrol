@@ -39,6 +39,7 @@ SOAK_CURRENT_KEY = 'device-settings:magnet:soak-current'
 RAMP_RATE_KEY = 'device-settings:magnet:ramp-rate'
 DERAMP_RATE_KEY = 'device-settings:magnet:deramp-rate'
 COOLDOWN_SCHEDULED_KEY = 'device-settings:magnet:cooldown-scheduled'
+SCHEDULED_COOLDOWN_TIMESTAMP_KEY = 'device-settings:magnet:cooldown-scheduled:timestamp'
 
 IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY = 'device-settings:magnet:enable-temperature-regulation-upper-limit'
 STATEFILE_PATH_KEY = 'device-settings:magnet:statefile'  # /mkidcontrol/mkidcontrol/logs/statefile.txt
@@ -77,6 +78,7 @@ def compute_initial_state(statefile):
     # TODO: Check legality and test logic
     initial_state = 'deramping'  # always safe to start here
     redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
+    redis.store({SCHEDULED_COOLDOWN_TIMESTAMP_KEY: ''})
     try:
         if ls625.is_initialized():
             state_time, persisted_state = load_persisted_state(statefile)
@@ -297,9 +299,12 @@ class MagnetController(LockedMachine):
 
         self.cancel_scheduled_cooldown()
         redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
+        redis.store({SCHEDULED_COOLDOWN_TIMESTAMP_KEY: ''})
         t = threading.Timer((time - time_needed - now).seconds, self.start)  # TODO (For JB): self.start?
         self.scheduled_cooldown = (time - time_needed, t)
+
         redis.store({COOLDOWN_SCHEDULED_KEY: 'yes'})
+        redis.store({SCHEDULED_COOLDOWN_TIMESTAMP_KEY: f"{time.timestamp()}"})
         t.daemon = True
         t.start()
 
@@ -528,6 +533,7 @@ if __name__ == "__main__":
                     try:
                         controller.schedule_cooldown(datetime.fromtimestamp(float(val)))
                         redis.store({COOLDOWN_SCHEDULED_KEY: 'yes'})
+                        redis.store({SCHEDULED_COOLDOWN_TIMESTAMP_KEY: f"{time.timestamp()}"})
                     except ValueError as e:
                         log.error(e)
                 elif key == COLD_NOW_CMD:
@@ -539,6 +545,7 @@ if __name__ == "__main__":
                     try:
                         controller.cancel_scheduled_cooldown()
                         redis.store({COOLDOWN_SCHEDULED_KEY: 'no'})
+                        redis.store({SCHEDULED_COOLDOWN_TIMESTAMP_KEY: ""})
                     except Exception as e:
                         log.error(e)
                 else:
