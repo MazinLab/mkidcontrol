@@ -532,6 +532,8 @@ def view_array_data(min=0, max=2500, int_time=1):
     """
     Placeholding function to grab a frame from a (hard-coded, previously made) temporal drizzle to display as the
     'device view' on the homepage of the flask application.
+
+    TODO: Ingest dark/flats and apply
     """
     # data = current_app.liveimage
     # data.startIntegration(integrationTime=int_time)
@@ -550,7 +552,7 @@ def view_array_data(min=0, max=2500, int_time=1):
 @bp.route('/dashplot', methods=["GET"])
 def dashplot():
     """
-    TODO: If packetmaster/roaches are offline, just send an array of zeros?
+    TODO: If roaches are offline, just send an array of zeros?
     """
     @stream_with_context
     def _stream():
