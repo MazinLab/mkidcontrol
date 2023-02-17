@@ -11,6 +11,8 @@ Commands sent to conex for dithering/moving are dicts converted to strings via t
 complicated dicts over redis pubsub connections
 
 TODO: Log dither
+
+TODO: Write the cc.state[0] -> cc.state[1] to somewhere it can be ingested by flask
 """
 
 import logging
@@ -47,6 +49,7 @@ ENABLE_CONEX_KEY = "device-settings:conex:enabled"
 
 CONEX_CONTROLLER_STATUS_KEY = "status:device:conex:controller-status"
 CONEX_CONTROLLER_STATE_KEY = "status:device:conex:controller-state"
+CONEX_CONTROLLER_LAST_CHANGE_KEY = "status:device:conex:controller-state"
 CONEX_OPERATION_STATUS_KEY = "status:device:conex:operation-status"
 
 CONEX_COMMANDS = tuple([MOVE_COMMAND_KEY, DITHER_COMMAND_KEY, STOP_COMMAND_KEY])
@@ -115,6 +118,10 @@ class ConexController:
             self.operation_status = s
             self.redis.publish(CONEX_OPERATION_STATUS_KEY, s)
 
+    def _publish_state_change(self):
+        # TODO: Tell the obslog what we're doing here
+        self.redis.publish(CONEX_CONTROLLER_LAST_CHANGE_KEY, f"{self.state[0]}->{self.state[1]}")
+
     def status(self):
         pos = (np.NaN, np.NaN)
         status = ''
@@ -155,13 +162,13 @@ class ConexController:
         s = self.stop(wait=False)  # blocking
         with self._rlock:
             self._update_operation_status(s)
-        # self.statusupdate.emit()  TODO: Choose how to send update to flask
+        self._publish_state_change()
 
     def _wait4dither(self):
         d = self.queryDither()
         with self._rlock:
             self._update_operation_status(d['status'])
-        # self.statusupdate.emit()  TODO: Choose how to notify that there has been a dither move
+        self._publish_state_change()
         pos_tolerance = 0.003
         while not d['completed']:
             time.sleep(0.001)
@@ -175,7 +182,7 @@ class ConexController:
                 with self._rlock:
                     self._update_operation_status(d['status'])
                 if not posNear:  # If the position changed
-                    # self.statusupdate.emit()  TODO: Choose how to notify that there has been a dither move
+                    self._publish_state_change()
                     pass
             except:
                 d = {'completed': False}
@@ -194,7 +201,7 @@ class ConexController:
                 self._update_operation_status(d['status'])
             except:
                 d={'completed':False}
-        # self.statusupdate.emit()  TODO: Choose how to notify that a move has been / is being made
+        self._publish_state_change()
         log.info('Finished conex GOTO')
 
     def queryMove(self):
