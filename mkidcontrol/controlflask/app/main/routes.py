@@ -763,21 +763,21 @@ def conex_command():
 
 
 @bp.route('/command_heatswtich/<to_position>', methods=['POST'])
-def command_heatswtich(move_to):
+def command_heatswitch(to_position):
     # TODO: Enable/disable heatswitch commands?
-    move_to = move_to.lstrip('hs_')
+    to_position = to_position.lstrip('hs_')
     msg_success = 0
 
-    log.info(f"Commanding heatswitch to {move_to}")
+    log.info(f"Commanding heatswitch to {to_position}")
 
-    if move_to in ('open', 'close'):
+    if to_position in ('open', 'close'):
         hs_key = "command:device-settings:heatswitch:position"
-    elif move_to == "stop":
+    elif to_position == "stop":
         hs_key = "command:heatswitch:stop"
     else:
         log.warning(f"Trying to command the heatswitch to an unknown state!")
 
-    msg_success += redis.publish(hs_key, move_to, store=False)
+    msg_success += redis.publish(hs_key, to_position, store=False)
 
     return json.dumps({'success': msg_success})
 
