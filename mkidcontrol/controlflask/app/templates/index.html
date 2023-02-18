@@ -470,7 +470,7 @@
             }
             $.ajax({
                     type:'POST',
-                    url: "{{ url_for('main.conex_command') }}",
+                    url: "{{ url_for('main.command_conex') }}",
                     data: send_data,
                     success: function(d){
                         var response = JSON.parse(d);

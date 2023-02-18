@@ -744,8 +744,8 @@ def update_array_viewer_params(param, value):
     return json.dumps(resp)
 
 
-@bp.route('/conex_command', methods=['POST'])
-def conex_command():
+@bp.route('/command_conex', methods=['POST'])
+def command_conex():
     msg_success = 0
 
     if request.method == "POST":
