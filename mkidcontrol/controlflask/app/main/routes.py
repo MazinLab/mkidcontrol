@@ -604,10 +604,19 @@ def dashplot():
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
 
-@bp.route('/send_photons/<startstop>/<target>', methods=["POST"])
-def send_photons(startstop, target=None):
+@bp.route('/send_photons/<startstop>', methods=["POST"])
+def send_photons(startstop):
     send_photons_file = current_app.dashcfg.paths.send_photons_file
     bmap_filename = current_app.dashcfg.beammap.file
+
+    if request.method == "POST":
+        target = request.values.get("target_name")
+        obs_type = request.values.get("obs_type")
+        duration = float(request.values.get("duration"))
+        start_time = float(request.values.get("start_time"))
+        obs_dict = {'target': target, "obs_type": obs_type,
+                    'duration': duration, 'start_time': start_time}
+
 
     log.debug(f"{startstop} sending photons")
     current_app.redis.store({"observing:target": target})
