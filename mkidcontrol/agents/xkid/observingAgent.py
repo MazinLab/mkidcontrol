@@ -65,15 +65,13 @@ if __name__ == "__main__":
     util.setup_logging('observingAgent')
     redis.setup_redis(ts_keys=TS_KEYS)
 
-    c = INDIClient('localhost', 7624)  #TODO add error handling and autorecovery
-    c.start()
+    indi = INDIClient('localhost', 7624)  #TODO add error handling and autorecovery
+    indi.start()
 
     def indi2redis(element, changed):
         if changed:
             indikey=f'{element.property.device.name}.{element.property.name}.{element.name}'
             redis.store(MAGAOX_KEYS[indikey][0], element.value)
-            msg = f'{indikey} was just updated to {element.value}'
-            getLogger(__name__).debug(msg)
 
 
     for k in MAGAOX_KEYS:
@@ -82,7 +80,11 @@ if __name__ == "__main__":
 
     gen2dashboard_yaml_to_redis(args.dashboard_yaml)
 
-    livecfg = redis.get(GUI_LIVE_IMAGE_DEFAUTS_KEY,{})
+    livecfg = redis.read(GUI_LIVE_IMAGE_DEFAUTS_KEY, '')., dict(nRows=100, nCols=100, useWvl=False,
+                nWvlBins: bool (default: 1)
+                useEdgeBins=False,
+                wvlStart=0.0,
+                wvlStop=0.0))
     fitscfg = redis.get(FITS_IMAGE_DEFAULTS_KEY,{})
     beammap = Beammap(redis.get(INSTRUMENT_BEAMMAP_FILE_KEY))
     n_roaches = len(redis.get(GEN2_ROACHES_KEY))
@@ -154,7 +156,7 @@ if __name__ == "__main__":
             sciFac.generate(threaded=True, fname=fn, name=observation['name'], save=True, overwrite=True)
 
         pm.stop()
-
+    indi.stop()
 
 
     # # Set up worker object and thread for the display.

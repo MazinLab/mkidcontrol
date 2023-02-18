@@ -12,7 +12,7 @@ from redis import RedisError, ConnectionError, TimeoutError, AuthenticationError
     ReadOnlyError, ChildDeadlockedError, AuthenticationWrongNumberOfArgsError
 from redistimeseries.client import Client as _RTSClient
 import logging
-import datetime
+from datetime import datetime
 # from .config import REDIS_DB
 
 REDIS_DB = 0
@@ -96,7 +96,7 @@ class MKIDRedis(object):
             self.store({channel: message})
         return self.redis.publish(channel, message)
 
-    def read(self, keys: (list, tuple, str), error_missing=True):
+    def read(self, keys: (list, tuple, str), error_missing=True, ts_value_only=False, decode_json=False):
         """
         Function for reading values from corresponding keys in the redis database.
         :param error_missing: raise an error if a key isn't in redis, else silently omit it and return None
@@ -123,8 +123,9 @@ class MKIDRedis(object):
             for k in keys:
                 if k in self.ts_keys:
                     try:
-                        v = self.redis_ts.get(k)
-                        vals.append(v + (datetime.datetime.fromtimestamp(v[0] / 1000).strftime("%H:%M:%S"),))
+                        ts, v = self.redis_ts.get(k)
+                        v = v if ts_value_only else (ts, v, datetime.fromtimestamp(ts / 1000).strftime("%H:%M:%S"))
+                        vals.append(v)
                     except (ResponseError, TypeError):
                         vals.append(None)
                 else:
@@ -138,12 +139,20 @@ class MKIDRedis(object):
             if error_missing and missing:
                 raise KeyError(f'Keys not in redis: {missing}')
 
+            if decode_json:
+                def decoder(x):
+                    try:
+                        return json.loads(x)
+                    except Exception:
+                        return x
+                vals = list(map(decoder, vals))
+
             return dict(zip(keys, vals))
         else:
             if keys[0] in self.ts_keys:
                 try:
-                    v = self.redis_ts.get(keys[0])
-                    val = (v + (datetime.datetime.fromtimestamp(v[0] / 1000).strftime("%H:%M:%S"), ))
+                    ts, v = self.redis_ts.get(k)
+                    val = v if ts_value_only else (ts, v, datetime.fromtimestamp(ts / 1000).strftime("%H:%M:%S"))
                 except ResponseError:
                     if error_missing:
                         raise KeyError(f"Key not in redis: {keys[0]}")
@@ -157,7 +166,11 @@ class MKIDRedis(object):
                         raise KeyError(f"Key not in redis: {keys[0]}")
                     else:
                         val = None
-
+            if decode_json:
+                try:
+                    val = json.loads(val)
+                except Exception:
+                    pass
             return val
 
     def _ps_subscribe(self, channels: list, ignore_sub_msg=False):
