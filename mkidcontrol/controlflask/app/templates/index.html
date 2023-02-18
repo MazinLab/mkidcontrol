@@ -15,8 +15,10 @@
                                 {{ render_field(obs.obsStartStop, class="btn btn-primary", onclick="obsctrl(this.id)",  value="Start Observing") }}
                             {% endif %}
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
-                                {{ render_field(obs.target) }}
-<!--                                {{ render_field(obs.target, onkeypress="update_target()") }}-->
+                                {{ render_field(obs.target ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
+                                {{ render_field(obs.obs_duration ) }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-2 border-bottom">
