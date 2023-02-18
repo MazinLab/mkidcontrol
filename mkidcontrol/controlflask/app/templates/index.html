@@ -181,18 +181,19 @@
                                 {{ render_field(magnetform.start_cycle, class="btn btn-dark", onclick="command_magnet(this.id)" ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(magnetform.fast_cycle, class="btn btn-dark", onclick="command_magnet(this.id)" ) }}
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
                                 {{ render_field(magnetform.abort_cycle, class='btn btn-danger', onclick="command_magnet(this.id)") }}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(magnetform.at) }}
+                                {{ render_field(magnetform.schedule_at, value=cooldown_time) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 mb-1">
-                                {{ render_field(magnetform.schedule_cycle, class="btn btn-dark", onclick="command_magnet(this.id)") }}
+                                {% if cooldown_scheduled %}
+                                    {{ render_field(magnetform.schedule_cycle, class="btn btn-danger", onclick="command_magnet(this.id)", value = "Cancel Scheduled" ) }}
+                                {% else %}
+                                    {{ render_field(magnetform.schedule_cycle, class="btn btn-dark", onclick="command_magnet(this.id)", value = "Schedule" ) }}
+                                {% endif %}
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mt-2">
@@ -505,16 +506,26 @@
         }
 
         function command_magnet(buttonid){
-            console.log(buttonid)
-            if (buttonid == "start_cycle") {
+            var at_value = document.getElementById('schedule_at').value;
+            $.ajax({
+                type:'POST',
+                url: "{{ url_for('main.command_magnet', cmd='', at='') }}" + '/' + buttonid + '/' + at_value,
+                data: {},
+                success: function (d){
+                    var data = JSON.parse(d)
+                    console.log(data)
+                    if (data['scheduled']) {
+                        var newText = "Cancel Scheduled";
+                        var newClass = "btn btn-danger";
+                    } else {
+                        var newText = "Schedule";
+                        var newClass = "btn btn-dark";
+                    }
+                    document.getElementById("schedule_cycle").setAttribute("class", newClass);
+                    document.getElementById("schedule_cycle").setAttribute("value", newText);
+                }
+            })
 
-            } else if (buttonid == "fast_cycle") {
-
-            } else if (buttonid == "abort_cycle") {
-
-            } else if (buttonid == "scedule_cycle") {
-
-            }
         }
 
         // Update the max/min count rates on the array viewer or the update rate

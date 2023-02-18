@@ -112,6 +112,12 @@ def index():
     conex = ConexForm()
 
     sending_photons = os.path.exists(current_app.dashcfg.paths.send_photons_file)
+    cooldown_scheduled = True if (current_app.redis.read('device-settings:magnet:cooldown-scheduled') == "yes") else False
+    if cooldown_scheduled:
+        cooldown_time = float(current_app.redis.read('device-settings:magnet:cooldown-scheduled:timestamp'))
+        cooldown_time = datetime.datetime.fromtimestamp(cooldown_time).strptime('%Y-%m-%dT%H:%M')
+    else:
+        cooldown_time = (datetime.date.today()+timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
 
     form = FlaskForm()
     if request.method == 'POST':
@@ -123,8 +129,8 @@ def index():
 
     return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform, fw=fw,
                            focus=focus, form=form, laserbox=laserbox, obs=obs, conex=conex, sensor_fig=sensor_fig,
-                           array_fig=array_fig, pix_lightcurve=pix_lightcurve,
-                           sensorkeys=list(FLASK_CHART_KEYS.values()))
+                           array_fig=array_fig, cooldown_scheduled=cooldown_scheduled, cooldown_time=cooldown_time,
+                           pix_lightcurve=pix_lightcurve, sensorkeys=list(FLASK_CHART_KEYS.values()))
 
 
 @bp.route('/other_plots', methods=['GET'])
@@ -578,7 +584,6 @@ def view_array_data(view_params):
 @bp.route('/dashplot', methods=["GET"])
 def dashplot():
     """
-    TODO: If roaches are offline, just send an array of zeros?
     """
 
     @stream_with_context
@@ -788,14 +793,32 @@ def command_heatswitch(to_position):
     return json.dumps({'success': msg_success})
 
 
-def parse_schedule_cooldown(schedule_time):
-    """
-    Takes a string input from the schedule cooldown field and parses it to determine if it is in a proper format to be
-    used as a time for scheduling a cooldown.
-    Returns a timestamp in seconds (to send to the SIM960 agent for scheduling), a datetime object (for reporting to
-    flask page), and time until the desired cold time in seconds (to check for it being allowable)
-    """
-    pass
+@bp.route('/command_magnet/<cmd>/<at>', methods=['POST'])
+def command_magnet(cmd, at):
+    log.debug(f"Heard command {cmd} (at {at})")
+    msg_success = 0
+    now = time.time()
+
+    if cmd == "start_cycle":
+        magnet_command = "command:get-cold"
+        at = "now"
+    elif cmd == "abort_cycle":
+        magnet_command = "command:abort-cooldown"
+        at = "now"
+    elif cmd == "schedule_cycle":
+        magnet_command = "command:be-cold-at"
+        at = datetime.datetime.strptime(at, '%Y-%m-%dT%H:%M').timestamp()
+    elif cmd == "cancel_scheduled_cycle":
+        magnet_command = "command:cancel-scheduled-cycle"
+        at = "now"
+
+    msg_success += current_app.redis.publish(magnet_command, at, store=False)
+    scheduled = True if (current_app.redis.read('device-settings:magnet:cooldown-scheduled') == "yes") else False
+
+    if cmd == "schedule_cycle":
+        msg_success = 1 if scheduled else 0
+
+    return json.dumps({'success': msg_success, 'scheduled': scheduled})
 
 
 @bp.route('/notifications')
