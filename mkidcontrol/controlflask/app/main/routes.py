@@ -189,7 +189,7 @@ def heater(device, channel):
                     f"device-settings:{device}:heater-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
                     request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                current_app.redis.publish(f"command:{x.setting}", x.value)
+                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
                 log.info(f"Command sent successfully")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
@@ -235,7 +235,7 @@ def thermometry(device, channel, filter):
                     f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
                     request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                current_app.redis.publish(f"command:{x.setting}", x.value)
+                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
                 log.info(f"Command sent successfully")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
@@ -291,7 +291,7 @@ def ls625():
                 x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_', '-')}", request.form.get(key),
                                      limit_vals=ls625settings.limits)
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                current_app.redis.publish(f"command:{x.setting}", x.value)
+                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
                 log.info(f"Command sent successfully")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
@@ -567,8 +567,7 @@ def view_array_data(view_params):
     # data.startIntegration(integrationTime=view_params['int_time'])
     # y = data.receiveImage()
 
-
-    y = 10* np.random.random((125, 80))
+    y = 10 * np.random.random((125, 80))
     m = y < 0
     y[m] = 0
     fig = go.Figure()
