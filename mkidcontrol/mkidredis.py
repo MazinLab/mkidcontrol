@@ -19,7 +19,7 @@ import json
 REDIS_DB = 0
 
 
-class MKIDRedis(object):
+class MKIDRedis:
     """
     The MKIDRedis class is the wrapper created for use in the PICTURE-C control software. A host, port, and database (db)
     must be specified to the MKIDRedis.redis client.
@@ -27,7 +27,7 @@ class MKIDRedis(object):
     client can also be created. This will use the same host, port, and db. Redistimeseries extends redis' capabilities
     with a module to allow easy time series data storage, instead of creating homemade ways to do that same thing.
     Redistimeseries keys should be created with the MKIDRedis object. Unlike normal redis keys, they must be created
-    explicitly and should be done at the each program's start for clarity and ease.
+    explicitly and should be done at each program's start for clarity and ease.
     """
     def __init__(self, host='localhost', port=6379, db=REDIS_DB, ts_keys=tuple()):
         self.redis = _Redis(host, port, db, socket_keepalive=True)

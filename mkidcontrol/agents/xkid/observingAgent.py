@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
 from logging import getLogger
 import os
+import argparse
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
-from mkidcore.mkidcore.objects import Beammap
-from mkidcore.mkidcore import metadata
-from mkidcore.mkidcore.config import load as load_yaml_config
+from mkidcore.objects import Beammap
+from mkidcore import metadata
+from mkidcore.config import load as load_yaml_config
 from astropy.io import fits
 from mkidcore.fits import CalFactory, combineHDU, summarize
-from magaoxindi.purepyindi.client import INDIClient
+from purepyindi.client import INDIClient
 from mkidcontrol.packetmaster3 import Packetmaster
 from datetime import datetime
 
+metadata.TIME_KEYS = ('MJD-END', 'MJD-STR', 'UT-END', 'UT-STR')
+metadata._time_key_builder = metadata._xkid_time_header
+
+
+TS_KEYS = (,) #TODO this probably needs to be XKID's  exhasutive list
+DASHBOARD_YAML_KEY = ''
 BIN_FILE_DIR_KEY = ''
 OBSERVING_REQUEST_CHANNEL = 'observation:request'
 ACTIVE_DARK_FILE_KEY = ''  # a FQP to the active dark fits image, if any
@@ -65,11 +72,14 @@ def get_obslog_record():
     from redis using the OBSLOG_RECORD_KEYS dictionary and build them into a astropy.io.fits.Header suitable for
     logging or fits - file building
     """
-    metadata.TIME_KEYS = ('MJD-END', 'MJD-STR', 'UT-END', 'UT-STR')
-    metadata._time_key_builder = metadata._xkid_time_header
-    kv_pairs = redis.read(list(OBSLOG_RECORD_KEYS.keys()), ts_value_only=True)
-    fits_kv_pairs = [(OBSLOG_RECORD_KEYS[k], v) for k, v in kv_pairs]
-    return metadata.build_header(fits_kv_pairs, use_simbad=False, KEY_INFO=metadata.XKID_KEY_INFO)
+    try:
+        kv_pairs = redis.read(list(OBSLOG_RECORD_KEYS.keys()), ts_value_only=True)
+        fits_kv_pairs = [(OBSLOG_RECORD_KEYS[k], v) for k, v in kv_pairs]
+    except RedisError:
+        fits_kv_pairs=None
+        getLogger(__name__).error('Failed to query redis for metadata. Most values will be defaults.')
+    return metadata.build_header(metadata=fits_kv_pairs, use_simbad=False, KEY_INFO=metadata.XKID_KEY_INFO,
+                                 DEFAULT_CARDSET=metadata.DEFAULT_XKID_CARDSET)
 
 
 def gen2dashboard_yaml_to_redis(yaml, redis):
@@ -104,12 +114,18 @@ def next_utc_second():
         x = 0
     return x
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='XKID Observing Data Agent')
+    parser.add_argument('--ip', default=7624, help='MagAO-X INDI port', destination='indi_port',
+                        type=int, required=False)
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
 
-    args = parse_args()
+    # args = parse_args()
     util.setup_logging('observingAgent')
-    redis.setup_redis(ts_keys=TS_KEYS)  # TODO doesn't this redis instance need to be aware of ALL the potential TS keys?
+    redis.setup_redis(ts_keys=TS_KEYS)
 
     indi = INDIClient('localhost', 7624)  # TODO add error handling and autorecovery
     indi.start()
@@ -123,7 +139,7 @@ if __name__ == "__main__":
         a, b, c = k.split('.')
         c.devices[a].properties[b].elements[c].add_watcher(indi2redis)
 
-    gen2dashboard_yaml_to_redis(args.dashboard_yaml)
+    gen2dashboard_yaml_to_redis(redis.read(DASHBOARD_YAML_KEY) or args.dashboard_yaml)
 
     default = dict(nRows=100, nCols=100, useWvl=False, nWvlBins=1, useEdgeBins=False, wvlStart=0.0, wvlStop=0.0)
     livecfg = redis.read(GUI_LIVE_IMAGE_DEFAUTS_KEY, decode_json=True) or default
@@ -132,18 +148,15 @@ if __name__ == "__main__":
     n_roaches = len(redis.read(GEN2_ROACHES_KEY, error_missing=True))  # TODO @nswimmer
     port = redis.read(GEN2_CAPTURE_PORT_KEY, error_missing=True)
 
-    pm = Packetmaster(n_roaches, port, useWriter=not args.offline,
-                      sharedImageCfg={'live': livecfg, 'fits': fitscfg},
+    pm = Packetmaster(n_roaches, port, useWriter=True, sharedImageCfg={'live': livecfg, 'fits': fitscfg},
                       beammap=beammap, forwarding=False, recreate_images=True)
     fits_imagecube = pm.sharedImages['fits']
 
     limitless_integration = False
     fits_exp_time = None
 
-    mask, maskfile = None, None
-    dark, darkfile = None, None
-    flat, flatfile = None, None
     request = {'type':'abort'}
+
     try:
         while True:
             if not limitless_integration:
@@ -180,70 +193,37 @@ if __name__ == "__main__":
 
             im_data, start_t, expo_t = fits_imagecube.receiveImage(timeout=False, return_info=True)
             md_end = get_obslog_record()
-            header = merge_start_stop_headers(md_start, md_end)
+            image = fits.ImageHDU(data=im_data, header=merge_start_stop_headers(md_start, md_end))
             if limitless_integration:
                 fits_imagecube.startIntegration(startTime=0, integrationTime=fits_exp_time)
                 md_start = get_obslog_record()
 
-            ret = fits.ImageHDU(data=im_data, header=header)
-            ret.data
-            ret.header['wavecal'] = fits_imagecube.wavecalID.decode('UTF-8', "backslashreplace")
-            ret.header['wmin'] = fits_imagecube.wvlStart
-            ret.header['wmax'] = fits_imagecube.wvlStop
-            header_dict = dict(ret.header)
+            #TODO need to set these keys properly
+            image.header['wavecal'] = fits_imagecube.wavecalID.decode('UTF-8', "backslashreplace")
+            image.header['wmin'] = fits_imagecube.wvlStart
+            image.header['wmax'] = fits_imagecube.wvlStop
+            header_dict = dict(image.header)
 
-            def load_if_necessary(data, file, key):
-                new = redis.read(key)
-                try:
-                    if new != file:
-                        file = new
-                        data = fits.getdata(file)
-                except IOError:
-                    data = None
-                    file = None
-                return data, file
+            t = 'sum' if request['type'] in ('dwell', 'object') else request['type']
+            fac = CalFactory(t, images=image, mask=redis.read(BAD_PIXEL_MASK_KEY),
+                                flat=redis.read(ACTIVE_FLAT_FILE_KEY),
+                                dark=redis.read(ACTIVE_DARK_FILE_KEY))
 
-
-            mask, maskfile = load_if_necessary(mask, maskfile, BAD_PIXEL_MASK_KEY)
-            if request['type'] == 'flat':
-                dark, darkfile = load_if_necessary(dark, darkfile, ACTIVE_DARK_FILE_KEY)
-                fn = redis.read(FLAT_FILE_TEMPLATE_KEY).format(**header_dict)
-
-                flatFac = CalFactory('flat', images=(ret.data,), dark=dark)
-                flat = flatFac.generate(fname=fn, badmask=mask, save=True,
-                                         name=os.path.splitext(os.path.basename(fn))[0], overwrite=True)
-                flatfile = fn
-                redis.store(ACTIVE_FLAT_FILE_KEY, fn)
-            elif request['type'] == 'dark':
-                darkFac = CalFactory('dark', images=(ret.data,))
+            if request['type'] == 'dark':
                 fn = redis.read(DARK_FILE_TEMPLATE_KEY).format(**header_dict)
-                dark = darkFac.generate(fname=fn, badmask=mask, save=True,
-                                 name=os.path.splitext(os.path.basename(fn))[0], overwrite=True)
-                darkfile = fn
-                redis.store(ACTIVE_DARK_FILE_KEY, fn)
+                name = os.path.splitext(os.path.basename(fn))[0]
+                fac.generate(fname=fn, save=True, threaded=True, name=name, overwrite=True,
+                             store_complete=(redis, ACTIVE_DARK_FILE_KEY))
+            elif request['type'] == 'flat':
+                fn = redis.read(FLAT_FILE_TEMPLATE_KEY).format(**header_dict)
+                name = os.path.splitext(os.path.basename(fn))[0]
+                fac.generate(fname=fn, save=True, name=name, overwrite=True, threaded=True,
+                             store_complete=(redis, ACTIVE_FLAT_FILE_KEY))
             elif request['type'] in ('dwell', 'object'):
-                flat, flatfile = load_if_necessary(flat, flatfile, ACTIVE_FLAT_FILE_KEY)
-                dark, darkfile = load_if_necessary(dark, darkfile, ACTIVE_DARK_FILE_KEY)
                 fn = redis.read(SCI_FILE_TEMPLATE_KEY).format(**header_dict)
-                sciFac = CalFactory('avg', images=(ret.datam,), dark=dark, flat=flat)
-                sciFac.generate(threaded=True, fname=fn, name=request['name'], save=True, overwrite=True)
+                fac.generate(fname=fn, name=request['name'], save=True, overwrite=True, threaded=True)
 
-            if not limitless_integration:
-                pm.stopWriting()
+
     except Exception:
         pm.quit()
         indi.stop()
-
-    # # Set up worker object and thread for the display.
-    # #  All of this code could be axed if the live image was broken out into a separate program
-    # cf = CalFactory('avg', images=self.imageList[-1:],
-    #                 dark=self.darkField if self.checkbox_darkImage.isChecked() else None,
-    #                 flat=self.flatField if self.checkbox_flatImage.isChecked() else None,
-    #                 mask=self.beammapFailed)
-
-    # cf = CalFactory('sum', images=self.imageList[-numImages2Sum:], dark=self.darkField if applyDark else None)
-    # im = cf.generate(name='pixelcount')
-    # pixelList = np.asarray(pixelList)
-    # im.data[(pixelList[:, 1], pixelList[:, 0])].sum()
-    #
-    # self.sciFactory = CalFactory('sum', dark=self.darkField, flat=self.flatField)
