@@ -49,16 +49,16 @@ cdef extern from "mkidshm.h":
         int writing
         int nCycles
         int useWvl
-    
+
         char name[80]
         char eventBufferName[80]
         char newPhotonSemName[80]
         char wavecalID[150]
-    
+
     #PARTIAL DEFINITION, only exposing necessary attributes
     ctypedef struct MKID_EVENT_BUFFER:
         MKID_EVENT_BUFFER_METADATA *md
-    
+
     cdef int MKIDShmImage_open(MKID_IMAGE *imageStruct, char *imgName)
     cdef int MKIDShmImage_close(MKID_IMAGE *imageStruct)
     cdef int MKIDShmImage_create(MKID_IMAGE_METADATA *imageMetadata, char *imgName, MKID_IMAGE *outputImage)
@@ -83,9 +83,9 @@ cdef class ImageCube(object):
 
     def __init__(self, name, doneSemInd=0, **kwargs):
         """
-        Opens or creates a MKID_IMAGE shared memory buffer specified by name (should be located 
-        in /dev/shm/name). 
-        
+        Opens or creates a MKID_IMAGE shared memory buffer specified by name (should be located
+        in /dev/shm/name).
+
         Parameters
         ----------
             name: string
@@ -97,7 +97,7 @@ cdef class ImageCube(object):
                 nRows: int (default: 100)
                 nCols: int (default: 100)
                 useWvl: bool (default: False)
-                nWvlBins: bool (default: 1)
+                nWvlBins: int (default: 1)
                 useEdgeBins: bool (default: False)
                 wvlStart: float (default: 0)
                 wvlStop: float (default: 0)
@@ -130,7 +130,7 @@ cdef class ImageCube(object):
                 self.set_wvlStop(kwargs.get('wvlStop'))
 
         else:
-            self._create(name, kwargs.get('nCols', 100), kwargs.get('nRows', 100), kwargs.get('useWvl', False), 
+            self._create(name, kwargs.get('nCols', 100), kwargs.get('nRows', 100), kwargs.get('useWvl', False),
                         kwargs.get('nWvlBins', 1), kwargs.get('useEdgeBins', False), kwargs.get('wvlStart', 0), kwargs.get('wvlStop', 0))
 
     def _create(self, name, nCols, nRows, useWvl, nWvlBins, useEdgeBins, wvlStart, wvlStop):
@@ -166,21 +166,35 @@ cdef class ImageCube(object):
         integrationTime = int(integrationTime*2000) #convert to half-ms
         MKIDShmImage_startIntegration(&(self.image), startTime, integrationTime)
 
-    def receiveImage(self):
+    def receiveImage(self, timeout=True, return_info=False):
         """
         Waits for doneImage semaphore to be posted by packetmaster,
         then grabs the image from buffer
         """
-        with nogil:
-            retval = MKIDShmImage_timedwait(&(self.image), self.doneSemInd, self.image.md.integrationTime, 1)
-        flatImage = self._readImageBuffer()
+        if timeout:
+            with nogil:
+                retval = MKIDShmImage_timedwait(&(self.image), self.doneSemInd, self.image.md.integrationTime, 1)
+                start_time = self.image.md.startTime / 2000
+                exp_time = self.image.md.integrationTime / 2000
+        else:
+            with nogil:
+                retval = MKIDShmImage_wait(&(self.image), self.doneSemInd, self.image.md.integrationTime, 1)
+                start_time = self.image.md.startTime / 2000
+                exp_time = self.image.md.integrationTime / 2000
+
+        flat_im = self._readImageBuffer()
+
         if not self.valid:
             raise RuntimeError('Wavecal parameters changed during integration!')
+
         if self.useWvl:
-            return np.reshape(flatImage, self._shape).squeeze()
+            im = np.reshape(flat_im, self._shape).squeeze()
         else:
-            return np.reshape(flatImage[:self._shape[1]*self._shape[2]],
-                              (self._shape[1], self._shape[2]))
+            im = np.reshape(flat_im[:self._shape[1]*self._shape[2]], self._shape[1:])
+        if return_info:
+            return im, start_time, exp_time
+        else:
+            return im
 
     def _checkIfDone(self):
         """
@@ -242,7 +256,7 @@ cdef class ImageCube(object):
     def useWvl(self):
         return self.image.md.useWvl
 
-    @property 
+    @property
     def useEdgeBins(self):
         return self.image.md.useEdgeBins
 
@@ -283,10 +297,10 @@ cdef class ImageCube(object):
     def set_wvlStart(self, wvl):
         self.wvlStart = float(wvl)
 
-    @property 
+    @property
     def valid(self):
         return bool(self.image.md.valid)
-    
+
 cdef class EventBuffer:
     cdef MKID_EVENT_BUFFER eventBuffer;
 
@@ -304,7 +318,7 @@ cdef class EventBuffer:
                 default: 200000
 
         """
-        
+
         if not name.startswith('/'):
             name = '/'+name
         if os.path.isfile(os.path.join('/dev/shm', name[1:])):
@@ -333,4 +347,3 @@ cdef class EventBuffer:
     @property
     def size(self):
         return self.eventBuffer.md.size
-

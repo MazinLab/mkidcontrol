@@ -266,6 +266,7 @@ publish = None
 mkr_range = None  # This breaks the naming mold since range is already a python special function
 redis_ts = None
 
+
 def setup_redis(host='localhost', port=6379, db=REDIS_DB, ts_keys=tuple()):
     global mkidredis, store, read, listen, publish, mkr_range, redis_ts, redis_keys
     mkidredis = MKIDRedis(host=host, port=port, db=db, ts_keys=ts_keys)
