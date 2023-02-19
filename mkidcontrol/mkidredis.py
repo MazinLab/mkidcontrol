@@ -13,6 +13,7 @@ from redis import RedisError, ConnectionError, TimeoutError, AuthenticationError
 from redistimeseries.client import Client as _RTSClient
 import logging
 from datetime import datetime
+import json
 # from .config import REDIS_DB
 
 REDIS_DB = 0
@@ -195,7 +196,7 @@ class MKIDRedis(object):
             logging.getLogger(__name__).warning(f"Cannot create and subscribe to redis pubsub. Check to make sure redis is running! {e}")
             raise e
 
-    def listen(self, channels:(list, tuple, str)):
+    def listen(self, channels:(list, tuple, str), value_only=False, decode=None):
         """
         Sets up a subscription for the iterable keys, yielding decoded messages as (k,v) strings.
         Passes up any redis errors that are raised
@@ -216,8 +217,15 @@ class MKIDRedis(object):
                 continue
             key = msg['channel'].decode()
             value = msg['data'].decode()
-
-            yield key, value
+            if decode == 'json':
+                try:
+                    value = json.loads(value)
+                except Exception:
+                    pass
+            if value_only:
+                yield value
+            else:
+                yield key, value
 
     def handler(self, message):
         """
