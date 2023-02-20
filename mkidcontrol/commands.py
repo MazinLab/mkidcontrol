@@ -560,7 +560,7 @@ COMMANDSMAGNET = {'device-settings:magnet:ramp-rate': {'command': '', 'vals': [0
                   'device-settings:magnet:deramp-rate': {'command': '', 'vals': [0, 0.100]},
                   'device-settings:magnet:soak-time': {'command': '', 'vals': [0, np.inf]},
                   'device-settings:magnet:soak-current': {'command': '', 'vals': [0, 10.0]},
-                  'device-settings:device-stage:regulating-temp': {'command': '', 'vals': [0, 4]}}  # TODO: Alias this to the ls372 heater output setpoint key?
+                  'device-settings:magnet:regulating-temp': {'command': '', 'vals': [0, 4]}}
 
 # COMMANDSCONEX
 COMMANDSCONEX = {'device-settings:conex:enabled': {'command': '', 'vals': {'Enabled': 'Enabled', 'Disabled': 'Disabled'}}}

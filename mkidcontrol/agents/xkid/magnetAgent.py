@@ -63,8 +63,7 @@ TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY]
 COMMAND_KEYS = [f"command:{k}" for k in list(MAGNET_COMMAND_KEYS) + list(SETTING_KEYS)]
 
 DEVICE_TEMP_KEY = 'status:temps:device-stage:temp'
-REGULATION_TEMP_KEY = "device-settings:device-stage:regulating-temp"
-
+REGULATION_TEMP_KEY = "device-settings:magnet:regulating-temp"
 LAKESHORE_SETPOINT_KEY = 'device-settings:ls372:heater-channel-0:setpoint'
 
 log = logging.getLogger()
