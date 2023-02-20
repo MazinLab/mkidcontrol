@@ -68,6 +68,7 @@ sudo npm install -g redis-commander
 pip3 install redistimeseries redis
 
 # Make sure all necessary repositories are installed
+# Do this manually OR use the submodules in mkidcontrol for mkidcore and mkidreadout
 #git clone https://github.com/MazinLab/mkidcore.git ~/src/mkidcore
 #git clone https://github.com/MazinLab/mkidpipeline.git ~/src/mkidpipeline
 #git clone https://github.com/MazinLab/mkidgen3.git ~/src/mkidgen3
