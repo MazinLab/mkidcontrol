@@ -267,7 +267,7 @@ class MagnetController(LockedMachine):
         return an estimate of the time to cool from the current state
         """
         soak_current = float(redis.read(SOAK_CURRENT_KEY))
-        soak_time = float(redis.read(SOAK_TIME_KEY))
+        soak_time = float(redis.read(SOAK_TIME_KEY)) * 60  # Soak time stored in minues, must be in seconds
         ramp_rate = float(redis.read(RAMP_RATE_KEY))
         deramp_rate = float(redis.read(DERAMP_RATE_KEY))
         current_current = self.last_5_currents[-1]
@@ -433,7 +433,7 @@ class MagnetController(LockedMachine):
 
     def soak_time_expired(self, event):
         try:
-            return (time.time() - self.state_entry_time['soaking']) >= float(redis.read(SOAK_TIME_KEY))
+            return (time.time() - self.state_entry_time['soaking']) >= (float(redis.read(SOAK_TIME_KEY)) * 60)
         except RedisError:
             return False
 
