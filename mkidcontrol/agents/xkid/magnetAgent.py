@@ -558,7 +558,7 @@ if __name__ == "__main__":
 
         try:
             while not controller.is_off():
-                log.info(f'Waiting (10s) for magnet to deramp from ({redis.read(REGULATION_TEMP_KEY)}) before exiting...')
+                log.info(f'Waiting (10s) for magnet to deramp from ({redis.read(MAGNET_CURRENT_KEY)[1]}) before exiting...')
                 time.sleep(10)
         except IOError:
             pass
