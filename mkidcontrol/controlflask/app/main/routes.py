@@ -614,53 +614,65 @@ def dashplot():
 
     @stream_with_context
     def _stream():
-        active_dark_file = redis.get(CURRENT_DARK_FILE_KEY)
-        active_flat_file = redis.get(CURRENT_FLAT_FILE_KEY)
+        # TODO: Live array params changing
+        active_dark_file = current_app.redis.read(CURRENT_DARK_FILE_KEY)
+        active_flat_file = current_app.redis.read(CURRENT_FLAT_FILE_KEY)
         sciFac = CalFactory('avg',
                             dark=fits.open(active_dark_file) if os.path.exists(active_dark_file) else None,
                             flat=fits.open(active_flat_file) if os.path.exists(active_flat_file) else None)
         while True:
             int_time = current_app.array_view_params['int_time']
-            current_dark_file = redis.get(CURRENT_DARK_FILE_KEY)
-            current_flat_file = redis.get(CURRENT_FLAT_FILE_KEY)
+            current_dark_file = current_app.redis.read(CURRENT_DARK_FILE_KEY)
+            current_flat_file = current_app.redis.read(CURRENT_FLAT_FILE_KEY)
 
-            current_app.liveimage.startIntegration(integrationTime=int_time)
-            t = time.time()
-            im = current_app.liveimage.receiveImage()
-            #or
-            # im = np.random.uniform(5000, size=xdim*ydim).reshape((xdim, ydim)).astype(int)
-            # time.sleep(int_time)
+            # TODO: When live
+            # current_app.liveimage.startIntegration(integrationTime=int_time)
+            # t = time.time()
+            # im = current_app.liveimage.receiveImage()
+
+            im = np.random.uniform(5000, size=(125 * 80)).reshape((125, 80)).astype(int)
+            time.sleep(int_time)
 
             tic = time.time()
-            if active_dark_file != current_dark_file:
-                active_dark_file = current_dark_file
-                del sciFac.dark
-                sciFac.dark = fits.open(active_dark_file) if os.path.exists(active_dark_file) else None
-
-            if flatchanged:
-                active_flat_file = current_flat_file
-                del sciFac.flat
-                sciFac.flat = fits.open(active_flat_file) if os.path.exists(active_flat_file) else None
-            sciFac.reset()
-            sciFac.addimage(im)
-            calim = sciFac.generate(threaded=False, save=False)
+            # if active_dark_file != current_dark_file:
+            #     active_dark_file = current_dark_file
+            #     del sciFac.dark
+            #     sciFac.dark = fits.open(active_dark_file) if os.path.exists(active_dark_file) else None
+            #
+            # if active_flat_file != current_flat_file:
+            #     active_flat_file = current_flat_file
+            #     del sciFac.flat
+            #     sciFac.flat = fits.open(active_flat_file) if os.path.exists(active_flat_file) else None
+            # sciFac.reset()
+            # sciFac.add_image(im)
+            # calim = sciFac.generate(threaded=False, save=False)
 
             #make figure
-            fig = go.Figure()
-            fig.add_heatmap(z=calim.tolist(), showscale=False,
-                            colorscale=[[0, "black"], [0.5, "white"], [0.5, "red"], [1, "red"]],
-                            zmin=view_params['min_cts'], zmax=view_params['max_cts'] * 2)
-            fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'),
-                                   yaxis=dict(visible=False, ticks='')))
-            fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
-            data = json.dumps({'id': 'dash',
-                    'kind': 'full',
-                    'data': json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder),
-                    'time': datetime.datetime.fromtimestamp(t).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]})
+            changed_image_params = False
+            if changed_image_params:
+                fig = go.Figure()
+                fig.add_heatmap(z=im.tolist(), showscale=False,
+                                colorscale=[[0, "black"], [0.5, "white"], [0.5, "red"], [1, "red"]],
+                                zmin=current_app.array_view_params['min_cts'],
+                                zmax=current_app.array_view_params['max_cts'] * 2)
+                fig.update_layout(dict(height=550, autosize=True,
+                                       xaxis=dict(visible=False, ticks='', scaleanchor='y'),
+                                       yaxis=dict(visible=False, ticks='')))
+                fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
+                data = json.dumps({'id': 'dash',
+                        'kind': 'full',
+                        'data': json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder),
+                        'time': datetime.datetime.fromtimestamp(time.time()).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]})
+            else:
+                data = json.dumps({'id': 'dash',
+                                   'kind': 'partial',
+                                   'data': json.dumps({'z': im.tolist()}),
+                                   'time': datetime.datetime.fromtimestamp(time.time()).strftime(
+                                       "%m/%d/%Y %H:%M:%S.%f")[:-4]})
+
             toc = time.time()
 
             yield f"event:dashplot\nretry:5\ndata:{data}\n\n"
-
 
 
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')

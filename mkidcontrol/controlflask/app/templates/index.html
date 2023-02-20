@@ -296,7 +296,7 @@
                         Plotly.react(update['id'], data);
                         break;
                     case "partial":
-                        Plotly.restyle(update['id'], {z: [data.data[0]['z']]});
+                        Plotly.restyle(update['id'], {z: [data['z']]});
                         break;
                 }
             }
