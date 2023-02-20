@@ -152,7 +152,7 @@ class MKIDRedis:
         else:
             if keys[0] in self.ts_keys:
                 try:
-                    ts, v = self.redis_ts.get(k)
+                    ts, v = self.redis_ts.get(keys[0])
                     val = v if ts_value_only else (ts, v, datetime.fromtimestamp(ts / 1000).strftime("%H:%M:%S"))
                 except ResponseError:
                     if error_missing:
