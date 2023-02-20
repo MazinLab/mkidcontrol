@@ -3,12 +3,7 @@ import os
 import subprocess
 from datetime import datetime
 import plotly.graph_objects as go
-
-import mkidcontrol.mkidredis
-from mkidcontrol.mkidredis import RedisError
-from mkidcontrol.util import setup_logging
-from mkidcontrol.util import get_service as mkidcontrol_service
-from mkidcontrol.util import get_services as mkidcontrol_services
+from astropy.io import fits
 
 from flask import render_template, flash, redirect, url_for, g, request, \
     jsonify, current_app, Response, stream_with_context
@@ -29,8 +24,15 @@ import json
 from rq.job import Job, NoSuchJobError
 import select
 
+from mkidcore.fits import CalFactory
+
+from mkidcontrol.mkidredis import RedisError
+from mkidcontrol.util import setup_logging
+from mkidcontrol.util import get_service as mkidcontrol_service
+from mkidcontrol.util import get_services as mkidcontrol_services
+
 import mkidcontrol.mkidredis as redis
-from mkidcontrol.commands import COMMAND_DICT, SimCommand, LakeShoreCommand, FILTERS
+from mkidcontrol.commands import COMMAND_DICT, LakeShoreCommand, FILTERS
 from mkidcontrol.config import FLASK_KEYS, REDIS_TS_KEYS, FLASK_CHART_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
@@ -179,7 +181,6 @@ def log_viewer():
 
 @bp.route('/heater/<device>/<channel>', methods=['GET', 'POST'])
 def heater(device, channel):
-    from ....commands import LakeShoreCommand
 
     if request.method == 'POST':
         for key in request.form.keys():
@@ -223,8 +224,6 @@ def thermometry(device, channel, filter):
         title = current_app.redis.read(f'device-settings:{device}:input-channel-{channel.lower()}:name')
     except:
         return redirect(url_for('main.page_not_found'))
-
-    from mkidcontrol.commands import LakeShoreCommand
 
     if request.method == 'POST':
         print(f"Form: {request.form}")
@@ -280,7 +279,7 @@ def thermometry(device, channel, filter):
 
 @bp.route('/cycle_settings', methods=['POST', 'GET'])
 def cycle_settings():
-    from mkidcontrol.commands import LakeShoreCommand, MagnetCycleSettings
+    from mkidcontrol.commands import MagnetCycleSettings
 
     cyclesettings = MagnetCycleSettings(current_app.redis)
 
@@ -304,7 +303,7 @@ def cycle_settings():
 
 @bp.route('/ls625', methods=['POST', 'GET'])
 def ls625():
-    from mkidcontrol.commands import LakeShoreCommand, LS625MagnetSettings
+    from mkidcontrol.commands import LS625MagnetSettings
 
     ls625settings = LS625MagnetSettings(current_app.redis)
 
