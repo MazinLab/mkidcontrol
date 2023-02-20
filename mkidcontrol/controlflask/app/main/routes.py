@@ -278,6 +278,30 @@ def thermometry(device, channel, filter):
     return render_template('thermometry.html', title=_(f"{title} Thermometer"), form=form)
 
 
+@bp.route('/cycle_settings', methods=['POST', 'GET'])
+def cycle_settings():
+    from mkidcontrol.commands import LakeShoreCommand, MagnetCycleSettings
+
+    cyclesettings = MagnetCycleSettings(current_app.redis)
+
+    if request.method == 'POST':
+        for key in request.form.keys():
+            print(f"{key} : {request.form.get(key)}")
+            try:
+                x = LakeShoreCommand(f"device-settings:magnet:{key.replace('_', '-')}", request.form.get(key))
+                log.info(f"Sending command:{x.setting}' -> {x.value} ")
+                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
+                log.info(f"Command sent successfully")
+            except ValueError as e:
+                log.warning(f"Value error: {e} in parsing commands")
+                log.debug(f"Unrecognized field to send as command: {key}")
+            time.sleep(0.15)
+
+    form = MagnetCycleSettingsForm(**(vars(cyclesettings)))
+
+    return render_template('cycle_settings.html', title=_("Cooldown Cycle Settings"), form=form)
+
+
 @bp.route('/ls625', methods=['POST', 'GET'])
 def ls625():
     from mkidcontrol.commands import LakeShoreCommand, LS625MagnetSettings

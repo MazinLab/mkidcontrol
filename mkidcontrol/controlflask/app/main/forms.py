@@ -275,13 +275,10 @@ class MagnetCycleSettingsForm(FlaskForm):
     ramp_rate = FloatField("Ramp rate (A/s)", default=0.005, validators=[NumberRange(0, 0.100)])
     deramp_rate = FloatField("Deramp rate (A/s)", default=0.005, validators=[NumberRange(0, 0.100)])
     update = SubmitField("Update")
-    start = SubmitField("Start")
 
 
 class MagnetCycleForm(FlaskForm):
     # Magnet controller form
-    # TODO: Ramp dropdown (standard ramp/fast ramp/custom ramp?)
-    # TODO: make validators a function of the limits? We can just read them in from redis with no issue
     start_cycle = SubmitField("Start Cycle")
     abort_cycle = SubmitField("Abort Cooldown")
     schedule_at = DateTimeLocalField('Schedule cycle for:', format='%Y-%m-%dT%H:%M')

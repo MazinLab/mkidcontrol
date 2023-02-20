@@ -73,9 +73,14 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('main.heatswitch') }}">Heat Switch</a>
                     </li>
-                    <li class="nav-item active">
-                        <a class="nav-link" href="{{ url_for('main.ls625') }}">Magnet Control</a>
-                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Magnet Control
+                        </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="{{ url_for('main.ls625') }}">Lake Shore 625</a>
+                        <a class="dropdown-item" href="{{ url_for('main.cycle_settings') }}">Cooldown Cycle Settings</a>
+                    </div>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle active" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             Utilities

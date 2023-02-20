@@ -543,6 +543,18 @@ CALIBRATION_CURVE = 1
 #                   'device-settings:sim960:soak-current': {'command': '', 'vals': [0, 9.4]},
 #                   'device-settings:mkidarray:regulating-temp': {'command': '', 'vals': load_tvals(CALIBRATION_CURVE)}}
 
+
+class MagnetCycleSettings:
+    def __init__(self, redis):
+        values = redis.read(redis.redis_keys('device-settings:magnet:*'))
+
+        self.ramp_rate = values['device-settings:magnet:ramp-rate']
+        self.deramp_rate = values['device-settings:magnet:deramp-rate']
+        self.soak_time = values['device-settings:magnet:soak-time']
+        self.soak_current = values['device-settings:magnet:soak-current']
+        self.regulating_temp = values['device-settings:magnet:regulating-temp']
+
+
 # COMMANDSMAGNET
 COMMANDSMAGNET = {'device-settings:magnet:ramp-rate': {'command': '', 'vals': [0, 0.100]},
                   'device-settings:magnet:deramp-rate': {'command': '', 'vals': [0, 0.100]},
