@@ -38,7 +38,9 @@ FLASK_KEYS = list(COMMAND_DICT.keys()) + list(REDIS_TS_KEYS) + ['status:device:h
                                                                 'status:device:conex:controller-status',
                                                                 'status:device:conex:controller-state',
                                                                 'status:device:conex:controller-state:last-change',
-                                                                'status:device:conex:operation-status']
+                                                                'status:device:conex:operation-status',
+                                                                'status:magnet:state',
+                                                                'status:magnet:status']
 
 REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                 'channels': (),
