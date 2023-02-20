@@ -64,14 +64,8 @@ class HeatSwitchForm(FlaskForm):
     acceleration = IntegerField("Acceleration", default=HeatswitchMotor.DEFAULT_ACCELERATION, validators=[NumberRange(0, 100)])
     hs_open = SubmitField("Open")
     hs_close = SubmitField("Close")
-    hs_update = SubmitField("Update")
-
-
-class HeatSwitchForm2(FlaskForm):
-    # Heatswitch form
-    hs_open = SubmitField("Open")
-    hs_close = SubmitField("Close")
     hs_stop = SubmitField("Stop")
+    hs_update = SubmitField("Update")
 
 
 class Input372FilterForm(FlaskForm):

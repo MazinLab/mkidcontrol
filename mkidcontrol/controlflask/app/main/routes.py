@@ -107,7 +107,7 @@ def index():
     from mkidcontrol.commands import Laserbox, Filterwheel, Focus
 
     magnetform = MagnetCycleForm()  # TODO: Should start ramp pull up a modal with settings?
-    hsform = HeatSwitchForm2()
+    hsform = HeatSwitchForm()
     laserbox = LaserBoxForm(**vars(Laserbox(redis)))
     fw = FilterWheelForm(**vars(Filterwheel(redis)))
     focus = FocusForm(**vars(Focus(redis)))
