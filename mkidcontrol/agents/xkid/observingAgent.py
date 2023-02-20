@@ -13,12 +13,13 @@ from mkidcore.fits import CalFactory, combineHDU, summarize
 from purepyindi.client import INDIClient
 from mkidcontrol.packetmaster3 import Packetmaster
 from datetime import datetime
+from mkidcontrol.config import REDIS_TS_KEYS
 
 metadata.TIME_KEYS = ('MJD-END', 'MJD-STR', 'UT-END', 'UT-STR')
 metadata._time_key_builder = metadata._xkid_time_header
 
 
-TS_KEYS = (,) #TODO this probably needs to be XKID's  exhasutive list
+TS_KEYS = REDIS_TS_KEYS
 DASHBOARD_YAML_KEY = ''
 BIN_FILE_DIR_KEY = ''
 OBSERVING_REQUEST_CHANNEL = 'observation:request'
