@@ -25,7 +25,17 @@ TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'sta
 
 REDIS_TS_KEYS = tuple(np.unique(TS_KEYS_hs + TS_KEYS_ls336 + TS_KEYS_ls372 + TS_KEYS_ls625 + TS_KEYS_magnet + list(TS_KEYS)))
 
-REDIS_STATUS_KEYS = () # TODO: Grab all device status keys
+REDIS_STATUS_KEYS = ('status:device:heatswitch:position',
+                     'status:device:ls336:status',
+                     'status:device:ls372:status',
+                     'status:device:ls625:status',
+                     'status:device:heatswitch:status',
+                     'status:device:conex:controller-status',
+                     'status:device:conex:controller-state',
+                     'status:device:conex:controller-state:last-change',
+                     'status:device:conex:operation-status',
+                     'status:magnet:state',
+                     'status:magnet:status')
 
 FLASK_CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
                     'Device R': 'status:temps:device-stage:resistance',
@@ -40,17 +50,7 @@ FLASK_CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
                     'LS625 Output V': 'status:device:ls625:output-voltage'}
 
 
-FLASK_KEYS = list(COMMAND_DICT.keys()) + list(REDIS_TS_KEYS) + ['status:device:heatswitch:position',
-                                                                'status:device:ls336:status',
-                                                                'status:device:ls372:status',
-                                                                'status:device:ls625:status',
-                                                                'status:device:heatswitch:status',
-                                                                'status:device:conex:controller-status',
-                                                                'status:device:conex:controller-state',
-                                                                'status:device:conex:controller-state:last-change',
-                                                                'status:device:conex:operation-status',
-                                                                'status:magnet:state',
-                                                                'status:magnet:status']
+FLASK_KEYS = list(COMMAND_DICT.keys()) + list(REDIS_TS_KEYS) + list(REDIS_STATUS_KEYS)
 
 REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                 'channels': (),
