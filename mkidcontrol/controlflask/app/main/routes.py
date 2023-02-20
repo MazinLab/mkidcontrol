@@ -41,8 +41,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 # TODO: Add redis key capturing whether we are observing or not!
 
-# TODO: Make sure columns/divs support resizing
-
 # TODO: With the GUI it needs to pass the 'at a glance test' -> the user should be able to tell whats going on from a simple look
 #  Think "green for good, red for error", good compartmentalization (spacing on page and similar things go together), less clutter
 
@@ -58,7 +56,6 @@ from mkidcontrol.controlflask.app.main.forms import *
 
 CURRENT_DARK_FILE_KEY = "xkid:configuration:dark:filename"
 CURRENT_FLAT_FILE_KEY = "xkid:configuration:flat:filename"
-
 
 redis.setup_redis(ts_keys=REDIS_TS_KEYS)
 
@@ -126,8 +123,6 @@ def index():
         cooldown_time = (datetime.date.today()+timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
 
     form = FlaskForm()
-    if request.method == 'POST':
-        print(request.form)
 
     sensor_fig = multi_sensor_fig(FLASK_CHART_KEYS.keys())
     array_fig = view_array_data(current_app.array_view_params)
@@ -176,7 +171,6 @@ def heater(device, channel):
 
     if request.method == 'POST':
         for key in request.form.keys():
-            print(f"{key} : {request.form.get(key)}")
             try:
                 x = LakeShoreCommand(
                     f"device-settings:{device}:heater-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
@@ -218,9 +212,7 @@ def thermometry(device, channel, filter):
         return redirect(url_for('main.page_not_found'))
 
     if request.method == 'POST':
-        print(f"Form: {request.form}")
         for key in request.form.keys():
-            print(f"{key} : {request.form.get(key)}")
             try:
                 x = LakeShoreCommand(
                     f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
@@ -277,7 +269,6 @@ def cycle_settings():
 
     if request.method == 'POST':
         for key in request.form.keys():
-            print(f"{key} : {request.form.get(key)}")
             try:
                 x = LakeShoreCommand(f"device-settings:magnet:{key.replace('_', '-')}", request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
@@ -301,7 +292,6 @@ def ls625():
 
     if request.method == 'POST':
         for key in request.form.keys():
-            print(f"{key} : {request.form.get(key)}")
             try:
                 x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_', '-')}", request.form.get(key),
                                      limit_vals=ls625settings.limits)
@@ -322,9 +312,16 @@ def ls625():
 def heatswitch():
     # TODO: Handle commands
     if request.method == "POST":
-        print(f"Form: {request.form}")
         for key in request.form.keys():
-            print(f"{key} : {request.form.get(key)}")
+            try:
+                x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_', '-')}", request.form.get(key))
+                log.info(f"Sending command:{x.setting}' -> {x.value} ")
+                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
+                log.info(f"Command sent successfully")
+            except ValueError as e:
+                log.warning(f"Value error: {e} in parsing commands")
+                log.debug(f"Unrecognized field to send as command: {key}")
+            time.sleep(0.15)
 
     form = HeatSwitchForm()
 
