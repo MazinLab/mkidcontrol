@@ -53,7 +53,7 @@ QUENCH_KEY = 'event:quenching'
 
 MAGNET_COMMAND_KEYS = tuple([COLD_AT_CMD, COLD_NOW_CMD, ABORT_CMD, CANCEL_COOLDOWN_CMD, STOP_RAMP_KEY])
 
-MAGNET_STATE_KEY = 'status:magnet:state'  # OFF | RAMPING | SOAKING | QUENCH (DON'T QUENCH!)
+MAGNET_STATE_KEY = 'status:magnet:state'  # Names from statemachine
 MAGNET_CURRENT_KEY = 'status:magnet:current'
 MAGNET_FIELD_KEY = 'status:magnet:field'
 CONTROLLER_STATUS_KEY = 'status:magnet:status'
@@ -487,7 +487,7 @@ class MagnetController(LockedMachine):
 
     def record_entry(self, event):
         self.state_entry_time[self.state] = time.time()
-        redis.store({MAGNET_STATE_KEY: self.state})
+        redis.store({MAGNET_STATE_KEY: self.state.replace('_', ' ')})
         write_persisted_state(self.statefile, self.state)
 
 
