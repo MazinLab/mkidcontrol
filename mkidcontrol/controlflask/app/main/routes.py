@@ -56,6 +56,10 @@ from mkidcontrol.controlflask.app.main.forms import *
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
 
 
+CURRENT_DARK_FILE_KEY = "xkid:configuration:dark:filename"
+CURRENT_FLAT_FILE_KEY = "xkid:configuration:flat:filename"
+
+
 redis.setup_redis(ts_keys=REDIS_TS_KEYS)
 
 log = setup_logging('controlDirector')
