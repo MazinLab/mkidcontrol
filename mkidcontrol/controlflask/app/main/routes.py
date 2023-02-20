@@ -161,18 +161,6 @@ def other_plots():
                            plots=plots, ids=ids, sensorkeys=list(FLASK_CHART_KEYS.values()))
 
 
-@bp.route('/settings', methods=['GET', 'POST'])
-def settings():
-    """
-    Flask endpoint for settings page. Handles setting changes for housekeeping instruments
-    TODO: Readout settings (when we have a readout)
-    """
-    if request.method == 'POST':
-        return handle_validation(request, submission=True)
-
-    return render_template('settings.html', title=_('Settings'))
-
-
 @bp.route('/log_viewer', methods=['GET', 'POST'])
 def log_viewer():
     """
