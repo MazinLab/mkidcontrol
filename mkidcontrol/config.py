@@ -2,18 +2,28 @@ import json
 import pkg_resources
 import os
 from dotenv import load_dotenv
+import numpy as np
+
 from mkidcontrol.commands import COMMAND_DICT
+
+from mkidcontrol.agents.xkid.heatswitchAgent import TS_KEYS as TS_KEYS_hs
+from mkidcontrol.agents.lakeshore336Agent import TS_KEYS as TS_KEYS_ls336
+from mkidcontrol.agents.lakeshore372Agent import TS_KEYS as TS_KEYS_ls372
+from mkidcontrol.agents.lakeshore625Agent import TS_KEYS as TS_KEYS_ls625
+from mkidcontrol.agents.xkid.magnetAgent import TS_KEYS as TS_KEYS_magnet
 #TODO: Make sure all schema keys are accounted for
 REDIS_DB = 0
 
 REDIS_TS_RETENTION = 60 * 60 * 1000  # 60 min
 
 #TODO: Concatenate all ts keys
-REDIS_TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
+TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
                  'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
                  'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current',
                  'status:magnet:field', 'status:device:ls625:output-voltage', 'status:device:heatswitch:motor:position',
                  'status:device:focus:position:mm', 'status:device:focus:position:encoder')
+
+REDIS_TS_KEYS = tuple(np.unique(TS_KEYS_hs + TS_KEYS_ls336 + TS_KEYS_ls372 + TS_KEYS_ls625 + TS_KEYS_magnet + list(TS_KEYS)))
 
 REDIS_STATUS_KEYS = () # TODO: Grab all device status keys
 

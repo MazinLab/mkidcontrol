@@ -19,12 +19,6 @@ import click
 import sys
 import numpy as np
 
-# TODO: Move TS_KEY ingestion into config and import from there
-from mkidcontrol.agents.xkid.heatswitchAgent import TS_KEYS as TS_KEYS_hs
-from mkidcontrol.agents.lakeshore336Agent import TS_KEYS as TS_KEYS_ls336
-from mkidcontrol.agents.lakeshore372Agent import TS_KEYS as TS_KEYS_ls372
-from mkidcontrol.agents.lakeshore625Agent import TS_KEYS as TS_KEYS_ls625
-from mkidcontrol.agents.xkid.magnetAgent import TS_KEYS as TS_KEYS_magnet
 from mkidcontrol.config import REDIS_TS_KEYS
 
 from mkidcontrol.config import Config
@@ -33,8 +27,6 @@ from mkidcore.config import load as loadcfg
 from mkidcore.objects import Beammap
 
 from mkidcontrol.packetmaster3.packetmaster import Packetmaster
-
-TS_KEYS = tuple(np.unique(TS_KEYS_hs + TS_KEYS_ls336 + TS_KEYS_ls372 + TS_KEYS_ls625 + TS_KEYS_magnet + list(REDIS_TS_KEYS)))
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -83,7 +75,7 @@ def create_app(config_class=Config, cliargs=None):
     bootstrap.init_app(app)
     moment.init_app(app)
     babel.init_app(app)
-    redis.setup_redis(ts_keys=TS_KEYS)
+    redis.setup_redis(ts_keys=REDIS_TS_KEYS)
     app.redis = redis
 
     if 'run' in cliargs:
