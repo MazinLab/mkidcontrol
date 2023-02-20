@@ -36,7 +36,7 @@ OUTPUT_VOLTAGE_KEY = 'status:device:ls372:output-voltage'
 
 REGULATION_TEMP_KEY = "device-settings:mkidarray:regulating-temp"
 
-TS_KEYS = TEMPERATURE_KEYS + RESISTANCE_KEYS + EXCITATION_POWER_KEYS + list(OUTPUT_VOLTAGE_KEY)
+TS_KEYS = TEMPERATURE_KEYS + RESISTANCE_KEYS + EXCITATION_POWER_KEYS + [OUTPUT_VOLTAGE_KEY]
 
 STATUS_KEY = 'status:device:ls372:status'
 FIRMWARE_KEY = "status:device:ls372:firmware"
