@@ -521,7 +521,7 @@ if __name__ == "__main__":
                 # NB I'm disinclined to include forced state overrides but they would go here
                 elif key == REGULATION_TEMP_KEY:
                     MAX_REGULATE_TEMP = 1.50 * float(redis.read(REGULATION_TEMP_KEY))
-                    redis.publish(f"command:{LAKESHORE_SETPOINT_KEY}", val)
+                    redis.publish(f"command:{LAKESHORE_SETPOINT_KEY}", val, store=False)
                 elif key == ABORT_CMD:
                     # abort any cooldown in progress, warm up, and turn things off
                     # e.g. last command before heading to bed
