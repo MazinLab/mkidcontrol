@@ -829,9 +829,9 @@ def update_array_viewer_params(param, value):
     if param == "int_time":
         new_val = min(max(float(value), 0.01), 10.0)
     elif param == "min_cts":
-        new_val = min(int(value), current_app.array_view_params['max_cts'] - 10)
+        new_val = max(0, min(int(value), current_app.array_view_params['max_cts'] - 10))
     elif param == "max_cts":
-        new_val = max(int(value), current_app.array_view_params['min_cts'] + 10)
+        new_val = min(5000, max(int(value), current_app.array_view_params['min_cts'] + 10))
     current_app.array_view_params[param] = new_val
     current_app.array_view_params['changed'] = True
     resp = {'value': new_val}
