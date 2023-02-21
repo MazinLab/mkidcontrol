@@ -345,6 +345,13 @@
         source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
         source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
 
+        var obsstopsource = newEventSource("/stopObs");
+        obsstopsource.addEventListener("message", function(e){
+            var newdata = JSON.parse(e.data);
+
+        })
+        source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
+        source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
 
         // Helper functions for handling submitting data from clicked events
         function obsctrl(buttonid){
