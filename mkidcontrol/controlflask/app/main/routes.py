@@ -660,7 +660,7 @@ def dashplot():
                                        "%m/%d/%Y %H:%M:%S.%f")[:-4]})
 
             toc = time.time()
-            print(toc-tic)
+            # print(toc-tic)
 
             yield f"event:dashplot\nretry:5\ndata:{data}\n\n"
 
