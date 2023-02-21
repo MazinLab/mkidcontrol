@@ -796,7 +796,7 @@ def change_filter(filter):
 
 @bp.route('/update_array_viewer_params/<param>/<value>', methods=['POST'])
 def update_array_viewer_params(param, value):
-    print(f"Updating {param} to {value}")
+    log.info(f"Updating array viewer parameter {param} to {value}")
     if param == "int_time":
         new_val = min(max(float(value), 0.01), 10.0)
     elif param == "min_cts":
