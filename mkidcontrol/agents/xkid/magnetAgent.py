@@ -522,6 +522,7 @@ if __name__ == "__main__":
                 elif key == REGULATION_TEMP_KEY:
                     MAX_REGULATE_TEMP = 1.50 * float(redis.read(REGULATION_TEMP_KEY))
                     redis.publish(f"command:{LAKESHORE_SETPOINT_KEY}", val, store=False)
+                    redis.store({REGULATION_TEMP_KEY: val}, store=False)
                 elif key == ABORT_CMD:
                     # abort any cooldown in progress, warm up, and turn things off
                     # e.g. last command before heading to bed

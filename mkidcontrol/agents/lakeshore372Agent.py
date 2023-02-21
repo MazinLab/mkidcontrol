@@ -175,8 +175,8 @@ if __name__ == "__main__":
                 try:
                     lakeshore.handle_command(cmd)
                     redis.store({cmd.setting: cmd.value})
-                    if cmd.command_code == "SETP":
-                        redis.publish({REGULATION_TEMP_KEY: cmd.command_value}, store=False)
+                    # NB. Lakeshore 372 is working in service of the magnet. It cannot command the magnet to change the
+                    #  setpoint. Setpoint changes are handled by the magnet agent.
                     redis.store({STATUS_KEY: "OK"})
                 except IOError as e:
                     redis.store({STATUS_KEY: f"Error"})
