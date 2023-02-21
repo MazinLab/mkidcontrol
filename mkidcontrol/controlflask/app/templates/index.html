@@ -356,7 +356,11 @@
 
             var target;
             if (to_disable.includes(buttonid)) {
-                target = obs_button.value
+                if (document.getElementById("target").value === "---") {
+                    target = obs_button.value
+                } else {
+                    target = document.getElementById("target").value
+                }
                 var obs_type = target
             } else {
                 target = document.getElementById("target").value
@@ -372,22 +376,28 @@
                 var newClass = "btn btn-primary";
                 var newText = "Start Observing";
                 var send_url = "{{ url_for('main.send_photons', startstop='stop', target='' ) }}"+target;
+                var obs_type = "stop"
             }
             $.ajax({
                     type:'POST',
                     url: send_url,
                     data: {
-                        target_name: target,
-                        start_time: start_time,
+                        name: target,
+                        type: obs_type,
                         duration: duration,
-                        obs_type: obs_type
+                        seq_i: 0,
+                        seq_n: 0
                     },
                     success:function(){
                         for (let i=0; i< to_disable.length; i++) {
                             if (document.getElementById("obsStartStop").value.includes("Start")){
                                 document.getElementById(to_disable[i]).disabled = true
+                                document.getElementById("obs_duration").disabled = true
+                                document.getElementById("target").disabled = true
                             } else {
                                 document.getElementById(to_disable[i]).disabled = false
+                                document.getElementById("obs_duration").disabled = false
+                                document.getElementById("target").disabled = false
                             }
                         }
                         document.getElementById("obsStartStop").setAttribute("class", newClass);
