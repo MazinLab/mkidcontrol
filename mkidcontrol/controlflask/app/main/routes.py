@@ -674,36 +674,59 @@ def send_photons(startstop):
     bmap_filename = current_app.dashcfg.beammap.file
 
     if request.method == "POST":
-        target = request.values.get("target_name")
-        obs_type = request.values.get("obs_type")
+        target = request.values.get("name")
+        obs_type = request.values.get("type").lower()
         duration = float(request.values.get("duration"))
-        start_time = float(request.values.get("start_time"))
-        obs_dict = {'target': target, "obs_type": obs_type,
-                    'duration': duration, 'start_time': start_time}
+        start = time.time()
+        seq_i = int(request.values.get("seq_i"))
+        seq_n = int(request.values.get("seq_n"))
+        if obs_type != "stop":
+            obs_dict = {'target': target, "obs_type": obs_type,
+                        'duration': duration, 'start': start,
+                        'seq_i': seq_i, 'seq_n': seq_n}
+        else:
+            obs_dict = {'obs_type': obs_type}
 
 
     log.debug(f"{startstop} sending photons")
     current_app.redis.store({"observing:target": target})
     if startstop == "start":
         log.info(f"Start observing target: {target}")
-        with open(send_photons_file, "w") as f:
-            f.write(bmap_filename)
-        log.info(f"Wrote {bmap_filename} to {send_photons_file} to start sending photons")
-        log.info("Start packetmaster writing bin files...")
-        current_app.packetmaster.startWriting(current_app.dashcfg.paths.data)
-        log.info("Packetmaster started")
+        # with open(send_photons_file, "w") as f:
+        #     f.write(bmap_filename)
+        # log.info(f"Wrote {bmap_filename} to {send_photons_file} to start sending photons")
+        # log.info("Start packetmaster writing bin files...")
+        # current_app.packetmaster.startWriting(current_app.dashcfg.paths.data)
+        current_app.redis.publish("", json.dumps(obs_dict))
+        # log.info("Packetmaster started")
     else:
         log.info(f"Stop observing target: {target}")
-        log.info("Stopping packetmaster...")
-        current_app.packetmaster.stopWriting()
-        log.info("Stopped packetmaster stopped")
-        try:
-            os.remove(send_photons_file)
-            log.debug(f"Removed {send_photons_file} to stop sending photons")
-        except:
-            # TODO this is an error that requires immediate attention
-            log.critical(f"Failed to remove {send_photons_file} to stop sending photons")
+        # log.info("Stopping packetmaster...")
+        # current_app.packetmaster.stopWriting()
+        # log.info("Stopped packetmaster stopped")
+        # try:
+        #     os.remove(send_photons_file)
+        #     log.debug(f"Removed {send_photons_file} to stop sending photons")
+        # except:
+        #     # TODO this is an error that requires immediate attention
+        #     log.critical(f"Failed to remove {send_photons_file} to stop sending photons")
+        current_app.redis.publish("", json.dumps(obs_dict))
+    log.info(f"Observing command: {obs_dict}")
     return '', 204
+
+@bp.route('/stopObs', methods=["GET"])
+def stopObs():
+    """
+    TODO: Implement some functionality allowing the gui to know a stop obsdict was sent
+    """
+    @stream_with_context
+    def _stream():
+        while True:
+            for k,v in current_app.redis.listen("command:observing:stop_observing"):
+                msg = f"retry:5\ndata: {v}\n\n"
+                yield msg
+
+    return current_app.response_class(_stream(), mimetype='text/event-stream', content_type='text/event-stream')
 
 
 # TODO: In command functions, import the proper command keys if appropriate
