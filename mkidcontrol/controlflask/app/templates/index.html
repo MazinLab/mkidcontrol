@@ -509,13 +509,13 @@
                 success: function (d) {
                     var response = JSON.parse(d);
 
-                    var status_dot = document.getElementById("conex_status_dot");
-                    if (response['success'] == 1) {
-                        status_dot.style.backgroundColor = "green"
-                    } else {
-                        status_dot.style.backgroundColor = "red"
-                    }
-                    fade_color(status_dot, 5000)
+                    // var status_dot = document.getElementById("heatswitch_status_dot");
+                    // if (response['success'] == 1) {
+                    //     status_dot.style.backgroundColor = "green"
+                    // } else {
+                    //     status_dot.style.backgroundColor = "red"
+                    // }
+                    // fade_color(status_dot, 5000)
                 }
             })
         }
