@@ -310,11 +310,10 @@ def ls625():
 
 @bp.route('/heatswitch/', methods=['POST', 'GET'])
 def heatswitch():
-    # TODO: Handle commands
     if request.method == "POST":
         for key in request.form.keys():
             try:
-                x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_', '-')}", request.form.get(key))
+                x = LakeShoreCommand(f"device-settings:heatswitch:{key.replace('_', '-')}", request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
                 current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
                 log.info(f"Command sent successfully")
