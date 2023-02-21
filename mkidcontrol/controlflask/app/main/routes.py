@@ -619,6 +619,7 @@ def dashplot():
             # im = current_app.liveimage.receiveImage()
 
             im = np.random.uniform(5000, size=(125 * 80)).reshape((125, 80)).astype(int)
+            im = im.tolist()
             time.sleep(int_time)
 
             tic = time.time()
@@ -636,29 +637,30 @@ def dashplot():
             # calim = sciFac.generate(threaded=False, save=False)
 
             #make figure
-            changed_image_params = False
-            if changed_image_params:
+            if current_app.array_view_params['changed']:
                 fig = go.Figure()
-                fig.add_heatmap(z=im.tolist(), showscale=False,
+                fig.add_heatmap(z=im, showscale=False,
                                 colorscale=[[0, "black"], [0.5, "white"], [0.5, "red"], [1, "red"]],
                                 zmin=current_app.array_view_params['min_cts'],
                                 zmax=current_app.array_view_params['max_cts'] * 2)
                 fig.update_layout(dict(height=550, autosize=True,
-                                       xaxis=dict(visible=False, ticks='', scaleanchor='y'),
-                                       yaxis=dict(visible=False, ticks='')))
+                                       xaxis=dict(range=[0, 80], visible=False, ticks='', scaleanchor='y'),
+                                       yaxis=dict(range=[0, 125], visible=False, ticks='')))
                 fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
                 data = json.dumps({'id': 'dash',
                         'kind': 'full',
                         'data': json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder),
                         'time': datetime.datetime.fromtimestamp(time.time()).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]})
+                current_app.array_view_params['changed'] = False
             else:
                 data = json.dumps({'id': 'dash',
                                    'kind': 'partial',
-                                   'data': json.dumps({'z': im.tolist()}),
+                                   'data': json.dumps({'z': im}),
                                    'time': datetime.datetime.fromtimestamp(time.time()).strftime(
                                        "%m/%d/%Y %H:%M:%S.%f")[:-4]})
 
             toc = time.time()
+            print(toc-tic)
 
             yield f"event:dashplot\nretry:5\ndata:{data}\n\n"
 
