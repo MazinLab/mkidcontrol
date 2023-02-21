@@ -301,7 +301,7 @@
                 }
             }
             if (pixel[0] != -1 && pixel[1] != -1) {
-                Plotly.extendTraces('pixel_lightcurve', {x:[[update['time']]], y:[[data.data[0]['z'][pixel[1]][pixel[0]]]]}, [0])
+                Plotly.extendTraces('pixel_lightcurve', {x:[[update['time']]], y:[[data['z'][pixel[1]][pixel[0]]]]}, [0])
             }
         }, false);
         psource.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
