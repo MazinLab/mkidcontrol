@@ -466,6 +466,14 @@ COMMANDS960 = {'device-settings:sim960:vout-min-limit': {'command': 'LLIM', 'val
 # COMMANDSHS = {'device-settings:currentduino:heatswitch': {'command': '', 'vals': {'open': 'open', 'close': 'close'}}}
 
 
+class Heatswitch:
+    def __init__(self, redis):
+        values = redis.read(redis.redis_keys("device-settings:heatswitch:*"))
+        self.max_velocity = values['device-settings:heatswitch:max-velocity']
+        self.running_current = values['device-settings:heatswitch:running_current']
+        self.acceleration = values['device-settings:heatswitch:acceleration']
+
+
 # ---- Zaber Motor Heat Switch Commands ----
 COMMANDSHS = {'device-settings:heatswitch:position': {'command': '', 'vals': {"Open": "Open", "Close": "Close"}},
               'device-settings:heatswitch:max-velocity': {'command': '', 'vals': [0, 1e4]},

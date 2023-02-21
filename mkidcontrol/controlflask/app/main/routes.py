@@ -310,6 +310,10 @@ def ls625():
 
 @bp.route('/heatswitch/', methods=['POST', 'GET'])
 def heatswitch():
+    from mkidcontrol.commands import Heatswitch
+
+    hs = Heatswitch(current_app.redis)
+
     if request.method == "POST":
         for key in request.form.keys():
             try:
@@ -322,7 +326,7 @@ def heatswitch():
                 log.debug(f"Unrecognized field to send as command: {key}")
             time.sleep(0.15)
 
-    form = HeatSwitchForm()
+    form = HeatSwitchForm(**vars(hs))
 
     return render_template('heatswitch.html', title=_('Heat Switch'), form=form)
 
