@@ -668,11 +668,9 @@ def dashplot():
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
 
-@bp.route('/send_photons/<startstop>', methods=["POST"])
-def send_photons(startstop):
-    send_photons_file = current_app.dashcfg.paths.send_photons_file
-    bmap_filename = current_app.dashcfg.beammap.file
-
+@bp.route('/send_obs_dict/<startstop>', methods=["POST"])
+def send_obs_dict(startstop):
+    # TODO: Modify this to be a 'sender' that either sends a start or stop obs dict.
     if request.method == "POST":
         target = request.values.get("name")
         obs_type = request.values.get("type").lower()
@@ -687,42 +685,27 @@ def send_photons(startstop):
         else:
             obs_dict = {'obs_type': obs_type}
 
-
     log.debug(f"{startstop} sending photons")
-    current_app.redis.store({"observing:target": target})
+
     if startstop == "start":
         log.info(f"Start observing target: {target}")
-        # with open(send_photons_file, "w") as f:
-        #     f.write(bmap_filename)
-        # log.info(f"Wrote {bmap_filename} to {send_photons_file} to start sending photons")
-        # log.info("Start packetmaster writing bin files...")
-        # current_app.packetmaster.startWriting(current_app.dashcfg.paths.data)
-        current_app.redis.publish("", json.dumps(obs_dict))
-        # log.info("Packetmaster started")
+        current_app.redis.publish("command:observing:obs_dict", json.dumps(obs_dict), store=False)
+        current_app.redis.store({"observing:target": target})
     else:
         log.info(f"Stop observing target: {target}")
-        # log.info("Stopping packetmaster...")
-        # current_app.packetmaster.stopWriting()
-        # log.info("Stopped packetmaster stopped")
-        # try:
-        #     os.remove(send_photons_file)
-        #     log.debug(f"Removed {send_photons_file} to stop sending photons")
-        # except:
-        #     # TODO this is an error that requires immediate attention
-        #     log.critical(f"Failed to remove {send_photons_file} to stop sending photons")
-        current_app.redis.publish("", json.dumps(obs_dict))
+        current_app.redis.publish("command:observing:obs_dict", json.dumps(obs_dict), store=False)
     log.info(f"Observing command: {obs_dict}")
     return '', 204
 
-@bp.route('/stopObs', methods=["GET"])
-def stopObs():
+@bp.route('/receive_obs_dict', methods=["GET"])
+def receive_obs_dict():
     """
-    TODO: Implement some functionality allowing the gui to know a stop obsdict was sent
+    Receives an obs_dict and passes it back to
     """
     @stream_with_context
     def _stream():
         while True:
-            for k,v in current_app.redis.listen("command:observing:stop_observing"):
+            for k,v in current_app.redis.listen("command:observing:obs_dict"):
                 msg = f"retry:5\ndata: {v}\n\n"
                 yield msg
 
