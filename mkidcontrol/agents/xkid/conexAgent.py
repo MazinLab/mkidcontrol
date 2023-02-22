@@ -58,6 +58,9 @@ SETTING_KEYS = tuple(COMMANDSCONEX.keys())
 COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + list(CONEX_COMMANDS)])
 
 
+OBSERVING_REQUEST_CHANNEL = 'command:observation:request'
+
+
 class ConexController:
     """
     TODO: Add monitor function
