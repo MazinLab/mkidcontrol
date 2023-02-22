@@ -20,21 +20,21 @@ metadata._time_key_builder = metadata._xkid_time_header
 
 
 TS_KEYS = REDIS_TS_KEYS
-DASHBOARD_YAML_KEY = ''
-BIN_FILE_DIR_KEY = ''
-OBSERVING_REQUEST_CHANNEL = 'observation:request'
-ACTIVE_DARK_FILE_KEY = ''  # a FQP to the active dark fits image, if any
-ACTIVE_FLAT_FILE_KEY = ''  # a FQP to the active flat fits image, if any
-SCI_FILE_TEMPLATE_KEY = ''  # FQP to image file as a template that will be formatted with metadata
-DARK_FILE_TEMPLATE_KEY = ''  # FQP to  image file as a template that will be formatted with metadata
-FLAT_FILE_TEMPLATE_KEY = ''  # FQP to  image file as a template that will be formatted with metadata
-BAD_PIXEL_MASK_KEY = ''  # FQP to bad pixel mask file
+DASHBOARD_YAML_KEY = 'xkid:configuration:file:yaml:dashboard'
+BIN_FILE_DIR_KEY = 'xkid:configuration:directory:bin-files'
+OBSERVING_REQUEST_CHANNEL = 'command:observation:request'
+ACTIVE_DARK_FILE_KEY = 'xkid:configuration:file:dark:active'  # a FQP to the active dark fits image, if any
+ACTIVE_FLAT_FILE_KEY = 'xkid:configuration:file:flat:active'  # a FQP to the active flat fits image, if any
+SCI_FILE_TEMPLATE_KEY = 'xkid:configuration:file:sci:template'  # FQP to image file as a template that will be formatted with metadata
+DARK_FILE_TEMPLATE_KEY = 'xkid:configuration:file:dark:template'  # FQP to  image file as a template that will be formatted with metadata
+FLAT_FILE_TEMPLATE_KEY = 'xkid:configuration:file:flat:template'  # FQP to  image file as a template that will be formatted with metadata
+BAD_PIXEL_MASK_KEY = 'xkid:configuration:file:mask:bad-pixel'  # FQP to bad pixel mask file
 GUI_LIVE_IMAGE_DEFAUTS_KEY = 'gui:live_image_config'
 FITS_IMAGE_DEFAULTS_KEY = 'datasaver:fits_image_config'
-INSTRUMENT_BEAMMAP_FILE_KEY = 'xkid:configuration:beammap:file'
+INSTRUMENT_BEAMMAP_FILE_KEY = 'xkid:configuration:file:beammap'
 GEN2_ROACHES_KEY = 'gen2:roaches'
 GEN2_CAPTURE_PORT_KEY = 'gen2:capture_port'
-GEN2_REDIS_MAP = {'dashboard.max_count_rate':'readout:coout_rate_limit',
+GEN2_REDIS_MAP = {'dashboard.max_count_rate':'readout:count_rate_limit',
                   'roaches':'roaches'
                   }
 
