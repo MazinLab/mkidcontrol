@@ -12,7 +12,7 @@ complicated dicts over redis pubsub connections
 
 TODO: Log dither
 
-TODO: Write the cc.state[0] -> cc.state[1] to somewhere it can be ingested by flask
+TODO: Publish obs_dict at start/stop of each dwell step
 """
 
 import logging
@@ -186,8 +186,8 @@ class ConexController:
                     pass
             except:
                 d = {'completed': False}
-        # self.complete.emit(d)  TODO: Choose how to notify that the dither is done
-        #  This is where we use self.log_dither
+        # self.complete.emit(d)  TODO: Choose how to notify that the dither is done. This is where we use self.log_dither
+        self.logdither(d)  # TODO incorporate logging to a file
         log.info('Finished dither')
 
     def _wait4move(self):
