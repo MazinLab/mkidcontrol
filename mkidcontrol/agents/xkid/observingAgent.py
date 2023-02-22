@@ -167,7 +167,7 @@ if __name__ == "__main__":
                     pm.stopWriting()
                     continue
 
-                limitless_integration = request['duration'] == 'inf'
+                limitless_integration = request['duration'] == 'inf'  # TODO: decide whether inf or 0 means infinite integration
                 fits_exp_time = 60 if limitless_integration else request['duration']
 
                 pm.startWriting(redis.read(BIN_FILE_DIR_KEY, decode_json=False))
