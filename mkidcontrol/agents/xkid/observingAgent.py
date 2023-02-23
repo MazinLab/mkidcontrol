@@ -18,9 +18,13 @@ from mkidcontrol.config import REDIS_TS_KEYS
 metadata.TIME_KEYS = ('MJD-END', 'MJD-STR', 'UT-END', 'UT-STR')
 metadata._time_key_builder = metadata._xkid_time_header
 
+# TODO: There is an overarching question we must answer: How does the gui know at first startup what dashboard config file to use?
+#  Idea: have a redis key ('xkid:configuration:file:yaml:dashboard') that the user must set prior to running the gui?
+#  Alternatively, do we prefer that on loading in a new dashboard yaml, relavant parameters from it are also reloaded?
 
 TS_KEYS = REDIS_TS_KEYS
 DASHBOARD_YAML_KEY = 'xkid:configuration:file:yaml:dashboard'
+CFG_DIR_KEY = 'xkid:configuration:directory'
 BIN_FILE_DIR_KEY = 'xkid:configuration:directory:bin-files'
 OBSERVING_REQUEST_CHANNEL = 'command:observation:request'
 ACTIVE_DARK_FILE_KEY = 'xkid:configuration:file:dark:active'  # a FQP to the active dark fits image, if any
@@ -38,30 +42,76 @@ GEN2_REDIS_MAP = {'dashboard.max_count_rate':'readout:count_rate_limit',
                   'roaches':'roaches'
                   }
 
+
 MAGAOX_KEYS = {
-    'tcsi.telpos.am': ('tcsi:telpos:am', 'fitskey', 'description'),
-    'tcsi.telpos.dec': ('tcsi:telpos:dec', 'fitskey', 'description'),
-    'tcsi.telpos.el': ('tcsi:telpos:el', 'fitskey', 'description'),
-    'tcsi.telpos.epoch': ('tcsi:telpos:epoch', 'fitskey', 'description'),
-    'tcsi.telpos.ha': ('tcsi:telpos:ha', 'fitskey', 'description'),
-    'tcsi.telpos.ra': ('tcsi:telpos:ra', 'fitskey', 'description'),
-    'tcsi.telpos.rotoff': ('tcsi:telpos:rotoff', 'fitskey', 'description'),
-    'tcsi.teldata.az': ('tcsi:teldata:az', 'fitskey', 'description'),
-    'tcsi.teldata.dome_az': ('tcsi:teldata:dome-az', 'fitskey', 'description'),
-    'tcsi.teldata.dome_stat': ('tcsi:teldata:dome-state', 'fitskey', 'description'),
-    'tcsi.teldata.guider_moving': ('tcsi:teldata:guider-moving', 'fitskey', 'description'),
-    'tcsi.teldata.guiding': ('tcsi:teldata:guiding', 'fitskey', 'description'),
-    'tcsi.teldata.pa': ('tcsi:teldata:pa', 'fitskey', 'description'),
-    'tcsi.teldata.roi': ('tcsi:teldata:roi', 'fitskey', 'description'),
-    'tcsi.teldata.slewing': ('tcsi:teldata:slewing', 'fitskey', 'description'),
-    'tcsi.teldata.tracking': ('tcsi:teldata:tracking', 'fitskey', 'description'),
-    'tcsi.teldata.zd': ('tcsi:teldata:zd', 'fitskey', 'description'),
-    'tcsi.teltime.sidereal_time': ('tcsi:teldata:sidereal-time', 'fitskey', 'description'),
+    'tcsi.telpos.am': ('tcsi:telpos:am', 'AIRMASS', 'Airmass at start'),
+    'tcsi.telpos.dec': ('tcsi:telpos:dec', 'DEC', 'DEC of telescope pointing (+/-DD:MM:SS.SS)'),
+    'tcsi.telpos.el': ('tcsi:telpos:el', 'ALTITUDE', 'Elevation of telescope pointing'), # Altitude?
+    'tcsi.telpos.epoch': ('tcsi:telpos:epoch', 'EPOCH', 'Epoch of observation from MagAO-X'),
+    'tcsi.telpos.ha': ('tcsi:telpos:ha', 'HA', 'description'), # TODO: Not sure?
+    'tcsi.telpos.ra': ('tcsi:telpos:ra', 'RA', 'RA of telescope pointing (HH:MM:SS.SSS)'),
+    'tcsi.telpos.rotoff': ('tcsi:telpos:rotoff', 'ROT_STAT', 'Telescope rotator on/off'),
+    'tcsi.teldata.az': ('tcsi:teldata:az', 'AZIMUTH', 'Azimuth of telescope pointing'),
+    'tcsi.teldata.dome_az': ('tcsi:teldata:dome-az', 'DOM-AZ', 'Azimuth of dome'),
+    'tcsi.teldata.dome_stat': ('tcsi:teldata:dome-state', 'DOM-STAT', 'State of the dome at exposure start time'),
+    'tcsi.teldata.guider_moving': ('tcsi:teldata:guider-moving', 'fitskey', 'Telescope status if guider is moving'),
+    'tcsi.teldata.guiding': ('tcsi:teldata:guiding', 'fitskey', 'Telescope guiding status'),
+    'tcsi.teldata.pa': ('tcsi:teldata:pa', 'fitskey', 'Position Angle'), # TODO: Position angle of what?
+    'tcsi.teldata.roi': ('tcsi:teldata:roi', 'fitskey', 'description'), # TODO: Not sure
+    'tcsi.teldata.slewing': ('tcsi:teldata:slewing', 'SLEWING', 'Telescope slewing status'),
+    'tcsi.teldata.tracking': ('tcsi:teldata:tracking', 'TRACKING', 'Telescope tracking status'),
+    'tcsi.teldata.zd': ('tcsi:teldata:zd', 'ZD', 'Zenith distance at typical time'),
+    'tcsi.teltime.sidereal_time': ('tcsi:teldata:sidereal-time', 'SID-TIME', 'Sidereal time at typical time'), # TODO: Sidereal time at start and end?
+    'tcsi.environment.dewpoint' : ('tcsi:environment:dewpoint', 'DOM-DEW', 'Dewpoint'),
+    'tcsi.environment.humidity' : ('tcsi:environment:humidity', 'DOM-HUM', 'Humidity'),
+    'tcsi.environment.pressure' : ('tcsi:environment:pressure', 'DOM-PRS', 'Pressure (hpa)'),
+    'tcsi.environment.temp-amb' : ('tcsi:environment:temp-amb', 'DOM-TMPA', 'Ambient temperature'),
+    'tcsi.environment.temp-cell' : ('tcsi:environment:temp-cell', 'DOM-TMPC', 'desc'), # TODO: Not sure
+    'tcsi.environment.temp-out' : ('tcsi:environment:temp-out', 'DOM-TMPO', 'Outside temperature'),
+    'tcsi.environment.temp-seccell' : ('tcsi:environment:temp-seccell', 'DOM-TMPS', 'desc'), # TODO: Not sure
+    'tcsi.environment.temp-truss' : ('tcsi:environment:temp-truss', 'DOM-TMPT', 'Truss temperature'),
+    'tcsi.environment.wind' : ('tcsi:environment:wind', 'DOM-WND', 'Wind speed'),
+    'tcsi.environment.winddir' : ('tcsi:environment:winddir', 'DOM-WNDD', 'Wind direction'),
+    'tcsi.catalog.object' : ('tcsi:catalog:object', 'OBJECT', 'Object'),
+    'tcsi.catalog.rotmode' : ('tcsi:catalog:rotmode', 'fits', 'desc'), # TODO: Not sure
+    'tcsi.catdata.dec' : ('tcsi:catdata:dec', 'fits', 'desc'), # TODO: Not sure
+    'tcsi.catdata.epoch' : ('tcsi:catdata:epoch', 'fits', 'desc'), # TODO: Not sure
+    'tcsi.catdata.ra' : ('tcsi:catdata:ra', 'fits', 'desc'), # TODO: Not sure
+    'tcsi.catdata.rotoff' : ('tcsi:catdata:rotoff', 'fits', 'desc'), # TODO: Not sure
+    'tcsi.seeing.dimm_el' : ('tcsi:seeing:dimm-el', 'DIMM-EL', 'DIMM elevation'),
+    'tcsi.seeing.dimm_fwhm' : ('tcsi:seeing:dimm-fwhm', 'DIMM-SEE', 'DIMM seeing (FWHM)'),
+    'tcsi.seeing.dimm_fwhm_corr' : ('tcsi:seeing:dimm-fwhm-corr', 'DIMM-COR', 'desc'), # TODO: Not sure
+    'tcsi.seeing.dimm_time' : ('tcsi:seeing:dimm-time', 'DIMM-TIM', 'desc'), # TODO: Not sure
+    'tcsi.seeing.mag1_el' : ('tcsi:seeing:mag1-el', 'MAG1-EL', 'Mag1 elecation'),
+    'tcsi.seeing.mag1_fwhm' : ('tcsi:seeing:mag1-fwhm', 'MAG1-SEE', 'Mag1 seeing (FWHM)'),
+    'tcsi.seeing.mag1_fwhm_corr' : ('tcsi:seeing:mag1-fwhm-corr', 'MAG1-COR', 'desc'), # TODO: Not sure
+    'tcsi.seeing.mag1_time' : ('tcsi:seeing:mag1-time', 'MAG1-TIM', 'desc'), # TODO: Not sure
+    'tcsi.seeing.mag2_el' : ('tcsi:seeing:mag2-el', 'MAG2-EL', 'Mag2 elevation'),
+    'tcsi.seeing.mag2_fwhm' : ('tcsi:seeing:mag2-fwhm', 'MAG2-SEE', 'Mag2 seeing (FWHM)'),
+    'tcsi.seeing.mag2_fwhm_corr' : ('tcsi:seeing:mag2-fwhm-corr', 'MAG2-COR', 'desc'), # TODO: Not sure
+    'tcsi.seeing.mag2_time' : ('tcsi:seeing:mag2-time', 'MAG2-TIM', 'desc'), # TODO: Not sure
 }
 
-
+# TODO: NS (23Feb2023) Confused about what keys we want to record here
 OBSLOG_RECORD_KEYS = { #This should be a superset of mkidcore.metadata.XKID_KEY_INFO
-    'key': 'fitskey'  # redis keys to include in the fits header
+    'key': 'fitskey',  # redis keys to include in the fits header
+    'status:temps:device-stage:temp' : 'DET-TMP',
+    '' : 'E_BMAP',
+    'xkid:configuration:directory' : 'E_CFGDIR',
+    '' : 'E_CONEXX',
+    '' : 'E_CONEXY',
+    '' : 'E_CXREFX',
+    '' : 'E_DPDCX',
+    '' : 'E_DPDCY',
+    '' : 'E_CXREFY',
+    '' : 'E_DEVANG',
+    '' : 'E_FIRMV',
+    'device-settings:filterwheel:filter' : 'E_FLTPOS',
+    '' : 'E_PLTSCL',
+    '' : 'E_PREFX',
+    '' : 'E_PREFY',
+    'xkid:configuration:file:dark:active' : 'E_DARK',
+    'xkid:configuration:file:flat:active' : 'E_FLTCAL',
 }
 # Include all the MAGAOX KEYS
 OBSLOG_RECORD_KEYS.update({v[0]:v[1] for v in MAGAOX_KEYS.values()})
@@ -146,7 +196,7 @@ if __name__ == "__main__":
     livecfg = redis.read(GUI_LIVE_IMAGE_DEFAUTS_KEY, decode_json=True) or default
     fitscfg = redis.read(FITS_IMAGE_DEFAULTS_KEY, decode_json=True) or default
     beammap = Beammap(redis.read(INSTRUMENT_BEAMMAP_FILE_KEY, error_missing=True))
-    n_roaches = len(redis.read(GEN2_ROACHES_KEY, error_missing=True))  # TODO @nswimmer
+    n_roaches = len(redis.read(GEN2_ROACHES_KEY, error_missing=True))  # TODO: (NS, 23 Feb 2023) Read in roaches in use from dashboard file to redis
     port = redis.read(GEN2_CAPTURE_PORT_KEY, error_missing=True)
 
     pm = Packetmaster(n_roaches, port, useWriter=True, sharedImageCfg={'live': livecfg, 'fits': fitscfg},
