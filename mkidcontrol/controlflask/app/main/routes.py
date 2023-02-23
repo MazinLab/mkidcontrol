@@ -125,7 +125,7 @@ def index():
     form = FlaskForm()
 
     sensor_fig = multi_sensor_fig(FLASK_CHART_KEYS.keys())
-    array_fig = view_array_data(current_app.array_view_params)
+    array_fig = initialize_array_figure(current_app.array_view_params)
     pix_lightcurve = pixel_lightcurve()
 
     return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform, fw=fw,
@@ -564,11 +564,25 @@ def multi_sensor_fig(titles):
     return fig
 
 
-def view_array_data(view_params):
+def initialize_array_figure(view_params):
     """
-    Placeholding function to grab a frame from a (hard-coded, previously made) temporal drizzle to display as the
-    'device view' on the homepage of the flask application.
+    Creates the graph object for the first frame of array data shown.
+    This will always be an array of zeros.
+    """
+    y = np.zeros((125, 80))
+    fig = go.Figure()
+    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale=[[0, "black"], [0.5, "white"], [0.5, "red"], [1, "red"]],
+                    zmin=view_params['min_cts'], zmax=view_params['max_cts'] * 2)
+    fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'),
+                           yaxis=dict(visible=False, ticks='')))
+    fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
+    fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    return fig
 
+
+@bp.route('/dashplot', methods=["GET"])
+def dashplot():
+    """
     TODO: Ingest dark/flats and apply
         #From darshboard
         # # Set up worker object and thread for the display.
@@ -583,32 +597,12 @@ def view_array_data(view_params):
         # im = cf.generate(name='pixelcount')
         # pixelList = np.asarray(pixelList)
         # im.data[(pixelList[:, 1], pixelList[:, 0])].sum()
-    """
-    # data = current_app.liveimage
-    # data.startIntegration(integrationTime=view_params['int_time'])
-    # y = data.receiveImage()
 
-    y = 10 * np.random.random((125, 80))
-    m = y < 0
-    y[m] = 0
-    fig = go.Figure()
-    fig.add_heatmap(z=y.tolist(), showscale=False, colorscale=[[0, "black"], [0.5, "white"], [0.5, "red"], [1, "red"]],
-                    zmin=view_params['min_cts'], zmax=view_params['max_cts'] * 2)
-    fig.update_layout(dict(height=550, autosize=True, xaxis=dict(visible=False, ticks='', scaleanchor='y'),
-                           yaxis=dict(visible=False, ticks='')))
-    fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
-    fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-    return fig
-
-
-@bp.route('/dashplot', methods=["GET"])
-def dashplot():
-    """
+    TODO: Why is restyle still so slow on the GUI side even when doing a partial remake?
     """
 
     @stream_with_context
     def _stream():
-        # TODO: Live array params changing
         active_dark_file = current_app.redis.read(CURRENT_DARK_FILE_KEY)
         active_flat_file = current_app.redis.read(CURRENT_FLAT_FILE_KEY)
         sciFac = CalFactory('avg',
@@ -619,7 +613,7 @@ def dashplot():
             current_dark_file = current_app.redis.read(CURRENT_DARK_FILE_KEY)
             current_flat_file = current_app.redis.read(CURRENT_FLAT_FILE_KEY)
 
-            # TODO: When live
+            # TODO: When live (toggle online/offline here? So we can pull up the gui without roaches and annoyingly long image load lags?)
             # current_app.liveimage.startIntegration(integrationTime=int_time)
             # t = time.time()
             # im = current_app.liveimage.receiveImage()
