@@ -908,3 +908,10 @@ def notifications():
     notifications = current_user.notifications.filter(
         Notification.timestamp > since).order_by(Notification.timestamp.asc())
     return jsonify([{'name': n.name, 'data': n.get_data(), 'timestamp': n.timestamp} for n in notifications])
+
+
+def spin_up_packetmaster(dashcfgfile, initializing_gui=False):
+    # TODO: This is where we should spin up packetmaster/create a dither log. This allows us to run it on initialization
+    #  of the gui or when we update the dashboard cfg
+    #  NB This should only create a new dither log on the initialization of the gui, not on updating the file
+    pass

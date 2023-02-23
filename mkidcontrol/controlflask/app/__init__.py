@@ -1,4 +1,5 @@
 import logging
+import os
 from flask import Flask, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -24,6 +25,8 @@ from mkidcontrol.config import REDIS_TS_KEYS
 from mkidcontrol.config import Config
 
 from mkidcore.config import load as loadcfg
+import mkidcore.corelog
+from mkidcore.corelog import create_log
 from mkidcore.objects import Beammap
 
 from mkidcontrol.packetmaster3.packetmaster import Packetmaster
@@ -79,8 +82,12 @@ def create_app(config_class=Config, cliargs=None):
     app.redis = redis
 
     if 'run' in cliargs:
-        app.dashcfg = loadcfg(app.config['DASH_CFG'])
-
+        # app.dashcfg = loadcfg(app.config['DASH_CFG']) # TODO This shouldn't be a global variable, rather a redis key/val
+        app.dashcfg = loadcfg(redis.read('xkid:configuration:file:yaml:dashboard'))
+        # TODO: This configuration shouldn't be static, it should reinitialize packetmaster every time the dashboard config gets reloaded.
+        #  Basically -> packetmaster shouldn't get spun up here in __init__.py, it should get spun up for the first time
+        #  when the user opens the flask gui. Then we can create it via a 'spin_up_packetmaster' function which also allows
+        #  us to change it (and other required parameters) dynamically from the GUI.
         ROACHNUMS = app.dashcfg.roaches.in_use
         CAPTUREPORT = app.dashcfg.packetmaster.captureport
         OFFLINE = app.dashcfg.roaches.offline
@@ -105,6 +112,7 @@ def create_app(config_class=Config, cliargs=None):
         liveimage = packetmaster.sharedImages['dashboard']
         app.liveimage = liveimage
 
+        app.ditherlog = create_log(app.dashcfg.paths.logs)  # TODO: Properly parse path
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)
@@ -144,3 +152,11 @@ from . import models
 #     from ..app import models
 # except:
 #     from app import models
+
+def create_dither_log(log_path):
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
+    create_log('dither',
+               logfile=os.path.join(log_path, 'dither_{}.log'.format(timestamp)),
+               console=False, mpsafe=True, propagate=False,
+               fmt='%(asctime)s %(message)s',
+               level=mkidcore.corelog.DEBUG)

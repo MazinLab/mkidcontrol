@@ -576,6 +576,13 @@ if __name__ == "__main__":
     redis.setup_redis()
     util.setup_logging('conexAgent')
 
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
+    create_log('ObsLog',
+               logfile=os.path.join(config.paths.logs, 'obslog_{}.json'.format(timestamp)),
+               console=False, mpsafe=True, propagate=False,
+               fmt='%(message)s',
+               level=mkidcore.corelog.DEBUG)
+
     try:
         cc = ConexController(port='/dev/conex', redis=redis)
         redis.store({SN_KEY: cc.conex.id_number})
