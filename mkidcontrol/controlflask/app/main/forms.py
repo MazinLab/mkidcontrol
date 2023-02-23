@@ -10,6 +10,16 @@ class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class ConfigPathForm(FlaskForm):
+    dashboard_yaml = StringField("Dashboard yml:")
+    dark_file = StringField("Active Dark File", default="-")
+    flat_file = StringField("Active Flat File", default="-")
+    sci_template_file = StringField("Template Sci File")
+    beammap_file = StringField("Beammap File", render_kw={'disabled': True})
+    config_dir = StringField("Co")
+    update = SubmitField("Update Paths")
+
+
 class ConexForm(FlaskForm):
     start_pos = StringField("Start (x, y)", default="0.0, 0.0")
     stop_pos = StringField("Stop (x, y)", default="0.0, 0.0")

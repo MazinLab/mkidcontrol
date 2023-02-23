@@ -411,6 +411,12 @@ def system():
         return bad_request('Invalid shutdown command')
 
 
+@bp.route('/configuration_paths', methods=['GET', 'POST'])
+def configuration_paths():
+    cfgform = ConfigPathForm()
+    return render_template('configuration_paths.html', title=_('Configuration Paths'), cfgForm=cfgform)
+
+
 @bp.route('/test_page', methods=['GET', 'POST'])
 def test_page():
     from mkidcontrol.controlflask.app.main.forms import MagnetCycleSettingsForm
