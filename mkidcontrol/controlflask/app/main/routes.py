@@ -176,8 +176,8 @@ def heater(device, channel):
                     f"device-settings:{device}:heater-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
                     request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
-                log.info(f"Command sent successfully")
+                msg_listeners = current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
+                log.info(f"Command sent successfully, heard by {msg_listeners} listeners")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
                 log.debug(f"Unrecognized field to send as command: {key}")
@@ -218,8 +218,8 @@ def thermometry(device, channel, filter):
                     f"device-settings:{device}:input-channel-{request.form.get('channel').lower()}:{key.replace('_', '-')}",
                     request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
-                log.info(f"Command sent successfully")
+                msg_listeners = current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
+                log.info(f"Command sent successfully, heard by {msg_listeners} listeners")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
                 log.debug(f"Unrecognized field to send as command: {key}")
@@ -272,8 +272,8 @@ def cycle_settings():
             try:
                 x = LakeShoreCommand(f"device-settings:magnet:{key.replace('_', '-')}", request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
-                log.info(f"Command sent successfully")
+                msg_listeners = current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
+                log.info(f"Command sent successfully, heard by {msg_listeners} listeners")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
                 log.debug(f"Unrecognized field to send as command: {key}")
@@ -296,8 +296,8 @@ def ls625():
                 x = LakeShoreCommand(f"device-settings:ls625:{key.replace('_', '-')}", request.form.get(key),
                                      limit_vals=ls625settings.limits)
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
-                log.info(f"Command sent successfully")
+                msg_listeners = current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
+                log.info(f"Command sent successfully, heard by {msg_listeners} listeners")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
                 log.debug(f"Unrecognized field to send as command: {key}")
@@ -319,8 +319,8 @@ def heatswitch():
             try:
                 x = LakeShoreCommand(f"device-settings:heatswitch:{key.replace('_', '-')}", request.form.get(key))
                 log.info(f"Sending command:{x.setting}' -> {x.value} ")
-                current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
-                log.info(f"Command sent successfully")
+                msg_listeners = current_app.redis.publish(f"command:{x.setting}", x.value, store=False)
+                log.info(f"Command sent successfully, heard by {msg_listeners} listeners")
             except ValueError as e:
                 log.warning(f"Value error: {e} in parsing commands")
                 log.debug(f"Unrecognized field to send as command: {key}")
