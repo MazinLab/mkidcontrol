@@ -5,20 +5,24 @@
 
     <div class="container" style="float:left; margin-left: 10%; margin-right: 12%; padding: 0px">
         <div class="col-lg" style="border-style: solid; border-width: 1px">
-            <h2>SIM 921</h2>
-            <div id="sim921_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
-            <h2>SIM 960</h2>
-            <div id="sim960_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
-            <h2>Lakeshore 240</h2>
-            <div id="lakeshore240_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
-            <h2>Currentduino</h2>
-            <div id="currentduino_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
-            <h2>Hemtduino</h2>
-            <div id="hemtduino_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
-            <h2>PICTURE-C Director</h2>
-            <div id=picc_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
-            <h2>Quench Monitor</h2>
-            <div id="quenchmon_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
+            <h2>Lakeshore 336</h2>
+            <div id="lakeshore336_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
+            <h2>Lakeshore 372</h2>
+            <div id="lakeshore372_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
+            <h2>Lakeshore 625</h2>
+            <div id="lakeshore625_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
+            <h2>Heatswitch</h2>
+            <div id="heatswitch_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
+            <h2>Laser Box & Mirror Flipper</h2>
+            <div id="laserflipper_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
+            <h2>Conex</h2>
+            <div id=conex_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
+            <h2>Filter Wheel</h2>
+            <div id="filterwheel_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
+            <h2>Magnet</h2>
+            <div id="magnet_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
+            <h2>MKIDControl Director</h2>
+            <div id="mkidcontrol_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
             <h2>Redis</h2>
             <div id="redis_log" style="margin-left:3%; height:200px;width:80%;border:1px solid #ccc; overflow:auto; overflow-x: scroll"></div>
         </div>
@@ -40,13 +44,15 @@
                 console.log("Connection errored out: ", e);
             }, false);
         };
-        jstream("sim921");
-        jstream("sim960");
-        jstream("lakeshore240");
-        jstream("currentduino");
-        jstream("hemtduino");
-        jstream("picc");
-        jstream("quenchmon");
+        jstream("lakeshore336");
+        jstream("lakeshore372");
+        jstream("lakeshore625");
+        jstream("heatswitch");
+        jstream("laserflipper");
+        jstream("conex");
+        jstream("filterwheel");
+        jstream("magnet");
+        jstream("mkidcontrol");
         jstream("redis");
     </script>
 
