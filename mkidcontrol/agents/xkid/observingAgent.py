@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
     limitless_integration = False
     fits_exp_time = None
-
+    md_start = None
     request = {'type':'abort'}
 
     try:

@@ -180,7 +180,7 @@ cdef class ImageCube(object):
                 retval = MKIDShmImage_timedwait(&(self.image), self.doneSemInd, self.image.md.integrationTime, 1)
         else:
             with nogil:
-                retval = MKIDShmImage_wait(&(self.image), self.doneSemInd)
+                MKIDShmImage_wait(&(self.image), self.doneSemInd)
 
         flat_im = self._readImageBuffer()
 
