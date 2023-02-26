@@ -7,12 +7,12 @@ import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
 from mkidcore.objects import Beammap
 from mkidcore import metadata
+from mkidcore import utils as mkcu
 from mkidcore.config import load as load_yaml_config
 from astropy.io import fits
-from mkidcore.fits import CalFactory, combineHDU, summarize
+from mkidcore.fits import CalFactory
 from purepyindi.client import INDIClient
 from mkidcontrol.packetmaster3 import Packetmaster
-from datetime import datetime
 from mkidcontrol.config import REDIS_TS_KEYS
 
 metadata.TIME_KEYS = ('MJD-END', 'MJD-STR', 'UT-END', 'UT-STR')
@@ -23,6 +23,7 @@ metadata._time_key_builder = metadata._xkid_time_header
 #  Alternatively, do we prefer that on loading in a new dashboard yaml, relavant parameters from it are also reloaded?
 
 TS_KEYS = REDIS_TS_KEYS
+
 DASHBOARD_YAML_KEY = 'xkid:configuration:file:yaml:dashboard'
 CFG_DIR_KEY = 'xkid:configuration:directory'
 BIN_FILE_DIR_KEY = 'xkid:configuration:directory:bin-files'
@@ -39,8 +40,8 @@ INSTRUMENT_BEAMMAP_FILE_KEY = 'xkid:configuration:file:beammap'
 GEN2_ROACHES_KEY = 'gen2:roaches'
 GEN2_CAPTURE_PORT_KEY = 'gen2:capture_port'
 GEN2_REDIS_MAP = {'dashboard.max_count_rate':'readout:count_rate_limit',
-                  'roaches':'roaches'
-                  }
+                  'roaches':'gen2:roaches',
+                  'packetmaster.captureport':'gen2:capture_port'}
 
 
 MAGAOX_KEYS = {
@@ -92,7 +93,6 @@ MAGAOX_KEYS = {
     'tcsi.seeing.mag2_time' : ('tcsi:seeing:mag2-time', 'MAG2-TIM', 'desc'), # TODO: Not sure
 }
 
-# TODO: NS (23Feb2023) Confused about what keys we want to record here
 OBSLOG_RECORD_KEYS = { #This should be a superset of mkidcore.metadata.XKID_KEY_INFO
     'key': 'fitskey',  # redis keys to include in the fits header
     'status:temps:device-stage:temp' : 'DET-TMP',
@@ -113,6 +113,7 @@ OBSLOG_RECORD_KEYS = { #This should be a superset of mkidcore.metadata.XKID_KEY_
     'xkid:configuration:file:dark:active' : 'E_DARK',
     'xkid:configuration:file:flat:active' : 'E_FLTCAL',
 }
+
 # Include all the MAGAOX KEYS
 OBSLOG_RECORD_KEYS.update({v[0]:v[1] for v in MAGAOX_KEYS.values()})
 
@@ -157,14 +158,6 @@ def merge_start_stop_headers(header_start, header_stop):
     return header_stop
 
 
-def next_utc_second():
-    """Return the next UTC second"""
-    x = datetime.utcnow()
-    x = round(x.hour * 3600 + x.minute * 60 + x.second + x.microsecond + .5)
-    if x >= 24 * 3600:
-        x = 0
-    return x
-
 def parse_args():
     parser = argparse.ArgumentParser(description='XKID Observing Data Agent')
     parser.add_argument('--ip', default=7624, help='MagAO-X INDI port', destination='indi_port',
@@ -176,7 +169,7 @@ if __name__ == "__main__":
 
     # args = parse_args()
     util.setup_logging('observingAgent')
-    redis.setup_redis(ts_keys=TS_KEYS)
+    redis.setup_redis(ts_keys=REDIS_TS_KEYS)
 
     indi = INDIClient('localhost', 7624)  # TODO add error handling and autorecovery
     indi.start()
@@ -221,7 +214,7 @@ if __name__ == "__main__":
                 fits_exp_time = 60 if limitless_integration else request['duration']
 
                 pm.startWriting(redis.read(BIN_FILE_DIR_KEY, decode_json=False))
-                fits_imagecube.startIntegration(startTime=next_utc_second(), integrationTime=fits_exp_time)
+                fits_imagecube.startIntegration(startTime=mkcu.next_utc_second(), integrationTime=fits_exp_time)
                 md_start = get_obslog_record()
 
             try:
@@ -273,7 +266,6 @@ if __name__ == "__main__":
             elif request['type'] in ('dwell', 'object'):
                 fn = redis.read(SCI_FILE_TEMPLATE_KEY).format(**header_dict)
                 fac.generate(fname=fn, name=request['name'], save=True, overwrite=True, threaded=True)
-
 
     except Exception:
         pm.quit()

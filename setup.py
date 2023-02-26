@@ -15,8 +15,8 @@ from setuptools.command.develop import develop
 from setuptools.command.install import install
 from setuptools.extension import Extension
 
-
 MKIDSHM_DIR = 'mkidcontrol/packetmaster3/mkidshm'
+
 
 def compile_and_install_software():
     """Used the subprocess module to compile/install the C software."""
@@ -24,7 +24,7 @@ def compile_and_install_software():
         print('Not Linux, skipping compile/install of libmkidshm.so')
         return
 
-    src_paths = ['./'+MKIDSHM_DIR]
+    src_paths = ['./' + MKIDSHM_DIR]
     cmds = ["gcc -shared -o libmkidshm.so -fPIC mkidshm.c -lrt -lpthread"]
 
     def get_virtualenv_path():
@@ -54,6 +54,7 @@ def compile_and_install_software():
 
 class CustomInstall(install):
     """Custom handler for the 'install' command."""
+
     def run(self):
         compile_and_install_software()
         super(CustomInstall, self).run()
@@ -61,6 +62,7 @@ class CustomInstall(install):
 
 class CustomDevelop(develop):
     """Custom handler for the 'install' command."""
+
     def run(self):
         compile_and_install_software()
         super(CustomDevelop, self).run()
@@ -80,7 +82,7 @@ extensions = [Extension(name="mkidcontrol.packetmaster3.sharedmem",
                         runtime_library_dirs=[os.path.abspath(MKIDSHM_DIR)],
                         extra_compile_args=['-O3', '-shared', '-fPIC'],
                         extra_link_args=['-lmkidshm', '-lrt', '-lpthread'])
-             ]
+              ]
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -121,4 +123,4 @@ setuptools.setup(
     cmdclass={'install': CustomInstall, 'develop': CustomDevelop}
 )
 
-#https://docs.python.org/3/distutils/setupscript.html#installing-package-data
+# https://docs.python.org/3/distutils/setupscript.html#installing-package-data

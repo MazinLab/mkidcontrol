@@ -34,7 +34,8 @@ cdef extern from "mkidshm.h":
         uint32_t wvlStart
         uint32_t wvlStop
         uint32_t valid
-        uint32_t integrationTime
+        uint64_t startTime
+        uint64_t integrationTime
         char name[80]
         char wavecalID[150]
 
@@ -64,7 +65,7 @@ cdef extern from "mkidshm.h":
     cdef int MKIDShmImage_create(MKID_IMAGE_METADATA *imageMetadata, char *imgName, MKID_IMAGE *outputImage)
     cdef int MKIDShmImage_populateMD(MKID_IMAGE_METADATA *imageMetadata, char *name, int nCols, int nRows, int useWvl, int nWvlBins, int useEdgeBins, int wvlStart, int wvlStop)
     cdef int MKIDShmImage_startIntegration(MKID_IMAGE *image, uint64_t startTime, uint64_t integrationTime)
-    cdef int MKIDShmImage_wait(MKID_IMAGE *image, int semInd)
+    cdef int MKIDShmImage_wait(MKID_IMAGE *image, int semInd) nogil
     cdef int MKIDShmImage_timedwait(MKID_IMAGE *image, int semInd, int time, int stopImage) nogil
     cdef int MKIDShmImage_checkIfDone(MKID_IMAGE *image, int semInd)
     cdef void MKIDShmImage_copy(MKID_IMAGE *image, image_t *outputBuffer)
@@ -171,16 +172,15 @@ cdef class ImageCube(object):
         Waits for doneImage semaphore to be posted by packetmaster,
         then grabs the image from buffer
         """
+        year_start = datetime.date(datetime.datetime.utcnow().year, 1, 1).timetuple()
+        start_time = self.image.md.startTime / 2000 + calendar.timegm(year_start)
+        exp_time = np.uint64(self.image.md.integrationTime) / 2000
         if timeout:
             with nogil:
                 retval = MKIDShmImage_timedwait(&(self.image), self.doneSemInd, self.image.md.integrationTime, 1)
-                start_time = self.image.md.startTime / 2000
-                exp_time = self.image.md.integrationTime / 2000
         else:
             with nogil:
-                retval = MKIDShmImage_wait(&(self.image), self.doneSemInd, self.image.md.integrationTime, 1)
-                start_time = self.image.md.startTime / 2000
-                exp_time = self.image.md.integrationTime / 2000
+                retval = MKIDShmImage_wait(&(self.image), self.doneSemInd)
 
         flat_im = self._readImageBuffer()
 
