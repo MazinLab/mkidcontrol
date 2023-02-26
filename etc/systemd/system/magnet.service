@@ -10,7 +10,7 @@ WantedBy=mkidcontrol.service
 [Service]
 Type=simple
 ExecStart=/home/kids/anaconda3/envs/control/bin/magnetAgent.py
-WorkingDirectory=/home/kids/mkidcontrol/agents/xkid
+#WorkingDirectory=/home/kids/mkidcontrol/agents/xkid
 User=kids
 RestartSec=100ms
 Restart=always

@@ -135,17 +135,17 @@ loggers:
       level: DEBUG
       propagate: False
   magnetAgent:
-    magnetAgent: debug
+    magnetAgent: info
     mkidcontrol.mkidredis: info
     mkidcontrol.devices: debug
     serial: debug
     "":
       handlers: [ default ]
-      level: DEBUG
+      level: INFO
       propagate: False
     __main__:
       handlers: [ default ]
-      level: DEBUG
+      level: INFO
       propagate: False
   relayAgent:
     relayAgent: debug

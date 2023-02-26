@@ -333,9 +333,10 @@ def heatswitch():
 
 @bp.route('/services')
 def services():
+    #TODO: Fix Job.fetch(id, ...), id='email-logs' does not work
     services = mkidcontrol_services()
     try:
-        job = Job.fetch('email-logs', connection=g.redis.redis)
+        job = Job.fetch('email-logs', connection=current_app.redis.redis)
         exporting = job.get_status() in ('queued', 'started', 'deferred', 'scheduled')
     except NoSuchJobError:
         exporting = False
@@ -411,6 +412,15 @@ def system():
         return bad_request('Invalid shutdown command')
 
 
+@bp.route('/new_night', methods=['GET', 'POST'])
+def new_night():
+    # TODO: Turn new night & configuration into one page once further stabilized & tested
+    newnight = NewNightForm()
+    if request.method == "POST":
+        print(datetime.datetime.now().strftime("%Y%m%d"))
+    return render_template('new_night.html', title=_('Configuration Paths'), newnight=newnight)
+
+
 @bp.route('/configuration_paths', methods=['GET', 'POST'])
 def configuration_paths():
     cfgform = ConfigPathForm()
@@ -480,7 +490,7 @@ def journalctl_streamer(service):
     endpoint is called.
     """
     args = ['journalctl', '--lines', '0', '--follow', f'_SYSTEMD_UNIT={service}.service']
-
+    print(service)
     def st(arg):
         f = subprocess.Popen(arg, stdout=subprocess.PIPE)
         p = select.poll()

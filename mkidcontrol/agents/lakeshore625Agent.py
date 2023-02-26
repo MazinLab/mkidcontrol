@@ -33,7 +33,7 @@ import mkidcontrol.util as util
 import mkidcontrol.mkidredis as redis
 from mkidcontrol.commands import COMMANDS625, LakeShoreCommand
 
-log = logging.getLogger()
+log = logging.getLogger("lakeshore625Agent")
 
 QUERY_INTERVAL = 1
 
@@ -82,10 +82,11 @@ def kill_current():
 
 def start_ramp_up(current=None):
     try:
-        ramp_rate = redis.read(CYCLE_RAMP_RATE_KEY)
+        ramp_rate = redis.read(CYCLE_RAMP_RATE_KEY, decode_json=True)
         redis.publish(f"command:{RAMP_RATE_KEY}", ramp_rate, store=False)
         if current is None:
             current = float(redis.read(SOAK_CURRENT_KEY))
+        log.debug(f"Current {current}")
         redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
     except RedisError as e:
         log.warning(f"Could not communicate with redis to start ramping magnet with LS625: {e}")
@@ -94,7 +95,7 @@ def start_ramp_up(current=None):
 
 def start_ramp_down(current=None):
     try:
-        deramp_rate = redis.read(CYCLE_DERAMP_RATE_KEY)
+        deramp_rate = redis.read(CYCLE_DERAMP_RATE_KEY, decode_json=True)
         redis.publish(f"command:{RAMP_RATE_KEY}", abs(deramp_rate), store=False)
         if current is None:
             current = 0

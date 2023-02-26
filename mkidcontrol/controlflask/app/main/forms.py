@@ -10,6 +10,10 @@ class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class NewNightForm(FlaskForm):
+    new_night = SubmitField("Create New Night")
+
+
 class ConfigPathForm(FlaskForm):
     dashboard_yaml = StringField("Dashboard yml:")
     dark_file = StringField("Active Dark File", default="-")
@@ -274,7 +278,7 @@ class MagnetCycleSettingsForm(FlaskForm):
     # Magnet controller form
     # TODO: Turn this into something that can be used to either modify the standard/fast cycle OR run a custom cycle
     soak_current = FloatField("Soak Current (A)", default=9.44, validators=[NumberRange(0, 10.0)])
-    soak_time = IntegerField("Soak Time (minutes)", default=60, validators=[NumberRange(0, 240)])
+    soak_time = FloatField("Soak Time (minutes)", default=60, validators=[NumberRange(0, 240)])
     ramp_rate = FloatField("Ramp rate (A/s)", default=0.005, validators=[NumberRange(0, 0.100)])
     deramp_rate = FloatField("Deramp rate (A/s)", default=0.005, validators=[NumberRange(0, 0.100)])
     update = SubmitField("Update")

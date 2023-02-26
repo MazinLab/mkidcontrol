@@ -114,9 +114,9 @@ def compute_initial_state(statefile):
 
 
 class MagnetController(LockedMachine):
-    LOOP_INTERVAL = 10
+    LOOP_INTERVAL = 1
     BLOCKS = defaultdict(set)  # This holds the ls625 commands that are blocked out in a given state
-    MAX_CURRENT = 9.25  # Amps
+    MAX_CURRENT = 9.44  # Amps
 
     def __init__(self, statefile='./magnetstate.txt'):
         transitions = [
@@ -403,8 +403,8 @@ class MagnetController(LockedMachine):
     def begin_ramp_down(self, event):
         try:
             ls625.start_ramp_down(0)
-        except Exception:
-            log.warning(f"Cycle could not be started! {e}")
+        except Exception as e:
+            log.warning(f"Ramp down could not be started! {e}")
 
     def ramp_ok(self, event):
         currents = self.last_5_currents
@@ -513,7 +513,9 @@ if __name__ == "__main__":
                 key = key.removeprefix('command:')
                 if key in SETTING_KEYS:
                     try:
+                        log.debug(f"Setting {key} -> {val}")
                         cmd = LakeShoreCommand(key, val)
+                        redis.store({key: val})
                     except (IOError, StateError):
                         pass
                     except ValueError:

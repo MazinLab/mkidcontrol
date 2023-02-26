@@ -1950,7 +1950,7 @@ class LakeShore625(LakeShoreDevice):
             log.debug(f"Limits have been cached, not querying device")
         else:
             try:
-                log.debug(f"Querying limits from Lake Shore 625")
+                log.info(f"Querying limits from Lake Shore 625")
                 current_limit, voltage_limit, rate_limit = self.query("LIMIT?").split(',')
             except (IOError, SerialException) as e:
                 log.warning(f"Could not query the limits from the Lake Shore 625!")
