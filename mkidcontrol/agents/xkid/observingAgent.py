@@ -90,24 +90,24 @@ MAGAOX_KEYS = {
 }
 
 OBSLOG_RECORD_KEYS = { #This should be a superset of mkidcore.metadata.XKID_KEY_INFO
-    'key': 'fitskey',  # redis keys to include in the fits header
-    'status:temps:device-stage:temp' : 'DET-TMP',
-    '' : 'E_BMAP',
-    'xkid:configuration:directory' : 'E_CFGDIR',
-    '' : 'E_CONEXX',
-    '' : 'E_CONEXY',
-    '' : 'E_CXREFX',
-    '' : 'E_DPDCX',
-    '' : 'E_DPDCY',
-    '' : 'E_CXREFY',
-    '' : 'E_DEVANG',
-    '' : 'E_FIRMV',
-    'device-settings:filterwheel:filter' : 'E_FLTPOS',
-    '' : 'E_PLTSCL',
-    '' : 'E_PREFX',
-    '' : 'E_PREFY',
-    'xkid:configuration:file:dark:active' : 'E_DARK',
-    'xkid:configuration:file:flat:active' : 'E_FLTCAL',
+    'rediskey': 'fitskey',  # redis keys to include in the fits header
+    'xkid:configuration:observation:key:device-temperature' : 'DET-TMP',
+    'xkid:configuration:observation:key:beammap' : 'BMAP',
+    'xkid:configuration:observation:key:config-directory' : 'CFGDIR',
+    'xkid:configuration:observation:key:conex-x' : 'CONEXX',
+    'xkid:configuration:observation:key:conex-y' : 'CONEXY',
+    'xkid:configuration:observation:key:conex-ref-x' : 'CXREFX',
+    'xkid:configuration:observation:key:conex-ref-y' : 'CXREFY',
+    'xkid:configuration:observation:key:dpdcx' : 'DPDCX',
+    'xkid:configuration:observation:key:dpdcy' : 'DPDCY',
+    'xkid:configuration:observation:key:device-angle' : 'DEVANG',
+    'xkid:configuration:observation:key:firmware-version' : 'FIRMV',
+    'xkid:configuration:observation:key:filter-position' : 'FLTPOS',
+    'xkid:configuration:observation:key:platescale' : 'PLTSCL',
+    'xkid:configuration:observation:key:pixel-ref-x' : 'PREFX',
+    'xkid:configuration:observation:key:pixel-ref-y' : 'PREFY',
+    'xkid:configuration:observation:key:dark-file' : 'DARK',
+    'xkid:configuration:observation:key:flat-file' : 'FLTCAL',
 }
 
 # Include all the MAGAOX KEYS
