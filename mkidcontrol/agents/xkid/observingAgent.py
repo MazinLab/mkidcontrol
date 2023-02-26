@@ -11,16 +11,12 @@ from mkidcore import utils as mkcu
 from mkidcore.config import load as load_yaml_config
 from astropy.io import fits
 from mkidcore.fits import CalFactory
-from purepyindi.client import INDIClient
+from magaoxindi.purepyindi.client import INDIClient
 from mkidcontrol.packetmaster3 import Packetmaster
 from mkidcontrol.config import REDIS_TS_KEYS
 
 metadata.TIME_KEYS = ('MJD-END', 'MJD-STR', 'UT-END', 'UT-STR')
 metadata._time_key_builder = metadata._xkid_time_header
-
-# TODO: There is an overarching question we must answer: How does the gui know at first startup what dashboard config file to use?
-#  Idea: have a redis key ('xkid:configuration:file:yaml:dashboard') that the user must set prior to running the gui?
-#  Alternatively, do we prefer that on loading in a new dashboard yaml, relavant parameters from it are also reloaded?
 
 TS_KEYS = REDIS_TS_KEYS
 
