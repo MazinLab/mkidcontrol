@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {{ super() }}
+    <div class="container-fluid">
+        <div class="row">
+            <main role="main" class="col-10 py-2 mb-3">
+                {{ render_form(newnight) }}
+<!--                {{ render_form(newnight, form_type='horizontal', horizontal_columns=('lg', 3, 9)) }}-->
+                <div class="row">
+                    <h4>
+                        After clicking new night, to reload the yamls that were created in the new directory, you must
+                        restart the ObservingAgent by running <TT>sudo systemctl restart observingAgent.service</TT>
+                    </h4>
+                </div>
+            </main>
+        </div>
+    </div>
+{% endblock %}
