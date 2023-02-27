@@ -21,7 +21,8 @@ import logging
 import threading
 
 from mkidcontrol.devices import LakeShore240
-from mkidcontrol.mkidredis import MKIDRedis, RedisError
+from mkidcontrol.mkidredis import RedisError
+import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
 
 
@@ -44,7 +45,7 @@ log = logging.getLogger()
 if __name__ == "__main__":
 
     util.setup_logging('lakeshore240Agent')
-    redis = MKIDRedis(create_ts_keys=TS_KEYS)
+    redis.setup_redis(ts_keys=TS_KEYS)
     lakeshore = LakeShore240(name='LAKESHORE240', port='/dev/ls240', baudrate=115200, timeout=0.1, valid_models=VALID_MODELS)
 
     try:
