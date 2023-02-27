@@ -2655,13 +2655,15 @@ class Laserflipperduino(SerialDevice):
         """get_status takes no arguments, prints the status of all 5 output
         pins"""
         log.debug("Reading laser and mirror statuses")
+        statuses = {}
         status_reply = self.query((6,0))
         status_reply = status_reply.split(',')
         for laser in status_reply:
             dat = laser.split(':')
             amp_value = float(dat[1]) / 255 * 100  # Convert to a percentage
             self.status[int(dat[0])] = amp_value
-        return self.status
+            statuses[self.names[int(dat[0])]] = amp_value
+        return statuses
 
 
 class Conex(SerialDevice):
