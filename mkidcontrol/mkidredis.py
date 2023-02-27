@@ -196,7 +196,7 @@ class MKIDRedis:
             logging.getLogger(__name__).warning(f"Cannot create and subscribe to redis pubsub. Check to make sure redis is running! {e}")
             raise e
 
-    def listen(self, channels:(list, tuple, str), value_only=False, decode=None):
+    def listen(self, channels:(list, tuple, str), value_only=False, decode=None, timeout=None):
         """
         Sets up a subscription for the iterable keys, yielding decoded messages as (k,v) strings.
         Passes up any redis errors that are raised
@@ -211,7 +211,14 @@ class MKIDRedis:
             log.debug(f"Redis error while subscribing to redis pubsub!! {e}")
             raise e
 
-        for msg in ps.listen():
+        def listen_with_timeout(ps, timeout):
+            kw = dict(block=True) if timeout else dict(timeout=timeout)
+            while ps.subscribed:
+                response = ps.handle_message(ps.parse_response(**kw))
+                if response is not None:
+                    yield response
+
+        for msg in listen_with_timeout(ps, timeout):
             log.debug(f"Pubsub received {msg}")
             if msg['type'] == 'subscribe':
                 continue
