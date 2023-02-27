@@ -299,6 +299,7 @@ cdef class Packetmaster(object):
         if binDir is not None:
             if binDir[-1] != '/':
                 binDir += '/'
+            os.makedirs(binDir, exist_ok=True)
             strcpy(self.writerParams.writerPath, binDir.encode('UTF-8'))
         self.writerParams.writing = 1
 
