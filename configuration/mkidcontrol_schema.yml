@@ -1,13 +1,32 @@
 status:
   device:
-    hemtduino:
-      firmware: '0.1'
+    conex:
+      status: "OK"
+      sn: 'XXX'
+      firmware: 'XXX'
+      controller-status: 'XXX'
+      controller-state: 'XXX'
+      operation-status: 'XXX'
+      position:
+        x: 0.000
+        y: 0.000
+    filterwheel:
       status: 'OK'
-    ls240:
-      firmware: 'x.x'
-      status: 'OK'
-      model: 'LakeShore240-2P'
-      sn: 'xxxxxxx'
+      sn: 'XXX'
+      model: 'XXX'
+    focus:
+      status: "OK"
+      position:
+        mm: 0
+        encoder: 0
+    heatswitch:
+      status: "OK"
+      position: "closed"
+      motor:
+        position: 4194303
+    laserflipperduino:
+      status: "OK"
+      firmware:
     ls625:
       firmware: 'x.x'
       status: 'OK'
@@ -18,114 +37,132 @@ status:
       status: 'OK'
       model: 'LakeShore372'
       sn: 'xxxxxxx'
+      output-voltage: 0.0
     ls336:
       firmware: 'x.x'
       status: 'OK'
       model: 'LakeShore336'
       sn: 'xxxxxxx'
-    currentduino:
-      firmware: '0.2'
-      status: 'OK'
-    sim921:
-      firmware: 'x.x'
-      status: 'OFF'
-      model: 'SIM921'
-      sn: 'xxxxxx'
-      sim960-vout: 0.00000
-    sim960:
-      firmware: 'x.x'
-      status: 'OFF'
-      model: 'SIM960'
-      sn: 'xxxxxx'
-      hcfet-control-voltage: 0.00000
-      vout: 0.00000
-      current-setpoint: 0.00000
-  magnet:
-    state: 'OFF'
+    magnet:
+      state: 'OFF'
+      current: 0
+      field: 0
+      status: "OFF"
   temps:
-    lhetank: 4.2
-    ln2tank: 77.0
-    mkidarray:
-      temp: 0.100
+    3k-stage:
+      temp: 3.5
+      voltage: 1.75
+    50k-stage:
+      temp: 45.0
+      voltage: 1.25
+    1k-stage:
+      temp: 0.570
+      resistance: 10000
+      excitation-power: 1e-14
+    device-stage:
+      temp: 0.090
       resistance: 19400.46
-  highcurrentboard:
-    current: 0.00
-  feedline1:
-    hemt:
-      powered: False
-      sn: '33A'
-      drain-voltage-bias: 0
-      drain-current-bias: 0
-      gate-voltage-bias: 0
-  feedline2:
-    hemt:
-      powered: False
-      sn: '508Z'
-      drain-voltage-bias: 0
-      drain-current-bias: 0
-      gate-voltage-bias: 0
-  feedline3:
-    hemt:
-      powered: False
-      sn: '541Z'
-      drain-voltage-bias: 0
-      drain-current-bias: 0
-      gate-voltage-bias: 0
-  feedline4:
-    hemt:
-      powered: False
-      sn: '487Z'
-      drain-voltage-bias: 0
-      drain-current-bias: 0
-      gate-voltage-bias: 0
-  feedline5:
-    hemt:
-      powered: False
-      sn: '603Z'
-      drain-voltage-bias: 0
-      drain-current-bias: 0
-      gate-voltage-bias: 0
+      excitation-power: 1e-18
 
 device-settings:
-  currentduino:
-    heatswitch: close
+  conex:
+    enabled: 'Enabled'
+  filterwheel:
+    position: 0
+    filter: "Closed"
+  focus:
+    home-params:
+      velocity: 1000
+      offset-distance: 0
+      direction: "Reverse"
+    jog-params:
+      size: 100
+      acceleration: 100
+      max-velocity: 1000
+      continuous: "False"
+    move-params:
+      backlash-distance: 0
+    velocity-params:
+      acceleration: 100
+      max-velocity: 1000
+    desired-position:
+      encoder: 0
+  heatswitch:
+    position: "Close"
+    max-velocity: 1000
+    running-current: 13
+    acceleration: 3
+  laserflipperduino:
+    flipper:
+      position: "Down"
+    laserbox:
+      808:
+        power: 0
+      904:
+        power: 0
+      980:
+        power: 0
+      1120:
+        power: 0
+      1310:
+        power: 0
+  ls336:
+    input-channel-CHANNEL: # CHANNEL can be "A", "B", "C", "D"
+      name: "3K Diode"
+      sensor-type: "Diode"
+      autorange-enable: "False"
+      compensation: "False"
+      units: "Kelvin"
+      input-range: "2.5 V"
+      curve: 8
+    curve-CURVENO: # CURVENO can be 21-60
+      curve-name: "XXX"
+      serial-number: "XXX"
+      temperature-limit: 400
+      coefficient: "Negative"
+  ls372:
+    input-channel-CHANNEL:  # CHANNEL can be "A", 1-16
+      name: "Device"
+      mode: "Current"
+      excitation-range: "1 nA"
+      auto-range: "Off"
+      current-source-shunted: "False"
+      units: "Kelvin"
+      resistance-range: "62.3 k\u03A9"
+      enable: "True"
+      dwell-time: 0
+      pause-time: 3
+      curve-number: 8
+      temperature-coefficient: "Negative"
+      filter:
+        state: "On"
+        settle-time: 5
+        window: 10
+    heater-channel-CHANNEL:  # CHANNEL can be 0, 1, 2
+      output-mode: "Closed Loop"
+      input-channel: "Control"
+      powerup-enable: "False"
+      reading-filter: "True"
+      delay: 1
+      polarity: "Unipolar"
+      setpoint: 0.090
+      gain: 12.950
+      integral: 9.0
+      ramp-rate: 0.1
+      range: "1 mA"
+    curve-CURVENO:  # CURVENO can be 21-60
+      curve-name: "XXX"
+      serial-number: "XXX"
+      curve-data-format: ""
+      temperature-limit: 400
+      coefficient: "Negative"
   mkidarray:
-    regulating-temp: 0.100
-  sim921:
-    resistance-range: 20e3
-    excitation-value: 100e-6
-    excitation-mode: 'voltage'
-    time-constant: 3
-    temp-offset: 100e-3
-    temp-slope: 1e-2
-    resistance-offset: 19400.5
-    resistance-slope: 1e-5
-    curve-number: 1
-    manual-vout: 0
-    output-mode: 'manual'
-  sim960:
-    vout-min-limit: -0.1
-    vout-max-limit: 10
-    vin-setpoint-mode: 'internal'
-    vin-setpoint: 0
-    vin-setpoint-slew-rate: 1e-3
-    vin-setpoint-slew-enable: True
-    pid-p:
-      value: 1.6e1
-      enabled: True
-    pid-i:
-      value: 0.2
-      enabled: True
-    pid-d:
-      value: 0
-      enabled: False
+    regulating-temp: 0.090
+  magnet:
     ramp-rate: 0.005
-    deramp-rate: -0.005
-    soak-time: 1800
-    soak-current: 9.4
-    cooldown-scheduled: 'no'
-    enable-temperature-regulation-upper-limit: 'on'
-    statefile: '/mkidcontrol/mkidcontrol/logs/statefile.txt'
+    deramp-rate: 0.005
+    soak-time: 3600
+    soak-current: 9.25
 
 command:
   be-cold-at: 0000000000
@@ -134,6 +171,16 @@ command:
   cancel-scheduled-cooldown: 'cancel'
   event:
     quenching: False
+  conex:
+    stop: 'stop'
+    move: "{'x':x, 'y':y}"
+    dither: "{'startx': sx, 'starty': sy, 'endx': ex, 'endy': ey, 'n': n_steps, 't': dwell_time}"
+  observation-request: ''
+#The observing request is a json dump of a dictionary of the following form
+# {'name':str, 'type':<stare/dwell/dark/flat>, 'seq_i':#, 'seq_n':#,
+#   'duration':#, 'start':utcdatetime}'
+# OR
+# {'type':"abort"}  other information is permissible but not required
 
 site:
   observatory: 'Las Campanas Observatory'
@@ -144,8 +191,73 @@ site:
   elevation: 2516
 
 tcs:
-  ra: 0
-  dec: 0
-  target-name: 'Vega'
-  starttime: 0000000000
-  duration: 0
+  airmass: 1.0
+  dec: '' #DEC of telescope pointing (+/-DD:MM:SS.SS)'
+  el: '' #Elevation of telescope pointing'), # Altitude?
+  epoch: '' #Epoch of observation from MagAO-X'
+  ha: '' #Hour angle
+  ra: '' #RA of telescope pointing (HH:MM:SS.SSS)'
+  rotoff: '' #Telescope rotator on/off'
+  az: '' #'Azimuth of telescope pointing'
+  dome-state: '' #'State of the dome at exposure start time'
+  guiding: '' #'Telescope guiding status'
+  pa: '' #'Position Angle'
+  slewing: '' #'Telescope slewing status'
+  tracking: '' #'Telescope tracking status'
+  zd: '' #'Zenith distance at typical time'
+  sidereal-time: '' #SID-TIME', 'Sidereal time at typical time'
+  dewpoint: '' #DEW', 'Dewpoint'
+  humidity: '' #HUM', 'Humidity'
+  temp-amb: '' #DOM-TMPA', 'Ambient temperature'
+  wind: '' #WND', 'Wind speed'
+  winddir: '' #WNDD', 'Wind direction'
+  catalog-object: '' #'Object'
+  catalog-dec: '' #'desc'
+  catalog-epoch: '' #'desc'
+  catalog-ra: '' #'desc'
+  catalog-rotoff: '' #'desc'
+  seeing-dimm-fwhm: '' # 'DIMM seeing (FWHM)'
+  seeing-dimm-fwhm-corr: '' # 'DIMM Seeing Cor.'
+  seeing-el: '' # 'Mag2 seeing elevation'
+  seeing-fwhm: '' # 'Mag2 seeing (FWHM)'
+  seeing-fwhm-corr: '' # Seeing Correction
+  seeing-time: '' # Seeing Timestamp
+
+
+instrument:
+  conex-ref-x':
+  conex-ref-y':
+  conex-dpdx':
+  conex-dpdy':
+  device-angle':
+  firmware-version':
+  platescale':
+  pixel-ref-x':
+  pixel-ref-y':
+
+readout:
+  count_rate_limit: 5000
+gen2:
+  dashboard-yaml: ''
+  roaches: ''  #json.dumps(dashboard.roaches.to_dict())
+gui:
+  live_image_config: '{"nRows": 125, "nCols": 80, "useWvl": false, "nWvlBins": 1, "useEdgeBins": false, "wvlStart": 0.0, "wvlStop": 0.0}'
+datasaver:
+  capture-port: 50000
+  beammap: ''
+  fits-image-config: '{"nRows": 100, "nCols": 100, "useWvl": false, "nWvlBins": 1, "useEdgeBins": false, "wvlStart": 0.0, "wvlStop": 0.0}'
+  dark: '' # a FQP to the active dark fits image, if any
+  dark-template: ''  # FQP to image file as a template that will be formatted with metadata (keys are FITS)
+  flat: ''  # a FQP to the active flat fits image, if any
+  flat-template: '' # FQP to image file as a template that will be formatted with metadata (keys are FITS)
+  sci: '' # a FQP to the most recent fits image, if any
+  sci-template: '' # FQP to image file as a template that will be formatted with metadata (keys are FITS)
+
+paths:
+  data-dir: ''  #FQP to top level data directory (nominally for a night eg some/path/utYYYYMMDD)
+  fits-folder-name: 'fits'
+  logs-folder-name: 'logs'
+  template-folder-name: 'templates'
+  sweep-folder-name: 'sweeps'
+  config-folder-name: 'config'
+  bin-folder-name: 'bin'
