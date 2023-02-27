@@ -12,6 +12,8 @@ complicated dicts over redis pubsub connections
 
 TODO: Log dither
 
+TODO: Store conext position sensibly
+
 TODO: Publish obs_dict at start/stop of each dwell step
 """
 
@@ -51,6 +53,8 @@ CONEX_CONTROLLER_STATUS_KEY = "status:device:conex:controller-status"
 CONEX_CONTROLLER_STATE_KEY = "status:device:conex:controller-state"
 CONEX_CONTROLLER_LAST_CHANGE_KEY = "status:device:conex:controller-state"
 CONEX_OPERATION_STATUS_KEY = "status:device:conex:operation-status"
+CONEX_X = "status:device:conex:position:x"
+CONEX_Y = "status:device:conex:position:y"
 
 CONEX_COMMANDS = tuple([MOVE_COMMAND_KEY, DITHER_COMMAND_KEY, STOP_COMMAND_KEY])
 
