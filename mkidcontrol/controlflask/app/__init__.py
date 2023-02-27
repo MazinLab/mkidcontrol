@@ -82,7 +82,7 @@ def create_app(config_class=Config, cliargs=None):
     app.redis = redis
 
     if 'run' in cliargs:
-        # app.dashcfg = loadcfg(app.config['DASH_CFG']) # TODO This shouldn't be a global variable, rather a redis key/val
+
         app.dashcfg = loadcfg(redis.read('xkid:configuration:file:yaml:dashboard'))
         # TODO: This configuration shouldn't be static, it should reinitialize packetmaster every time the dashboard config gets reloaded.
         #  Basically -> packetmaster shouldn't get spun up here in __init__.py, it should get spun up for the first time
