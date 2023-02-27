@@ -1,19 +1,17 @@
 [Unit]
-Description=MKID Control
-Wants=heatswitch.service
-Wants=lakeshore336.service
-Wants=lakeshore372.service
-Wants=lakeshore625.service
+Description=MKID Control Gui
+#Wants=heatswitch.service
+#Wants=lakeshore336.service
+#Wants=lakeshore372.service
+#Wants=lakeshore625.service
 After=redis-server.service
 
 [Install]
 WantedBy=multi-user.target
 
-# TODO: This won't run as is, we need to run 'flask run' (or some equivalent)
 [Service]
 Type=simple
-ExecStart=/home/mazinlab/anaconda3/envs/control/bin/mkidDirector.py
-WorkingDirectory=/home/mazinlab/mkidcontrol
-User=mazinlab
+ExecStart=/home/kids/anaconda3/envs/control/bin/flask run --port 8000 --host 0.0.0.0 --cert /home/kids/appcerts/cert.pem --key /home/kids/appcerts/key.pem --with-threads --debugger
+User=kids
 RestartSec=100ms
 Restart=always
