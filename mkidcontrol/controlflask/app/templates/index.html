@@ -399,7 +399,7 @@
                 }
                 var send_url = "{{ url_for('main.send_obs_dict', startstop='start' ) }}";
             } else {
-                var obs_type = "stop"
+                var obs_type = "abort"
                 var send_url = "{{ url_for('main.send_obs_dict', startstop='stop' ) }}";
             }
             $.ajax({
