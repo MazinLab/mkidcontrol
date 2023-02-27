@@ -29,7 +29,7 @@ import mkidcore.corelog
 from mkidcore.corelog import create_log
 from mkidcore.objects import Beammap
 
-from mkidcontrol.packetmaster3.packetmaster import Packetmaster
+from mkidcontrol.packetmaster3.sharedmem import ImageCube
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -81,38 +81,20 @@ def create_app(config_class=Config, cliargs=None):
     redis.setup_redis(ts_keys=REDIS_TS_KEYS)
     app.redis = redis
 
-    if 'run' in cliargs:
+    dashcfg = loadcfg(redis.read('xkid:configuration:file:yaml:dashboard'))
+    beammap = dashcfg.beammap
+    app.array_view_params = {'int_time': 1,
+                             'min_cts': 0,
+                             'max_cts': 2500,
+                             'changed': False}
 
-        app.dashcfg = loadcfg(redis.read('xkid:configuration:file:yaml:dashboard'))
-        # TODO: This configuration shouldn't be static, it should reinitialize packetmaster every time the dashboard config gets reloaded.
-        #  Basically -> packetmaster shouldn't get spun up here in __init__.py, it should get spun up for the first time
-        #  when the user opens the flask gui. Then we can create it via a 'spin_up_packetmaster' function which also allows
-        #  us to change it (and other required parameters) dynamically from the GUI.
-        ROACHNUMS = app.dashcfg.roaches.in_use
-        CAPTUREPORT = app.dashcfg.packetmaster.captureport
-        OFFLINE = app.dashcfg.roaches.offline
-        beammap = app.dashcfg.beammap
-        imgcfg = dict(app.dashcfg.dashboard)
-        imgcfg['n_wave_bins'] = 1
+    im = ImageCube(name='live', nRows=beammap.nrows, nCols=beammap.ncols,
+                   useWvl=dashcfg.dashboard.use_wave, nWvlBins=1,
+                   wvlStart=dashcfg.dashboard.wave_start, wvlStop=dashcfg.dashboard.wave_stop)
+    app.liveimage = im
 
-        app.array_view_params = {'int_time': 1,
-                                 'min_cts': 0,
-                                 'max_cts': 2500,
-                                 'changed': False}
-
-        if 'forwarding' in app.dashcfg.packetmaster.keys():
-            forwarding = dict(app.dashcfg.packetmaster.forwarding)
-        else:
-            forwarding = None
-
-        packetmaster = Packetmaster(len(ROACHNUMS), CAPTUREPORT, useWriter=not OFFLINE, sharedImageCfg={'dashboard': imgcfg},
-                                    beammap=beammap, forwarding=forwarding, recreate_images=True)
-        app.packetmaster = packetmaster
-
-        liveimage = packetmaster.sharedImages['dashboard']
-        app.liveimage = liveimage
-
-        app.ditherlog = create_log(app.dashcfg.paths.logs)  # TODO: Properly parse path
+    app.dashcfg = dashcfg
+    # app.ditherlog = create_log(app.dashcfg.paths.logs)  # TODO: Properly parse path
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)
