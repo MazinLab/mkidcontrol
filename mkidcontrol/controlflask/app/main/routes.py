@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 import subprocess
 from datetime import datetime
 import plotly.graph_objects as go
@@ -416,7 +417,29 @@ def system():
 def new_night():
     # TODO: Turn new night & configuration into one page once further stabilized & tested
     newnight = NewNightForm()
+    ymls_to_copy = ['dashboard.yml', 'hightemplar.yml', 'roaches.yml']
+
     if request.method == "POST":
+        current_dir = redis.read('xkid:configuration:directory:cfg-dir')
+        base_dir = redis.read('xkid:configuration:directory:base-dir')
+
+        newdate = datetime.datetime.now().strftime("%Y%m%d")
+        new_night_dir = os.path.join(base_dir, newdate)
+        try:
+            os.mkdir(new_night_dir)
+        except FileExistsError:
+            log.info(f"The directory for the new night ({new_night_dir} already exists!")
+
+        for yml in ymls_to_copy:
+            shutil.copy(os.path.join(current_dir, yml), new_night_dir)
+
+        try:
+            redis.store({'xkid:configuration:directory:cfg-dir': new_night_dir})
+            redis.store({'xkid:configuration:file:yaml:dashboard': os.path.join(new_night_dir, 'dashboard.yml')})
+        except RedisError as e:
+            log.warning(f"Error communicating with redis! Error: {e}")
+
+
         print(datetime.datetime.now().strftime("%Y%m%d"))
     return render_template('new_night.html', title=_('Configuration Paths'), newnight=newnight)
 

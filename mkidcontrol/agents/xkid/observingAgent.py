@@ -20,8 +20,9 @@ metadata._time_key_builder = metadata._xkid_time_header
 
 TS_KEYS = REDIS_TS_KEYS
 
+BASE_CFG_DIR_KEY = 'xkid:configuration:directory:base-dir'
 DASHBOARD_YAML_KEY = 'xkid:configuration:file:yaml:dashboard'
-CFG_DIR_KEY = 'xkid:configuration:directory'
+CFG_DIR_KEY = 'xkid:configuration:directory:cfg-dir'
 BIN_FILE_DIR_KEY = 'xkid:configuration:directory:bin-files'
 OBSERVING_REQUEST_CHANNEL = 'command:observation:request'
 ACTIVE_DARK_FILE_KEY = 'xkid:configuration:file:dark:active'  # a FQP to the active dark fits image, if any

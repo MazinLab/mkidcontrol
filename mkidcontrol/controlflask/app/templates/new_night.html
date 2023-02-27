@@ -8,10 +8,16 @@
                 {{ render_form(newnight) }}
 <!--                {{ render_form(newnight, form_type='horizontal', horizontal_columns=('lg', 3, 9)) }}-->
                 <div class="row">
-                    <h4>
+                    <h5>
                         After clicking new night, to reload the yamls that were created in the new directory, you must
-                        restart the ObservingAgent by running <TT>sudo systemctl restart observingAgent.service</TT>
-                    </h4>
+                        restart the ObservingAgent by running
+                    </h5>
+                    <h5>
+                        <TT>sudo systemctl restart observingAgent.service</TT>
+                    </h5>
+                    <h5>
+                        This is only necessary if you made edits to the yaml file!
+                    </h5>
                 </div>
             </main>
         </div>
