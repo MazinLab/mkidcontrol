@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     util.setup_logging('currentduinoAgent')
 
-    redis.setup_redis(create_ts_keys=CURRENT_VALUE_KEY)
+    redis.setup_redis(ts_keys=CURRENT_VALUE_KEY)
     currentduino = Currentduino(port=DEVICE, baudrate=115200, timeout=0.1)
 
     try:

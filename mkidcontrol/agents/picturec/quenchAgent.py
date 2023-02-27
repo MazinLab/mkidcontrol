@@ -89,7 +89,7 @@ class QuenchMonitor:
 if __name__ == "__main__":
 
     util.setup_logging('quenchAgent')
-    redis.setup_redis(create_ts_keys=TS_KEYS)
+    redis.setup_redis(ts_keys=TS_KEYS)
 
     q = QuenchMonitor()
 

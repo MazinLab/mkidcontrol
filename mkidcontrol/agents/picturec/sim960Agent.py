@@ -577,7 +577,7 @@ class MagnetController(LockedMachine):
 if __name__ == "__main__":
 
     util.setup_logging('sim960Agent')
-    redis.setup_redis(create_ts_keys=TS_KEYS)
+    redis.setup_redis(ts_keys=TS_KEYS)
     MAX_REGULATE_TEMP = 1.50 * float(redis.read(REGULATION_TEMP_KEY))
 
     try:
