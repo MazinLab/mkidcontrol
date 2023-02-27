@@ -66,7 +66,7 @@ DEVICE_TEMP_KEY = 'status:temps:device-stage:temp'
 REGULATION_TEMP_KEY = "device-settings:magnet:regulating-temp"
 LAKESHORE_SETPOINT_KEY = 'device-settings:ls372:heater-channel-0:setpoint'
 
-log = logging.getLogger()
+log = logging.getLogger("magentAgent")
 
 
 class StateError(Exception):

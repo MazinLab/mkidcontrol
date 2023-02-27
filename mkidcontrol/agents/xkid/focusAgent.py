@@ -25,7 +25,7 @@ from mkidcontrol.commands import COMMANDSFOCUS, LakeShoreCommand
 from mkidcontrol.devices import Focus
 
 logging.basicConfig(level=logging.DEBUG)
-log = logging.getLogger(__name__)
+log = logging.getLogger("focusAgent")
 
 QUERY_INTERVAL = 1
 

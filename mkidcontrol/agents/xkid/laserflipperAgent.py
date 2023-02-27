@@ -15,7 +15,7 @@ from mkidcontrol.devices import Laserflipperduino
 from mkidcontrol.commands import COMMANDSLASERFLIPPER, LakeShoreCommand
 
 logging.basicConfig(level=logging.DEBUG)
-log = logging.getLogger(__name__)
+log = logging.getLogger("laserflipperAgent")
 
 QUERY_INTERVAL = 1
 

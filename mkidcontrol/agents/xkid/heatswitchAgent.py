@@ -30,7 +30,7 @@ from zaber_motion import Library
 
 QUERY_INTERVAL = 1
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("heatswitchAgent")
 
 SETTING_KEYS = tuple(COMMANDSHS.keys())
 

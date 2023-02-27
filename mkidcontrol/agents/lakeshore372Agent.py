@@ -26,7 +26,7 @@ import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS372, LakeShoreCommand, ENABLED_372_INPUT_CHANNELS
 import mkidcontrol.mkidredis as redis
 
-log = logging.getLogger()
+log = logging.getLogger("lakeshore372Agent")
 
 TEMPERATURE_KEYS = ['status:temps:device-stage:temp', 'status:temps:1k-stage:temp']
 RESISTANCE_KEYS = ['status:temps:device-stage:resistance', 'status:temps:1k-stage:resistance']

@@ -32,7 +32,7 @@ from mkidcontrol.devices import Conex
 
 
 logging.basicConfig(level=logging.DEBUG)
-log = logging.getLogger(__name__)
+log = logging.getLogger("conexAgent")
 
 QUERY_INTERVAL = 1
 TIMEMOUT = 2  # Timeout for query request

@@ -25,7 +25,7 @@ import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDS336, LakeShoreCommand, ENABLED_336_CHANNELS
 import mkidcontrol.mkidredis as redis
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("lakershore336Agent")
 
 QUERY_INTERVAL = 1
 

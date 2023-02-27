@@ -17,7 +17,7 @@ from mkidcontrol.devices import FilterWheel
 from mkidcontrol.commands import COMMANDSFILTERWHEEL, LakeShoreCommand, FILTERS
 
 logging.basicConfig(level=logging.INFO)
-log = logging.getLogger(__name__)
+log = logging.getLogger("filterwheelAgent")
 
 QUERY_INTERVAL = 1
 
