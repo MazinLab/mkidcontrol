@@ -39,7 +39,7 @@ LAKESHORE240_KEYS = list(TS_KEYS + [FIRMWARE_KEY] + [MODEL_KEY] + [SN_KEY])
 QUERY_INTERVAL = 1
 VALID_MODELS = ('MODEL240-2P', 'MODEL240-8P')
 
-log = logging.getLogger()
+log = logging.getLogger('lakeshore240Agent')
 
 
 if __name__ == "__main__":
