@@ -8,26 +8,26 @@ status:
       controller-state: '(XXX, XXX)'
       controller-last-change: 'XXX -> XXX'
       operation-status: 'XXX'
-      position:
-        x: 0.000
-        y: 0.000
+      position-x: 0.000
+      position-y: 0.000
     filterwheel:
       status: 'OK'
       sn: 'XXX'
       model: 'XXX'
+      position: 0
+      filter: "Closed"
     focus:
       status: "OK"
-      position:
-        mm: 0
-        encoder: 0
+      position-mm: 0
+      position-encoder: 0
     heatswitch:
       status: "OK"
       position: "closed"
-      motor:
-        position: 4194303
+      motor-position: 4194303
     laserflipperduino:
       status: "OK"
       firmware:
+      flipper-position:
     ls625:
       firmware: 'x.x'
       status: 'OK'
@@ -179,7 +179,7 @@ command:
   observation-request: ''
 #The observing request is a json dump of a dictionary of the following form
 # {'name':str, 'type':<stare/dwell/dark/flat>, 'seq_i':#, 'seq_n':#,
-#   'duration':#, 'start':utcdatetime}'
+#   'duration':#, 'start':utcdatetime timestamp}'
 # OR
 # {'type':"abort"}  other information is permissible but not required
 
