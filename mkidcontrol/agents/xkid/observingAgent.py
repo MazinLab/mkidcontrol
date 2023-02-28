@@ -57,34 +57,32 @@ MAGAOX_KEYS = {
     'tcsi.telpos.dec': ('tcs:dec', 'DEC', 'DEC of telescope pointing (+/-DD:MM:SS.SS)'),
     'tcsi.telpos.el': ('tcs:el', 'ALTITUDE', 'Elevation of telescope pointing'),
     'tcsi.telpos.epoch': ('tcs:epoch', 'EPOCH', 'Epoch of observation from MagAO-X'),
-    'tcsi.telpos.ha': ('tcs:ha', 'HA', 'description'),  # TODO: Not sure?
+    'tcsi.telpos.ha': ('tcs:ha', 'HA', 'description'),
     'tcsi.telpos.ra': ('tcs:ra', 'RA', 'RA of telescope pointing (HH:MM:SS.SSS)'),
-    'tcsi.telpos.rotoff': ('tcs:rotoff', 'ROT_STAT', 'Telescope rotator on/off'),
+    'tcsi.telpos.rotoff': ('tcs:rotoff', 'ROTOFF', 'Telescope rotator offset'),
     'tcsi.teldata.az': ('tcs:az', 'AZIMUTH', 'Azimuth of telescope pointing'),
-    'tcsi.teldata.dome_stat': ('tcs:dome-state', 'DOM-STAT', 'State of the dome at exposure start time'),
-    'tcsi.teldata.guiding': ('tcs:guiding', 'fitskey', 'Telescope guiding status'),
-    'tcsi.teldata.pa': ('tcs:pa', 'fitskey', 'Position Angle'),  # TODO: Position angle of what?
+    'tcsi.teldata.dome_stat': ('tcs:dome-state', 'DOMESTAT', 'State of the dome at exposure start time'),
+    'tcsi.teldata.guiding': ('tcs:guiding', 'GUIDING', 'Telescope guiding status'),
+    'tcsi.teldata.pa': ('tcs:pa', 'POSANG', 'Position Angle'),
     'tcsi.teldata.slewing': ('tcs:slewing', 'SLEWING', 'Telescope slewing status'),
     'tcsi.teldata.tracking': ('tcs:tracking', 'TRACKING', 'Telescope tracking status'),
     'tcsi.teldata.zd': ('tcs:zd', 'ZD', 'Zenith distance at typical time'),
-    'tcsi.teltime.sidereal_time': ('tcs:sidereal-time', 'SID-TIME', 'Sidereal time at typical time'),
-    # TODO: Sidereal time at start and end?
+    'tcsi.teltime.sidereal_time': ('tcs:sidereal-time', 'SIDETIME', 'Sidereal time at typical time'),
     'tcsi.environment.dewpoint': ('tcs:dewpoint', 'DOM-DEW', 'Dewpoint'),
     'tcsi.environment.humidity': ('tcs:humidity', 'DOM-HUM', 'Humidity'),
     'tcsi.environment.temp-amb': ('tcs:temp-amb', 'DOM-TMPA', 'Ambient temperature'),
     'tcsi.environment.wind': ('tcs:wind', 'DOM-WND', 'Wind speed'),
     'tcsi.environment.winddir': ('tcs:winddir', 'DOM-WNDD', 'Wind direction'),
-    'tcsi.catalog.object': ('tcs:catalog-object', 'OBJECT', 'Object'),
-    'tcsi.catdata.dec': ('tcs:catalog-dec', 'fits', 'desc'),  # TODO: Not sure
-    'tcsi.catdata.epoch': ('tcs:catalog-epoch', 'fits', 'desc'),  # TODO: Not sure
-    'tcsi.catdata.ra': ('tcs:catalog-ra', 'fits', 'desc'),  # TODO: Not sure
-    'tcsi.catdata.rotoff': ('tcs:catalog-rotoff', 'fits', 'desc'),  # TODO: Not sure
-    'tcsi.seeing.dimm_fwhm': ('tcs:seeing-dimm-fwhm', 'DIMM-SEE', 'DIMM seeing (FWHM)'),
-    'tcsi.seeing.dimm_fwhm_corr': ('tcs:seeing-dimm-fwhm-corr', 'DIMM-COR', 'desc'),  # TODO: Not sure
-    'tcsi.seeing.mag2_el': ('tcs:seeing-el', 'MAG2-EL', 'Mag2 elevation'),
-    'tcsi.seeing.mag2_fwhm': ('tcs:seeing-fwhm', 'MAG2-SEE', 'Mag2 seeing (FWHM)'),
-    'tcsi.seeing.mag2_fwhm_corr': ('tcs:seeing--fwhm-corr', 'MAG2-COR', 'desc'),  # TODO: Not sure
-    'tcsi.seeing.mag2_time': ('tcs:seeing-time', 'MAG2-TIM', 'desc'),  # TODO: Not sure
+    'tcsi.catalog.object': ('tcs:catalog-object', 'CATOBJ', 'Catalog Object'),
+    'tcsi.catdata.dec': ('tcs:catalog-dec', 'CATDEC', 'Catalog Dec.'),
+    'tcsi.catdata.epoch': ('tcs:catalog-epoch', 'CATEPOCH', 'Catalog Epoch'),
+    'tcsi.catdata.ra': ('tcs:catalog-ra', 'CATRA', 'CATRA', 'Catalog RA'),
+    'tcsi.seeing.dimm_fwhm': ('tcs:seeing-dimm-fwhm', 'DIMMSEE', 'DIMM seeing (FWHM)'),
+    'tcsi.seeing.dimm_fwhm_corr': ('tcs:seeing-dimm-fwhm-corr', 'DIMMSCOR', 'DIMM seeing correction'),
+    'tcsi.seeing.mag2_el': ('tcs:seeing-el', 'SEEEL', 'Mag2 seeing elevation'),
+    'tcsi.seeing.mag2_fwhm': ('tcs:seeing-fwhm', 'SEEING', 'Mag2 seeing (FWHM)'),
+    'tcsi.seeing.mag2_fwhm_corr': ('tcs:seeing-fwhm-corr', 'SEECOR', 'Mag2 seeing correction'),
+    'tcsi.seeing.mag2_time': ('tcs:seeing-time', 'SEETIM', 'Mag2 seeing time'),
 }
 
 START_FITS_KEYS = tuple()  # TODO
@@ -131,8 +129,8 @@ def get_obslog_record():
     logging or fits - file building
     """
     try:
-        kv_pairs = redis.read(list(OBSLOG_RECORD_KEYS.keys()), ts_value_only=True)
-        fits_kv_pairs = [(OBSLOG_RECORD_KEYS[k], v) for k, v in kv_pairs]
+        kv_pairs = redis.read(list(OBSLOG_RECORD_KEYS.keys()), ts_value_only=True, error_missing=False)
+        fits_kv_pairs = [(OBSLOG_RECORD_KEYS[k], v) for k, v in kv_pairs.items()]
     except RedisError:
         fits_kv_pairs = None
         getLogger(__name__).error('Failed to query redis for metadata. Most values will be defaults.')

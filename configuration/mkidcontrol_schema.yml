@@ -221,7 +221,6 @@ tcs:
   catalog-dec: '' #'desc'
   catalog-epoch: '' #'desc'
   catalog-ra: '' #'desc'
-  catalog-rotoff: '' #'desc'
   seeing-dimm-fwhm: '' # 'DIMM seeing (FWHM)'
   seeing-dimm-fwhm-corr: '' # 'DIMM Seeing Cor.'
   seeing-el: '' # 'Mag2 seeing elevation'
