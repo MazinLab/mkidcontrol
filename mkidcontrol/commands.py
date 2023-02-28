@@ -298,9 +298,9 @@ LS372_RESISTANCE_RANGE = {key: val.value for key, val in zip([f"{res}\u03A9" for
                                                                                          '2 M', '6.32 M', '20 M', '63.2 M']], Model372MeasurementInputResistance)}
 LS372_ENABLED_VALUES = {'False': False, 'True': True}
 LS372_HEATER_OUTPUT_MODE = {key: val.value for key, val in zip(['Off', 'Monitor Out', 'Open Loop', 'Zone', 'Still', 'Closed Loop', 'Warmup'], Model372OutputMode)}
-LS372_HEATER_INPUT_CHANNEL = {key: val.value for key, val in zip(['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
-                                                                  'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen',
-                                                                  'Fourteen', 'Fifteen', 'Sixteen', 'Control'], Model372InputChannel)}
+LS372_HEATER_INPUT_CHANNEL = {key: val.value for key, val in zip(['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six',
+                                                                  'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve',
+                                                                  'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Control'], Model372InputChannel)}
 LS372_HEATER_POWERUP_ENABLE = {'False': False, 'True': True}
 LS372_HEATER_READING_FILTER = {'False': False, 'True': True}
 LS372_OUTPUT_POLARITY = {key: val.value for key, val in zip(['Unipolar', 'Bipolar'], Model372Polarity)}
