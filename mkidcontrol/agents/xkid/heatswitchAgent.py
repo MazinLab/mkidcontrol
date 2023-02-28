@@ -36,7 +36,7 @@ SETTING_KEYS = tuple(COMMANDSHS.keys())
 
 STATUS_KEY = 'status:device:heatswitch:status'  # OK | ERROR | OFF
 HEATSWITCH_POSITION_KEY = "status:device:heatswitch:position"  # opened | opening | closed | closing
-MOTOR_POS = "status:device:heatswitch:motor:position"  # Integer between 0 and 4194303
+MOTOR_POS = "status:device:heatswitch:motor-position"  # Integer between 0 and 4194303
 
 HEATSWITCH_MOVE_KEY = "device-settings:heatswitch:position"
 VELOCITY_KEY = "device-settings:heatswitch:max-velocity"
