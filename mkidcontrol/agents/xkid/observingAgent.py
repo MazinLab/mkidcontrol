@@ -85,8 +85,8 @@ MAGAOX_KEYS = {
     'tcsi.seeing.mag2_time': ('tcs:seeing-time', 'SEETIM', 'Mag2 seeing time'),
 }
 
-START_FITS_KEYS = tuple()  # TODO
-MIDPOINT_FITS_KEYS = tuple()  # TODO
+START_FITS_KEYS = tuple('UNIXSTR')  # TODO
+MIDPOINT_FITS_KEYS = tuple('UNIXSTR', 'UNIXEND')  # TODO
 
 OBSLOG_RECORD_KEYS = {
     # This should be a superset of mkidcore.metadata.XKID_KEY_INFO
@@ -122,7 +122,7 @@ OBSLOG_RECORD_KEYS = {
 OBSLOG_RECORD_KEYS.update({v[0]: v[1] for v in MAGAOX_KEYS.values()})
 
 
-def get_obslog_record():
+def get_obslog_record(start, duration):
     """
     Grab all the data needed for an observation (as ultimately specified in the mkidcore.metadata.XKID_KEY_INFO)
     from redis using the OBSLOG_RECORD_KEYS dictionary and build them into a astropy.io.fits.Header suitable for
@@ -130,10 +130,13 @@ def get_obslog_record():
     """
     try:
         kv_pairs = redis.read(list(OBSLOG_RECORD_KEYS.keys()), ts_value_only=True, error_missing=False)
-        fits_kv_pairs = [(OBSLOG_RECORD_KEYS[k], v) for k, v in kv_pairs.items()]
+        fits_kv_pairs = {OBSLOG_RECORD_KEYS[k]:v for k, v in kv_pairs.items()}
+
     except RedisError:
         fits_kv_pairs = None
         getLogger(__name__).error('Failed to query redis for metadata. Most values will be defaults.')
+    fits_kv_pairs['UNIXSTR'] = start
+    fits_kv_pairs['UNIXEND'] = fits_kv_pairs['UNIXSTR'] + duration
     return metadata.build_header(metadata=fits_kv_pairs, use_simbad=False, KEY_INFO=metadata.XKID_KEY_INFO,
                                  DEFAULT_CARDSET=metadata.DEFAULT_XKID_CARDSET)
 
@@ -162,10 +165,10 @@ def gen2dashboard_yaml_to_redis(yaml, redis):
 
 def merge_start_stop_headers(header_start, header_stop):
     """Build a final observation header out of the start and stop headers"""
-    for k in START_FITS_KEYS:
-        header_stop[k] = header_start[k]
     for k in MIDPOINT_FITS_KEYS:
         header_stop[k] = (header_start[k] + header_stop[k]) / 2
+    for k in START_FITS_KEYS:
+        header_stop[k] = header_start[k]
     return header_stop
 
 
@@ -254,9 +257,17 @@ def test_load_redis(redis):
         ACTIVE_FLAT_FILE_KEY: '',
         ACTIVE_DARK_FILE_KEY: '',
         LAST_SCI_FILE_KEY: '',
-        DARK_FILE_TEMPLATE_KEY: 'xkid_dark_{UT-STR}_{UNIXTIME}.fits',
-        FLAT_FILE_TEMPLATE_KEY: 'xkid_flat_{UT-STR}_{UNIXTIME}.fits',
-        SCI_FILE_TEMPLATE_KEY: 'xkid_{UT-STR}_{UNIXTIME}.fits'
+        DARK_FILE_TEMPLATE_KEY: 'xkid_dark_{UT-STR}_{UNIXSTR}.fits',
+        FLAT_FILE_TEMPLATE_KEY: 'xkid_flat_{UT-STR}_{UNIXSTR}.fits',
+        SCI_FILE_TEMPLATE_KEY: 'xkid_{UT-STR}_{UNIXSTR}.fits',
+        'instrument:conex-ref-x':0.0,
+        'instrument:conex-ref-y':0.0,
+        'instrument:conex-dpdx':0.0,
+        'instrument:conex-dpdy':0.0,
+        'instrument:device-angle':0.0,
+        'instrument:platescale':0.0,
+        'instrument:pixel-ref-x':1,
+        'instrument:pixel-ref-y':1,
     }
     redis.store(data)
 
@@ -357,7 +368,7 @@ if __name__ == "__main__":
 
                 pm.startWriting(bin_dir)
                 fits_imagecube.startIntegration(startTime=mkcu.next_utc_second(), integrationTime=fits_exp_time)
-                md_start = get_obslog_record()
+                md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
                 obs_log.info(json.dumps(md_start))
 
             try:
@@ -375,11 +386,11 @@ if __name__ == "__main__":
                     continue
 
             im_data, start_t, expo_t = fits_imagecube.receiveImage(timeout=False, return_info=True)
-            md_end = get_obslog_record()
+            md_end = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
             image = fits.ImageHDU(data=im_data, header=merge_start_stop_headers(md_start, md_end))
             if limitless_integration:
                 fits_imagecube.startIntegration(startTime=0, integrationTime=fits_exp_time)
-                md_start = get_obslog_record()
+                md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
 
             # TODO need to set these keys properly
             image.header['wavecal'] = fits_imagecube.wavecalID.decode('UTF-8', "backslashreplace")
