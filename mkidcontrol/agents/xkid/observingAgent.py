@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import queue
 import threading
 import time
 from logging import getLogger
@@ -259,9 +260,9 @@ def test_load_redis(redis):
         ACTIVE_FLAT_FILE_KEY: '',
         ACTIVE_DARK_FILE_KEY: '',
         LAST_SCI_FILE_KEY: '',
-        DARK_FILE_TEMPLATE_KEY: 'xkid_dark_{UT-STR}_{UNIXSTR}.fits',
-        FLAT_FILE_TEMPLATE_KEY: 'xkid_flat_{UT-STR}_{UNIXSTR}.fits',
-        SCI_FILE_TEMPLATE_KEY: 'xkid_{UT-STR}_{UNIXSTR}.fits',
+        DARK_FILE_TEMPLATE_KEY: 'xkid_dark_{UT-STR}_{UNIXSTR:.1f}.fits',
+        FLAT_FILE_TEMPLATE_KEY: 'xkid_flat_{UT-STR}_{UNIXSTR:.1f}.fits',
+        SCI_FILE_TEMPLATE_KEY: 'xkid_{UT-STR}_{UNIXSTR:.1f}.fits',
         'instrument:conex-ref-x':0.0,
         'instrument:conex-ref-y':0.0,
         'instrument:conex-dpdx':0.0,
@@ -299,9 +300,10 @@ if __name__ == "__main__":
 
     args = parse_args()
     if args.test:
-        test_load_redis(redis)
+        pass
+        # test_load_redis(redis)
 
-    indi_thread = MagAOX_INDI(redis, start=False)
+    indi_thread = MagAOX_INDI(redis, start=True)
 
     g2_cfg = gen2dashboard_yaml_to_redis(redis.read(DASHBOARD_YAML_KEY), redis)
     beammap = g2_cfg.beammap
@@ -344,6 +346,7 @@ if __name__ == "__main__":
     request_thread = threading.Thread(name='Command Listener', target=_req_q_targ)
     request_thread.daemon = True
     request_thread.start()
+    FITS_FILE_TIME = 10
     try:
         while True:
             if not limitless_integration:
@@ -354,8 +357,9 @@ if __name__ == "__main__":
                     pm.stopWriting()
                     continue
 
+
                 limitless_integration = request['duration'] == 0
-                fits_exp_time = 60 if limitless_integration else request['duration']
+                fits_exp_time = FITS_FILE_TIME if limitless_integration else request['duration']
 
                 bin_dir, fits_dir, logs_dir = update_paths()
                 if not obs_log.handlers or os.path.dirname(obs_log.handlers[0].baseFilename) != logs_dir:
@@ -371,23 +375,22 @@ if __name__ == "__main__":
                 pm.startWriting(bin_dir)
                 fits_imagecube.startIntegration(startTime=mkcu.next_utc_second(), integrationTime=fits_exp_time)
                 md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
-                obs_log.info(json.dumps(md_start))
+                obs_log.info(json.dumps(dict(md_start)))
 
             try:
                 request = request_q.get(timeout=fits_exp_time - .1)
-            except TimeoutError:
+            except queue.Empty:
                 pass
-
             else:
                 if request['type'] != 'abort':
                     getLogger(__name__).warning(f'Ignoring observation request because one is already in progress')
                 else:
-                    # Stop writing photons, no need to touch the imagecube
-                    pm.stopWriting()
+                    pm.stopWriting()  # Stop writing photons, no need to touch the imagecube
+                    #TODO write out a truncated fits?
                     limitless_integration = False
                     continue
 
-            im_data, start_t, expo_t = fits_imagecube.receiveImage(timeout=False, return_info=True)
+            im_data, start_t, expo_t = fits_imagecube.receiveImage(timeout=True, return_info=True)
             md_end = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
             image = fits.ImageHDU(data=im_data, header=merge_start_stop_headers(md_start, md_end))
             if limitless_integration:
@@ -395,7 +398,7 @@ if __name__ == "__main__":
                 md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
 
             # TODO need to set these keys properly
-            image.header['wavecal'] = fits_imagecube.wavecalID.decode('UTF-8', "backslashreplace")
+            image.header['wavecal'] = fits_imagecube.wavecalID #.decode('UTF-8', "backslashreplace")
             image.header['wmin'] = fits_imagecube.wvlStart
             image.header['wmax'] = fits_imagecube.wvlStop
             header_dict = dict(image.header)
@@ -415,10 +418,10 @@ if __name__ == "__main__":
                 name = os.path.splitext(os.path.basename(fn))[0]
                 fac.generate(fname=fn, save=True, name=name, overwrite=True, threaded=True,
                              complete_callback=lambda x: redis.store(ACTIVE_FLAT_FILE_KEY, x))
-            elif request['type'] in ('dwell', 'object'):
+            elif request['type'] in ('dwell', 'stare'):
                 fn = os.path.join(fits_dir, redis.read(SCI_FILE_TEMPLATE_KEY).format(**header_dict))
                 fac.generate(fname=fn, name=request['name'], save=True, overwrite=True, threaded=True,
-                             complete_callback=lambda x: redis.store(LAST_SCI_FILE_KEY, x))
+                             complete_callback=lambda x: redis.store({LAST_SCI_FILE_KEY: x}))
 
     except Exception as e:
         log.critical(f'Fatal Error: {e}')
