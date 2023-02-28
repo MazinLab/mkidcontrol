@@ -26,13 +26,13 @@ status:
       motor-position: 4194303
     laserflipperduino:
       status: "OK"
-      firmware:
-      flipper-position:
-      laser-808:
-      laser-904:
-      laser-980:
-      laser-1120:
-      laser-1310:
+      firmware: 0.2
+      flipper-position: "down"
+      laser-808: 0.0
+      laser-904: 0.0
+      laser-980: 0.0
+      laser-1120: 0.0
+      laser-1310: 0.0
     ls625:
       firmware: 'x.x'
       status: 'OK'
