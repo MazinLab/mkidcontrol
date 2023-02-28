@@ -1,2 +1,3 @@
 from .packetmaster import Packetmaster
-__all_ = [Packetmaster]
+from .sharedmem import ImageCube
+__all__ = [Packetmaster, ImageCube]
