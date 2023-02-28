@@ -5,7 +5,8 @@ status:
       sn: 'XXX'
       firmware: 'XXX'
       controller-status: 'XXX'
-      controller-state: 'XXX'
+      controller-state: '(XXX, XXX)'
+      controller-last-change: 'XXX -> XXX'
       operation-status: 'XXX'
       position:
         x: 0.000
