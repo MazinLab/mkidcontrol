@@ -261,6 +261,21 @@ def test_load_redis(redis):
     redis.store(data)
 
 
+def validate_request(x):
+    try:
+        assert 'type' in x and x['type'] in ('stare','dwell','dark','flat','abort'), 'Missing/Invalid observation type'
+        if x['type'] !='abort':
+            assert 'name' in x, 'Request name missing'
+            assert 'start' in x, 'start missing'
+            assert 'seq_i' in x, 'seq_i missing'
+            assert 'seq_n' in x, 'seq_n missing'
+            assert 'duration' in x, 'duration missing'
+    except AssertionError as e:
+        raise e
+
+
+
+
 if __name__ == "__main__":
 
     util.setup_logging('observingAgent')
@@ -300,6 +315,11 @@ if __name__ == "__main__":
         while True:
             try:
                 for x in redis.listen(OBSERVING_REQUEST_CHANNEL, value_only=True, decode='json'):
+                    try:
+                        validate_request(x)
+                    except AssertionError as e:
+                        log.warning(f'Ignoring invalid observing request: {e}')
+                        continue
                     request_q.put(x)
             except RedisError as e:
                 log.error(f'Error in command listener: {e}')
