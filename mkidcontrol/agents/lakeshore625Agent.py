@@ -27,7 +27,7 @@ N.B. (19 July 2022): The limiting values are as follows (and remember, the limit
 import sys
 import time
 import logging
-from mkidcontrol.devices import LakeShore625, MagnetState, write_persisted_state, load_persisted_state
+from mkidcontrol.devices import LakeShore625
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.util as util
 import mkidcontrol.mkidredis as redis
