@@ -730,7 +730,6 @@ def send_obs_dict(startstop):
     else:
         log.info(f"Stop observing target: {target}")
         current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
-    log.info(f"Observing command: {obs_dict}")
     return '', 204
 
 @bp.route('/receive_obs_dict', methods=["GET"])
