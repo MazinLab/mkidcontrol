@@ -741,6 +741,7 @@ def receive_obs_dict():
     def _stream():
         while True:
             for k, v in current_app.redis.listen("command:observation-request"):
+                log.debug(f"Heard {k}, {v}")
                 msg = f"retry:5\ndata: {v}\n\n"
                 yield msg
 
