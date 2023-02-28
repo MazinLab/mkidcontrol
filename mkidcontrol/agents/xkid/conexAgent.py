@@ -56,6 +56,8 @@ CONEX_OPERATION_STATUS_KEY = "status:device:conex:operation-status"
 CONEX_X = "status:device:conex:position:x"
 CONEX_Y = "status:device:conex:position:y"
 
+TS_KEYS = (CONEX_X, CONEX_Y)
+
 CONEX_COMMANDS = tuple([MOVE_COMMAND_KEY, DITHER_COMMAND_KEY, STOP_COMMAND_KEY])
 
 SETTING_KEYS = tuple(COMMANDSCONEX.keys())
@@ -141,6 +143,7 @@ class ConexController:
             log.error('Unable to get conex status', exc_info=True)
             self._halt_dither = True
             self._updateState('Offline')
+        self.redis.store({CONEX_X: pos[0], CONEX_Y: pos[1]}, timeseries=True)
         return {'state': self.state, 'pos': pos, 'conexstatus': status[2], 'limits': self.conex.limits}
 
     def do_go_to(self, x, y):
@@ -578,7 +581,7 @@ def dither_two_point_positions(start_x, start_y, stop_x, stop_y, user_n_steps, s
 
 if __name__ == "__main__":
 
-    redis.setup_redis()
+    redis.setup_redis(ts_keys=TS_KEYS)
     util.setup_logging('conexAgent')
 
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
