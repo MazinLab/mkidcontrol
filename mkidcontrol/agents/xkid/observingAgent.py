@@ -32,7 +32,7 @@ DASHBOARD_YAML_KEY = 'gen2:dashboard-yaml'
 GEN2_ROACHES_KEY = 'gen2:roaches'
 
 GEN2_CAPTURE_PORT_KEY = 'datasaver:capture-port'
-DATA_DIR_KEY = 'paths:bin-dir'
+DATA_DIR_KEY = 'paths:data-dir'
 ACTIVE_DARK_FILE_KEY = 'datasaver:dark'  # a FQP to the active dark fits image, if any
 ACTIVE_FLAT_FILE_KEY = 'datasaver:flat'  # a FQP to the active flat fits image, if any
 LAST_SCI_FILE_KEY = 'datasaver:sci'  # a FQP to the active flat fits image, if any
@@ -93,20 +93,22 @@ MIDPOINT_FITS_KEYS = tuple()  # TODO
 OBSLOG_RECORD_KEYS = {
     # This should be a superset of mkidcore.metadata.XKID_KEY_INFO
     # Keys are redis keys, values are fits keys
-    'status:temps:device:temp': 'DET-TMP',
+    'status:temps:device-stage:temp': 'DET-TMP',
     'datasaver:beammap': 'BMAP',
     'paths:data-dir': 'CFGDIR',
     'datasaver:dark': 'DARK',
     'datasaver:flat': 'FLAT',
-    'status:device:conex:position:x': 'CONEXX',
-    'status:device:conex:position:y': 'CONEXY',
-    'status:filterwheel:position': 'FLTPOS',
-    'laserflipperduino:flipper:position': 'FLPPOS',
-    'laserflipperduino:laserbox:808:power': 'cal808',
-    'laserflipperduino:laserbox:904:power': 'cal904',
-    'laserflipperduino:laserbox:980:power': 'cal980',
-    'laserflipperduino:laserbox:1120:power': 'cal1120',
-    'laserflipperduino:laserbox:1310:power': 'cal1310',
+    'status:device:conex:position-x': 'CONEXX',
+    'status:device:conex:position-y': 'CONEXY',
+    'status:device:filterwheel:filter': 'FLTPOS',
+    'status:device:focus:position-mm': 'FOCPOS',
+    'status:device:laserflipperduino:flipper-position': 'FLPPOS',
+    'status:device:heatswitch:position': 'HEATPOS',
+    'status:device:laserflipperduino:laser-808': 'cal808',
+    'status:device:laserflipperduino:laser-904': 'cal904',
+    'status:device:laserflipperduino:laser-980': 'cal980',
+    'status:device:laserflipperduino:laser-1120': 'cal1120',
+    'status:device:laserflipperduino:laser-1310': 'cal1310',
     'instrument:platescale': 'PLTSCL',
     'instrument:pixel-ref-x': 'PREFX',
     'instrument:pixel-ref-y': 'PREFY',
@@ -263,17 +265,20 @@ def test_load_redis(redis):
 
 def validate_request(x):
     try:
-        assert 'type' in x and x['type'] in ('stare','dwell','dark','flat','abort'), 'Missing/Invalid observation type'
-        if x['type'] !='abort':
+        assert 'type' in x, 'Missing observation type'
+        assert x['type'] in ('stare', 'dwell', 'dark', 'flat', 'abort'), f'Invalid observation type {x["type"]}'
+        if x['type'] != 'abort':
             assert 'name' in x, 'Request name missing'
             assert 'start' in x, 'start missing'
-            assert 'seq_i' in x, 'seq_i missing'
+            assert x['start'] >= datetime.utcnow().timestamp()-60, 'start must be no older than 60s from now'
             assert 'seq_n' in x, 'seq_n missing'
+            assert isinstance(x['seq_n'], int) and x['seq_n']>=1, 'seq_n must be an int >= 1'
+            assert 'seq_i' in x, 'seq_i missing'
+            assert isinstance(x['seq_i'], int) and 0 <= x['seq_i'] < x['seq_n'], 'seq_i must be an int in [0,seq_n)'
             assert 'duration' in x, 'duration missing'
+            assert x['duration'] >= 0, 'duration must not be negative'
     except AssertionError as e:
         raise e
-
-
 
 
 if __name__ == "__main__":
@@ -404,5 +409,6 @@ if __name__ == "__main__":
                 fac.generate(fname=fn, name=request['name'], save=True, overwrite=True, threaded=True,
                              complete_callback=lambda x: redis.store(LAST_SCI_FILE_KEY, x))
 
-    except Exception:
+    except Exception as e:
+        log.critical(f'Fatal Error: {e}')
         pm.quit()

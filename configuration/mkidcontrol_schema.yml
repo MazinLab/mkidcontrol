@@ -28,6 +28,11 @@ status:
       status: "OK"
       firmware:
       flipper-position:
+      laser-808:
+      laser-904:
+      laser-980:
+      laser-1120:
+      laser-1310:
     ls625:
       firmware: 'x.x'
       status: 'OK'
