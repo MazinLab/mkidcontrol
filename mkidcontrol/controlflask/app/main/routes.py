@@ -722,11 +722,11 @@ def send_obs_dict(startstop):
 
     if startstop == "start":
         log.info(f"Start observing target: {target}")
-        current_app.redis.publish("command:observation:request", json.dumps(obs_dict), store=False)
+        current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
         current_app.redis.store({"observing:target": target})
     else:
         log.info(f"Stop observing target: {target}")
-        current_app.redis.publish("command:observation:request", json.dumps(obs_dict), store=False)
+        current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
     log.info(f"Observing command: {obs_dict}")
     return '', 204
 
@@ -740,7 +740,7 @@ def receive_obs_dict():
     @stream_with_context
     def _stream():
         while True:
-            for k, v in current_app.redis.listen("command:observation:request"):
+            for k, v in current_app.redis.listen("command:observation-request"):
                 msg = f"retry:5\ndata: {v}\n\n"
                 yield msg
 
