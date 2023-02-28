@@ -168,18 +168,18 @@ class SerialDevice:
         except Exception:
             pass
 
-        getLogger(__name__).debug(f"Connecting to {self.port} at {self.baudrate}")
+        log.debug(f"Connecting to {self.port} at {self.baudrate}")
         try:
             self._preconnect()
             self.ser = Serial(port=self.port, baudrate=self.baudrate, timeout=self.timeout,
                               parity=self.parity, bytesize=self.bytesize, xonxoff=self.xonxoff,
                               stopbits=self.stopbits)
             self._postconnect()
-            getLogger(__name__).info(f"port {self.port} connection established")
+            log.getChild('io').info(f"port {self.port} connection established")
             return True
         except (serial.SerialException, IOError) as e:
             self.ser = None
-            getLogger(__name__).error(f"Conntecting to port {self.port} failed: {e}")
+            log.getChild('io').error(f"Conntecting to port {self.port} failed: {e}")
             if raise_errors:
                 raise e
             return False
@@ -194,7 +194,7 @@ class SerialDevice:
             self.ser.close()
             self.ser = None
         except Exception as e:
-            getLogger(__name__).info(f"Exception during disconnect: {e}")
+            log.getChild('io').info(f"Exception during disconnect: {e}")
 
     def format_msg(self, msg:str):
         """Subclass may implement to apply hardware specific formatting"""
@@ -213,11 +213,11 @@ class SerialDevice:
                 self.connect()
             try:
                 msg = self.format_msg(msg)
-                getLogger(__name__).debug(f"Sending '{msg}'")
+                log.getChild('io').debug(f"Sending '{msg}'")
                 self.ser.write(msg)
             except (serial.SerialException, IOError) as e:
                 self.disconnect()
-                getLogger(__name__).error(f"...failed: {e}")
+                log.getChild('io').error(f"...failed: {e}")
                 raise e
 
     def receive(self):
@@ -229,13 +229,13 @@ class SerialDevice:
         with self._rlock:
             try:
                 data = self.ser.readline().decode("utf-8")
-                getLogger(__name__).debug(f"Read {escapeString(data)} from {self.name}")
+                log.getChild('io').debug(f"Read {escapeString(data)} from {self.name}")
                 if not data.endswith(self._response_terminator):
                     raise IOError("Got incomplete response. Consider increasing timeout.")
                 return data.strip()
             except (IOError, serial.SerialException) as e:
                 self.disconnect()
-                getLogger(__name__).debug(f"Send failed {e}")
+                log.getChild('io').debug(f"Send failed {e}")
                 raise IOError(e)
 
     def query(self, cmd: str, **kwargs):
@@ -276,7 +276,7 @@ class SerialDevice:
                     try:
                         vals.append(func())
                     except IOError as e:
-                        log.error(f"Failed to poll {func}: {e}")
+                        log.getChild('io').error(f"Failed to poll {func}: {e}")
                         vals.append(None)
 
                 if value_callback is not None:
@@ -285,7 +285,7 @@ class SerialDevice:
                             try:
                                 cb(v)
                             except Exception as e:
-                                log.error(f"Callback {cb} error. arg={v}.", exc_info=True)
+                                log.getChild('io').error(f"Callback {cb} error. arg={v}.", exc_info=True)
                     else:
                         cb = value_callback[0]
                         try:
@@ -343,7 +343,7 @@ class SimDevice(SerialDevice):
                 manufacturer, model, _, _ = id_msg.split(",")
             except Exception:
                 if id_msg == '':
-                    log.debug(f"No device in mainframe at slot {slot}")
+                    log.getChild('io').debug(f"No device in mainframe at slot {slot}")
                     pass
                 else:
                     raise IOError(f"Bad response to *IDN?: '{id_msg}'")
@@ -367,7 +367,7 @@ class SimDevice(SerialDevice):
         If you do perform a reset, it will then be helpful to restore the 'default settings' which we have determined
         to be the optimal to read out the hardware we have.
         """
-        log.info(f"Resetting the {self.name}!")
+        log.getChild('io').info(f"Resetting the {self.name}!")
         self.send("*RST")
 
     def format_msg(self, msg: str):
@@ -605,7 +605,7 @@ class Focus(TDC001):
             else:
                 raise ValueError(f"Unknown parameter type to update for focus slider!")
         except (IOError, SerialException) as e:
-            log.warning(f"Can't communicate with focus slider! {e}")
+            log.getChild('io').warning(f"Can't communicate with focus slider! {e}")
             raise IOError(f"Can't communicate with focus slider! {e}")
 
     @property
@@ -649,7 +649,7 @@ class Focus(TDC001):
                     try:
                         vals.append(func())
                     except IOError as e:
-                        log.error(f"Failed to poll {func}: {e}")
+                        log.getChild('io').error(f"Failed to poll {func}: {e}")
                         vals.append(None)
 
                 if value_callback is not None:
@@ -870,7 +870,7 @@ class HeatswitchMotor:
                 self.last_10_positions = self.last_10_positions[-10:]
                 return position
             except (serial.SerialException, Exception) as e:
-                log.debug(f"Error in querying heat switch motor. Attempt {i+1} of 5 failed. Trying again.")
+                log.getChild('io').debug(f"Error in querying heat switch motor. Attempt {i+1} of 5 failed. Trying again.")
 
     def move_to(self, pos, timeout=TIMEOUT, error_on_disallowed=False):
         """
@@ -979,7 +979,7 @@ class HeatswitchMotor:
             self.move_by(self.FULL_OPEN_POSITION - self.FULL_CLOSE_POSITION)
             log.info(f"Heatswitch now opened")
         except (IOError, serial.SerialException) as e:
-            log.error("Could not open heatswitch!")
+            log.getChild('io').error("Could not open heatswitch!")
             raise Exception(f"Could not communicate with device: {e}")
         except Exception as e:
             log.error("Could not open heatswitch!")
@@ -991,7 +991,7 @@ class HeatswitchMotor:
             self.move_by(self.FULL_CLOSE_POSITION - self.FULL_OPEN_POSITION)
             log.info(f"Heatswitch now closed")
         except (IOError, serial.SerialException) as e:
-            log.error("Could not close the heatswitch!")
+            log.getChild('io').error("Could not close the heatswitch!")
             raise Exception(f"Could not communicate with device: {e}")
         except Exception as e:
             log.error("Could not close the heatswitch!")
@@ -1049,7 +1049,7 @@ class HeatswitchMotor:
                     try:
                         vals.append(func())
                     except IOError as e:
-                        log.error(f"Failed to poll {func}: {e}")
+                        log.getChild('io').error(f"Failed to poll {func}: {e}")
                         vals.append(None)
 
                 if value_callback is not None:
@@ -1115,12 +1115,12 @@ class LakeShoreDevice(SerialDevice):
         try:
             manufacturer, model, self.sn, self.firmware = id_msg.split(",")
         except ValueError:
-            log.debug(f"Unable to parse IDN response: '{id_msg}'")
+            log.getChild('io').debug(f"Unable to parse IDN response: '{id_msg}'")
             manufacturer, model, self.sn, self.firmware = [None]*4
 
         if not (manufacturer == "LSCI") or not (model in self.valid_models):
             msg = f"Unsupported device: {manufacturer}/{model} (idn response = '{id_msg}')"
-            log.critical(msg)
+            log.getChild('io').critical(msg)
             raise IOError(msg)
 
         if self.name[:-3] == '240':
@@ -1176,7 +1176,7 @@ class LakeShoreMixin:
         try:
             self.device_serial.close()
         except Exception as e:
-            log.info(f"Exception during disconnect: {e}")
+            log.getChild('io').info(f"Exception during disconnect: {e}")
 
     def connect(self):
         try:
@@ -1188,7 +1188,7 @@ class LakeShoreMixin:
         try:
             self.device_serial.open()
         except (IOError, AttributeError) as e:
-            log.warning(f"Unable to open serial port: {e}")
+            log.getChild('io').warning(f"Unable to open serial port: {e}")
             raise Exception(f"Unable to open serial port: {e}")
 
     def _postconnect(self):
@@ -1202,19 +1202,19 @@ class LakeShoreMixin:
 
     def change_input_sensor_name(self, channel: (str, int), name):
         try:
-            log.info(f'Changing name for input sensor at channel {channel.upper()} to "{name}"')
+            log.getChild('io').info(f'Changing name for input sensor at channel {channel.upper()} to "{name}"')
             self.command(f'INNAME {channel.upper}, "{name}"')
         except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
+            log.getChild('io').error(f"...failed: {e}")
             raise e
 
     def get_input_sensor_name(self, channel: (str, int)):
         try:
-            log.info(f'Querying name of input sensor at channel {channel.upper()}')
+            log.getChild('io').info(f'Querying name of input sensor at channel {channel.upper()}')
             name = self.query(f'INNAME? {channel.upper}')
             return name.decode('utf-8')
         except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
+            log.getChild('io').error(f"...failed: {e}")
             raise e
 
     def temp(self):
@@ -1338,31 +1338,31 @@ class LakeShoreMixin:
                     data = vars(self.get_input_sensor(str(channel)))
                 elif model == "MODEL372":
                     data = vars(self.get_input_setup_parameters(str(channel)))
-                log.debug(f"Read input sensor data for channel {channel}: {data}")
+                log.getChild('io').debug(f"Read input sensor data for channel {channel}: {data}")
             elif command_code == "INCRV":
                 data = self.get_input_curve(channel)
-                log.debug(f"Read input curve number for channel {channel}: {data}")
+                log.getChild('io').debug(f"Read input curve number for channel {channel}: {data}")
             elif command_code == "INSET":
                 data = vars(self.get_input_channel_parameters(channel))
-                log.debug(f"Reading parameters for input channel {channel}: {data}")
+                log.getChild('io').debug(f"Reading parameters for input channel {channel}: {data}")
             elif command_code == "OUTMODE":
                 data = vars(self.get_heater_output_settings(channel))
-                log.debug(f"Read heater settings for heater channel {channel}: {data}")
+                log.getChild('io').debug(f"Read heater settings for heater channel {channel}: {data}")
             elif command_code == "SETP":
                 data = self.get_setpoint_kelvin(channel)
-                log.debug(f"Read setpoint for heater channel {channel}: {data} Kelvin")
+                log.getChild('io').debug(f"Read setpoint for heater channel {channel}: {data} Kelvin")
             elif command_code == "PID":
                 data = self.get_heater_pid(channel)
-                log.debug(f"Read PID settings for channel {channel}: {data}")
+                log.getChild('io').debug(f"Read PID settings for channel {channel}: {data}")
             elif command_code == "RANGE":
                 data = self.get_heater_output_range(channel)
-                log.debug(f"Read the current heater output range for channel {channel}: {data}")
+                log.getChild('io').debug(f"Read the current heater output range for channel {channel}: {data}")
             elif command_code == "CRVHDR":
                 data = vars(self.get_curve_header(curve))
-                log.debug(f"Read the curve header from curve {curve}: {data}")
+                log.getChild('io').debug(f"Read the curve header from curve {curve}: {data}")
             elif command_code == "FILTER":
                 data = vars(self.get_filter(channel))
-                log.debug(f"Read the filter data for channel {channel}: {data}")
+                log.getChild('io').debug(f"Read the filter data for channel {channel}: {data}")
             return data
         except (IOError, SerialException) as e:
             raise IOError(f"Serial error communicating with Lake Shore {self.model_number[-3:]}: {e}")
@@ -1430,10 +1430,10 @@ class LakeShoreMixin:
             raise ValueError(f"Attempting to modify an curve to an unsupported device!")
 
         try:
-            log.info(f"Applying new curve header to curve {curve_num}: {header}")
+            log.getChild('io').info(f"Applying new curve header to curve {curve_num}: {header}")
             self.set_curve_header(curve_number=curve_num, curve_header=header)
         except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
+            log.getChild('io').error(f"...failed: {e}")
             raise IOError(f"{e}")
 
     def load_curve_data(self, curve_num, data=None, data_file=None):
@@ -1484,7 +1484,7 @@ class LakeShoreMixin:
                     try:
                         vals.append(func())
                     except IOError as e:
-                        log.error(f"Failed to poll {func}: {e}")
+                        log.getChild('io').error(f"Failed to poll {func}: {e}")
                         vals.append(None)
 
                 if value_callback is not None:
@@ -1525,7 +1525,7 @@ class LakeShore240(LakeShoreDevice):
                 if enabled_status == "1":
                     enabled.append(channel)
             except IOError as e:
-                log.error(f"Serial error: {e}")
+                log.getChild('io').error(f"Serial error: {e}")
                 raise IOError(f"Serial error: {e}")
             except ValueError:
                 log.critical(f"Channel {channel} returned and unknown value from channel information query")
@@ -1541,7 +1541,7 @@ class LakeShore240(LakeShoreDevice):
             try:
                 readings.append(float(self.query(f"KRDG? {channel}")))
             except IOError as e:
-                log.error(f"Serial Error: {e}")
+                log.getChild('io').error(f"Serial Error: {e}")
                 raise IOError(f"Serial Error: {e}")
             except ValueError as e:
                 log.error(f"Parsing error: {e}")
@@ -1557,7 +1557,7 @@ class LakeShore240(LakeShoreDevice):
         try:
             self.send(f'INNAME{str(channel)},"{name}"')
         except IOError as e:
-            log.error(f"Unable to set channel {channel}'s name to '{name}'. "
+            log.getChild('io').error(f"Unable to set channel {channel}'s name to '{name}'. "
                       f"Check to make sure the LakeShore USB is connected!")
 
 
@@ -1593,10 +1593,10 @@ class LakeShore336(LakeShoreMixin, Model336):
 
         if current_curve != curve_num and curve_num is not None:
             try:
-                log.info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
+                log.getChild('io').info(f"Changing curve for input channel {channel} from {current_curve} to {curve_num}")
                 self.set_input_curve(channel, curve_num)
             except (SerialException, IOError) as e:
-                log.error(f"...failed: {e}")
+                log.getChild('io').error(f"...failed: {e}")
                 raise e
 
         else:
@@ -1630,10 +1630,10 @@ class LakeShore336(LakeShoreMixin, Model336):
                                                input_range=new_settings['input_range'])
 
         try:
-            log.info(f"Applying new settings to channel {channel}: {settings}")
+            log.getChild('io').info(f"Applying new settings to channel {channel}: {settings}")
             self.set_input_sensor(channel=channel, sensor_parameters=settings)
         except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
+            log.getChild('io').error(f"...failed: {e}")
             raise e
 
     def apply_schema_settings(self, settings_to_load):
@@ -1672,7 +1672,7 @@ class LakeShore336(LakeShoreMixin, Model336):
             else:
                 pass
         except IOError as e:
-            log.error(f"Comm error: {e}")
+            log.getChild('io').error(f"Comm error: {e}")
             raise e
 
 
@@ -1744,7 +1744,7 @@ class LakeShore372(LakeShoreMixin, Model372):
                 pass
         except Exception as e:
             self.disconnect()
-            log.error(f"Comm error: {e}")
+            log.getChild('io').error(f"Comm error: {e}")
             raise IOError(e)
 
     @property
@@ -1794,10 +1794,10 @@ class LakeShore372(LakeShoreMixin, Model372):
                                               resistance_range=Model372MeasurementInputResistance(new_settings['resistance_range']))
 
         try:
-            log.info(f"Configuring input sensor on channel {channel}: {settings}")
+            log.getChild('io').info(f"Configuring input sensor on channel {channel}: {settings}")
             self.configure_input(input_channel=channel, settings=settings)
         except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
+            log.getChild('io').error(f"...failed: {e}")
             raise e
 
     def modify_channel_settings(self, channel, command_code, **desired_settings):
@@ -1815,10 +1815,10 @@ class LakeShore372(LakeShoreMixin, Model372):
                                                 temperature_coefficient=Model372CurveTemperatureCoefficient(new_settings['temperature_coefficient']))
 
         try:
-            log.info(f"Configuring input channel {channel} parameters: {settings}")
+            log.getChild('io').info(f"Configuring input channel {channel} parameters: {settings}")
             self.set_input_channel_parameters(channel, settings)
         except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
+            log.getChild('io').error(f"...failed: {e}")
             raise e
 
     def configure_heater_settings(self, channel, command_code, **desired_settings):
@@ -1836,10 +1836,10 @@ class LakeShore372(LakeShoreMixin, Model372):
                                                 polarity=Model372Polarity(new_settings['polarity']))
 
         try:
-            log.info(f"Configuring heater for output channel {channel}: {settings}")
+            log.getChild('io').info(f"Configuring heater for output channel {channel}: {settings}")
             self.configure_heater(output_channel=channel, settings=settings)
         except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
+            log.getChild('io').error(f"...failed: {e}")
             raise e
 
     def change_temperature_setpoint(self, channel, command_code, setpoint=None):
@@ -1852,10 +1852,10 @@ class LakeShore372(LakeShoreMixin, Model372):
             log.info(f"Changing temperature regulation value for output channel {channel} to {setpoint} from "
                      f"{current_setpoint}")
             try:
-                log.info(f"Changing the setpoint for output channel {channel} to {setpoint}")
+                log.getChild('io').info(f"Changing the setpoint for output channel {channel} to {setpoint}")
                 self.set_setpoint_kelvin(output_channel=channel, setpoint=setpoint)
             except (SerialException, IOError) as e:
-                log.error(f"...failed: {e}")
+                log.getChild('io').error(f"...failed: {e}")
                 raise e
         else:
             log.info(f"Requested to set temperature setpoint from {current_setpoint} to {setpoint}, no change"
@@ -1868,11 +1868,11 @@ class LakeShore372(LakeShoreMixin, Model372):
         """
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
         try:
-            log.info(f"Configuring filter for input channel {channel}: {new_settings}")
+            log.getChild('io').info(f"Configuring filter for input channel {channel}: {new_settings}")
             self.set_filter(channel, state=new_settings['state'], settle_time=new_settings['settle_time'],
                             window=new_settings['window'])
         except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
+            log.getChild('io').error(f"...failed: {e}")
             raise e
 
     def modify_pid_settings(self, channel, command_code, **desired_settings):
@@ -1884,11 +1884,11 @@ class LakeShore372(LakeShoreMixin, Model372):
         new_settings = self._generate_new_settings(channel=channel, command_code=command_code, **desired_settings)
 
         try:
-            log.info(f"Configuring PID for output channel {channel}: {new_settings}")
+            log.getChild('io').info(f"Configuring PID for output channel {channel}: {new_settings}")
             self.set_heater_pid(channel, gain=new_settings['gain'], integral=new_settings['integral'],
                                 derivative=new_settings['ramp_rate'])
         except (SerialException, IOError) as e:
-            log.error(f"...failed: {e}")
+            log.getChild('io').error(f"...failed: {e}")
             raise e
 
     def modify_heater_output_range(self, channel, command_code, range=None):
@@ -1904,10 +1904,10 @@ class LakeShore372(LakeShoreMixin, Model372):
                          f"same value. No change requested to the instrument.")
             else:
                 try:
-                    log.info(f"Setting the output range of channel {channel} from {current_range} to {range}")
+                    log.getChild('io').info(f"Setting the output range of channel {channel} from {current_range} to {range}")
                     self.set_heater_output_range(channel, Model372SampleHeaterOutputRange(range))
                 except (SerialException, IOError) as e:
-                    log.error(f"...failed: {e}")
+                    log.getChild('io').error(f"...failed: {e}")
                     raise e
         else:
             # For a channel that is not the sample heater, this value must be on or off
@@ -1916,10 +1916,10 @@ class LakeShore372(LakeShoreMixin, Model372):
                          f"same value. No change requested to the instrument.")
             else:
                 try:
-                    log.info(f"Setting the output range of channel {channel} from {current_range} to {range}")
+                    log.getChild('io').info(f"Setting the output range of channel {channel} from {current_range} to {range}")
                     self.set_heater_output_range(channel, range)
                 except (SerialException, IOError) as e:
-                    log.error(f"...failed: {e}")
+                    log.getChild('io').error(f"...failed: {e}")
                     raise e
 
 
@@ -1950,10 +1950,10 @@ class LakeShore625(LakeShoreDevice):
             log.debug(f"Limits have been cached, not querying device")
         else:
             try:
-                log.info(f"Querying limits from Lake Shore 625")
+                log.getChild('io').info(f"Querying limits from Lake Shore 625")
                 current_limit, voltage_limit, rate_limit = self.query("LIMIT?").split(',')
             except (IOError, SerialException) as e:
-                log.warning(f"Could not query the limits from the Lake Shore 625!")
+                log.getChild('io').warning(f"Could not query the limits from the Lake Shore 625!")
                 raise IOError(f"Can't communicate with the Lake Shore 625: {e}")
             self.current_limit = float(current_limit)
             self.voltage_limit = float(voltage_limit)
@@ -1996,7 +1996,7 @@ class LakeShore625(LakeShoreDevice):
         try:
             mode = self.query(f"XPGM?")
         except (IOError, SerialException) as e:
-            log.warning(f"Can't communicate with the LS 625: {e}")
+            log.getChild('io').warning(f"Can't communicate with the LS 625: {e}")
             raise IOError(f"Can't communicate with the LS 625: {e}")
         if mode == '0':
             return MagnetState.MANUAL
@@ -2388,9 +2388,9 @@ class Currentduino(SerialDevice):
             log.info(f"Commanding heat switch to {pos}")
             confirm = self.query(pos[0], connect=True)
             if confirm == pos[0]:
-                log.info(f"Command accepted")
+                log.getChild('io').info(f"Command accepted")
             else:
-                log.info(f"Command failed: '{confirm}'")
+                log.getChild('io').info(f"Command failed: '{confirm}'")
             return pos if confirm == pos[0] else 'unknown'
         except Exception as e:
             raise IOError(e)
@@ -2409,19 +2409,19 @@ class Currentduino(SerialDevice):
         # # NB: The same sensor on the HS checks for open/closed HS position. If there is a thermal touch (HS close) it
         # #  will report a LOW voltage (GND) and if there are no touches (HS open) it will report a HIGH voltage (+5V)
         # try:
-        #     log.debug(f"Checking Heatswitch position is {pos}")
+        #     log.getChild('io').debug(f"Checking Heatswitch position is {pos}")
         #     response = self.query('h' if pos[0] == 'o' else 'l')
         #     pos, _, desired = response.partition(" ")
         #     return pos == desired
         # except IOError as e:
-        #     log.error(f"Serial error: {e}")
+        #     log.getChild('io').error(f"Serial error: {e}")
         #     raise e
 
     @property
     def firmware(self):
         """ Return the firmware string or raise IOError """
         try:
-            log.debug(f"Querying currentduino firmware")
+            log.getChild('io').debug(f"Querying currentduino firmware")
             response = self.query("v", connect=True)
             version, _, v = response.partition(" ")  # Arduino resonse format is "{response} {query char}"
             version = float(version)
@@ -2429,10 +2429,10 @@ class Currentduino(SerialDevice):
                 raise ValueError('Bad format')
             return version
         except IOError as e:
-            log.error(f"Serial error: {e}")
+            log.getChild('io').error(f"Serial error: {e}")
             raise e
         except ValueError:
-            log.error(f"Bad firmware format: '{response}'")
+            log.getChild('io').error(f"Bad firmware format: '{response}'")
             raise IOError(f'Bad firmware response: "{response}"')
 
     def monitor_current(self, interval, value_callback=None):
@@ -2448,7 +2448,7 @@ class Currentduino(SerialDevice):
                     self.last_current = self.read_current()
                     current = self.last_current
                 except (IOError, ValueError) as e:
-                    log.error(f"Unable to poll for current: {e}")
+                    log.getChild('io').error(f"Unable to poll for current: {e}")
 
                 if value_callback is not None and current is not None:
                     try:
@@ -2497,7 +2497,7 @@ class Hemtduino(SerialDevice):
     def firmware(self):
         """ Return the firmware string or raise IOError """
         try:
-            getLogger(__name__).debug(f"Querying currentduino firmware")
+            log.getChild('io').debug(f"Querying currentduino firmware")
             response = self.query("v", connect=True)
             version, _, v = response.partition(" ")  # Arduino resonse format is "{response} {query char}"
             version = float(version)
@@ -2505,10 +2505,10 @@ class Hemtduino(SerialDevice):
                 raise ValueError('Bad format')
             return version
         except IOError as e:
-            getLogger(__name__).error(f"Serial error: {e}")
+            log.getChild('io').error(f"Serial error: {e}")
             raise e
         except ValueError:
-            getLogger(__name__).error(f"Bad firmware format: '{response}'")
+            log.getChild('io').error(f"Bad firmware format: '{response}'")
             raise IOError(f'Bad firmware response: "{response}"')
 
     def read_hemt_data(self):
@@ -2524,7 +2524,7 @@ class Hemtduino(SerialDevice):
             values = list(map(float, resp[:-1]))
             confirm = resp[-1]
             if confirm == '?':
-                getLogger(__name__).debug("HEMT values successfully queried")
+                log.getChild('io').debug("HEMT values successfully queried")
                 pvals = []
                 for i, voltage in enumerate(values):
                     if not i % 3:
@@ -2582,26 +2582,26 @@ class Laserflipperduino(SerialDevice):
                 self.connect()
             try:
                 msg = self.format_msg(msg)
-                getLogger(__name__).debug(f"Sending '{msg}'")
+                log.getChild('io').debug(f"Sending '{msg}'")
                 self.ser.write(msg)
             except (serial.SerialException, IOError) as e:
                 self.disconnect()
-                getLogger(__name__).error(f"...failed: {e}")
+                log.getChild('io').error(f"...failed: {e}")
                 raise e
 
     @property
     def firmware(self):
         """ Return the firmware string or raise IOError """
         try:
-            log.debug(f"Querying currentduino firmware")
+            log.getChild('io').debug(f"Querying currentduino firmware")
             response = self.query((7, 0), connect=True)
             _, version = response.split(':')
             return float(version)
         except IOError as e:
-            log.error(f"Serial error: {e}")
+            log.getChild('io').error(f"Serial error: {e}")
             raise e
         except ValueError:
-            log.error(f"Bad firmware format: '{response}'")
+            log.getChild('io').error(f"Bad firmware format: '{response}'")
             raise IOError(f'Bad firmware response: "{response}"')
 
     def firmware_ok(self):
@@ -2654,7 +2654,7 @@ class Laserflipperduino(SerialDevice):
     def statuses(self):
         """get_status takes no arguments, prints the status of all 5 output
         pins"""
-        log.debug("Reading laser and mirror statuses")
+        log.getChild('io').debug("Reading laser and mirror statuses")
         statuses = {}
         status_reply = self.query((6,0))
         status_reply = status_reply.split(',')
