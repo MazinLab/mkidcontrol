@@ -352,14 +352,14 @@
             if (newdata['type'] != "abort") {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
-                var target = newdata['target'];
+                var target = newdata['name'];
             } else {
                 var newClass = "btn btn-primary";
                 var newText = "Start Observing";
                 var target = "---";
             }
             for (let i=0; i< to_disable.length; i++) {
-                if (newdata['type'] != "stop"){
+                if (newdata['type'] != "abort"){
                     document.getElementById(to_disable[i]).disabled = true
                     document.getElementById("obs_duration").disabled = true
                     document.getElementById("target").disabled = true
@@ -388,11 +388,11 @@
             if (document.getElementById("obsStartStop").value.includes("Start")) {
                 if (to_disable.includes(buttonid)) {
                     if (document.getElementById("target").value === "---") {
-                        target = ''
+                        target = obs_button.value
                     } else {
                         target = document.getElementById("target").value
                     }
-                    var obs_type = target
+                    var obs_type = obs_button.value
                 } else {
                     target = document.getElementById("target").value
                     var obs_type = "Stare"

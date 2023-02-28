@@ -706,12 +706,14 @@ def send_obs_dict(startstop):
     # TODO: Modify this to be a 'sender' that either sends a start or stop obs dict.
     if request.method == "POST":
         target = request.values.get("name")
+        if target == "---":
+            target = ''
         obs_type = request.values.get("type").lower()
         duration = float(request.values.get("duration"))
-        start = time.time()
+        start = datetime.datetime.utcnow().timestamp()
         seq_i = int(request.values.get("seq_i"))
         seq_n = int(request.values.get("seq_n"))
-        if obs_type != "stop":
+        if obs_type != "abort":
             obs_dict = {'name': target, "type": obs_type,
                         'duration': duration, 'start': start,
                         'seq_i': seq_i, 'seq_n': seq_n}
@@ -719,6 +721,7 @@ def send_obs_dict(startstop):
             obs_dict = {'type': obs_type}
 
     log.debug(f"{startstop} sending photons")
+    log.info(f"Observing command: {obs_dict}")
 
     if startstop == "start":
         log.info(f"Start observing target: {target}")
