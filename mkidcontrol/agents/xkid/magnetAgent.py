@@ -143,7 +143,7 @@ class MagnetController(LockedMachine):
             {'trigger': 'next', 'source': 'hs_closing', 'dest': 'start_ramping', 'conditions': 'heatswitch_closed'},
             {'trigger': 'next', 'source': 'hs_closing', 'dest': None, 'prepare': 'close_heatswitch'},
 
-            {'trigger': 'next', 'source': 'start_ramping', 'dest': None, 'unless': 'ramp_ok', 'after': 'begin_ramp_up'},
+            {'trigger': 'next', 'source': 'start_ramping', 'dest': None, 'before': 'begin_ramp_up'},
             {'trigger': 'next', 'source': 'start_ramping', 'dest': 'ramping', 'conditions': 'ramp_ok'},
 
             # stay in ramping, as long as the ramp is going OK
@@ -174,7 +174,7 @@ class MagnetController(LockedMachine):
             {'trigger': 'next', 'source': 'hs_opening', 'dest': None,
              'prepare': ('open_heatswitch', 'ls372_to_pid')},
 
-            {'trigger': 'next', 'source': 'start_cooling', 'dest': None, 'unless':'deramp_ok', 'after': 'begin_ramp_down'},
+            {'trigger': 'next', 'source': 'start_cooling', 'dest': None, 'before': 'begin_ramp_down'},
             {'trigger': 'next', 'source': 'start_cooling', 'dest': 'cooling', 'conditions': 'deramp_ok'},
 
             # stay in cooling, decreasing the current a bit until the device is regulatable
@@ -195,7 +195,7 @@ class MagnetController(LockedMachine):
              'conditions': ('device_regulatable', 'ls372_in_pid')},
             {'trigger': 'next', 'source': 'regulating', 'dest': 'start_deramping'},
 
-            {'trigger': 'next', 'source': 'start_deramping', 'dest': None, 'unless':'deramp_ok', 'prepare': 'begin_ramp_down'},
+            {'trigger': 'next', 'source': 'start_deramping', 'dest': None, 'prepare': 'begin_ramp_down'},
             {'trigger': 'next', 'source': 'start_deramping', 'dest': 'deramping', 'conditions': 'deramp_ok'},
 
             # stay in deramping, trying to decrement the current, until the device is off then move to off
@@ -409,9 +409,7 @@ class MagnetController(LockedMachine):
     def ramp_ok(self, event):
         currents = self.last_5_currents
         steps = np.diff(currents)
-        if np.all(steps >= 0):
-            return True
-        elif np.sum(steps) >= 3:
+        if np.sum(steps > 0) >= 3:
             return True
         elif currents[-1] >= currents[-2]:
             return True
