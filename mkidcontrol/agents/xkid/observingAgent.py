@@ -82,8 +82,11 @@ MAGAOX_KEYS = {
     'tcsi.seeing.mag2_el' : ('tcs:seeing-el', 'MAG2-EL', 'Mag2 elevation'),
     'tcsi.seeing.mag2_fwhm' : ('tcs:seeing-fwhm', 'MAG2-SEE', 'Mag2 seeing (FWHM)'),
     'tcsi.seeing.mag2_fwhm_corr' : ('tcs:seeing--fwhm-corr', 'MAG2-COR', 'desc'), # TODO: Not sure
-    'tcsi.seeing.mag2_time' : ('tcs:seeing-time', 'MAG2-TIM', 'desc'), # TODO: Not sure
+    'tcsi.seeing.mag2_time': ('tcs:seeing-time', 'MAG2-TIM', 'desc'), # TODO: Not sure
 }
+
+START_FITS_KEYS = tuple()  # TODO
+MIDPOINT_FITS_KEYS = tuple()  # TODO
 
 OBSLOG_RECORD_KEYS = {
     #This should be a superset of mkidcore.metadata.XKID_KEY_INFO
@@ -150,11 +153,9 @@ def gen2dashboard_yaml_to_redis(yaml, redis):
 
 def merge_start_stop_headers(header_start, header_stop):
     """Build a final observation header out of the start and stop headers"""
-    start_keys = (,)  #TODO
-    mid_keys = (,) #TODO
-    for k in start_keys:
+    for k in START_FITS_KEYS:
         header_stop[k]=header_start[k]
-    for k in mid_keys:
+    for k in MIDPOINT_FITS_KEYS:
         header_stop[k] = (header_start[k]+header_stop[k])/2
     return header_stop
 

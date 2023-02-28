@@ -1,4 +1,5 @@
 loggers:
+  observingAgent: debug
   controlDirector:
     werkzeug: warning
     controlDirector:
