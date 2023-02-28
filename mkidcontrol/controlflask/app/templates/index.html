@@ -349,7 +349,7 @@
         obsstopsource.addEventListener("message", function(e){
             var to_disable = ["flat", "dark"]
             var newdata = JSON.parse(e.data);
-            if (newdata['type'] != "stop") {
+            if (newdata['type'] != "abort") {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
                 var target = newdata['target'];
