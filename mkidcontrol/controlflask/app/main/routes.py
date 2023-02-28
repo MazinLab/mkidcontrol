@@ -712,11 +712,11 @@ def send_obs_dict(startstop):
         seq_i = int(request.values.get("seq_i"))
         seq_n = int(request.values.get("seq_n"))
         if obs_type != "stop":
-            obs_dict = {'target': target, "obs_type": obs_type,
+            obs_dict = {'name': target, "type": obs_type,
                         'duration': duration, 'start': start,
                         'seq_i': seq_i, 'seq_n': seq_n}
         else:
-            obs_dict = {'obs_type': obs_type}
+            obs_dict = {'type': obs_type}
 
     log.debug(f"{startstop} sending photons")
 

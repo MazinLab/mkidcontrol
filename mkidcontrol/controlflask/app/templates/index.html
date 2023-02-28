@@ -349,7 +349,7 @@
         obsstopsource.addEventListener("message", function(e){
             var to_disable = ["flat", "dark"]
             var newdata = JSON.parse(e.data);
-            if (newdata['obs_type'] != "stop") {
+            if (newdata['type'] != "stop") {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
                 var target = newdata['target'];
@@ -359,7 +359,7 @@
                 var target = "---";
             }
             for (let i=0; i< to_disable.length; i++) {
-                if (newdata['obs_type'] != "stop"){
+                if (newdata['type'] != "stop"){
                     document.getElementById(to_disable[i]).disabled = true
                     document.getElementById("obs_duration").disabled = true
                     document.getElementById("target").disabled = true
@@ -388,7 +388,7 @@
             if (document.getElementById("obsStartStop").value.includes("Start")) {
                 if (to_disable.includes(buttonid)) {
                     if (document.getElementById("target").value === "---") {
-                        target = obs_button.value
+                        target = ''
                     } else {
                         target = document.getElementById("target").value
                     }
@@ -410,7 +410,7 @@
                         type: obs_type,
                         duration: duration,
                         seq_i: 0,
-                        seq_n: 0
+                        seq_n: 1
                     }
                 })
         }
@@ -489,7 +489,6 @@
         }
 
         function command_conex(event, buttonid){
-
             if (event.key == "Enter") {
                 var position = document.getElementById('conex_position').value;
                 var send_data = {'cmd': 'move', 'position': position};
