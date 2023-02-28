@@ -268,7 +268,7 @@ class MagnetController(LockedMachine):
         soak_current = float(redis.read(SOAK_CURRENT_KEY))
         soak_time = float(redis.read(SOAK_TIME_KEY)) * 60  # Soak time stored in minues, must be in seconds
         ramp_rate = float(redis.read(RAMP_RATE_KEY))
-        deramp_rate = float(redis.read(DERAMP_RATE_KEY))
+        deramp_rate = -1 * float(redis.read(DERAMP_RATE_KEY))  # Deramp rate is stored as a POSITIVE number
         current_current = self.last_5_currents[-1]
         current_state = self.state  # NB: If current_state is regulating time_to_cool will return 0 since it is already cool.
 
