@@ -65,6 +65,7 @@ dependencies:
   - flask-mail==0.9.1
   - flask-sqlalchemy==2.5.1
   - zaber-motion==2.11.0
+  - astroplan==0.8
   - pip:
 #      - alembic==1.8.0
 #      - blinker==1.4

@@ -8,10 +8,10 @@
     </envs>
     <option name="SDK_HOME" value="sftp://kids@200.28.147.147:22/home/kids/anaconda3/envs/control/bin/python" />
     <option name="SDK_NAME" value="Remote Python 3.9.7 (sftp://kids@200.28.147.147:22/home/kids/anaconda3/envs/control/bin/python)" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/mkidcontrol/agents/xkid" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../" />
     <option name="IS_MODULE_SDK" value="false" />
-    <option name="ADD_CONTENT_ROOTS" value="true" />
-    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <option name="ADD_CONTENT_ROOTS" value="false" />
+    <option name="ADD_SOURCE_ROOTS" value="false" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/mkidcontrol/agents/xkid/observingAgent.py" />
     <option name="PARAMETERS" value="--test" />
