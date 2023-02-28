@@ -85,8 +85,8 @@ MAGAOX_KEYS = {
     'tcsi.seeing.mag2_time': ('tcs:seeing-time', 'SEETIM', 'Mag2 seeing time'),
 }
 
-START_FITS_KEYS = tuple('UNIXSTR')  # TODO
-MIDPOINT_FITS_KEYS = tuple('UNIXSTR', 'UNIXEND')  # TODO
+START_FITS_KEYS = ('UNIXSTR',)  # TODO
+MIDPOINT_FITS_KEYS = {'UNIXSTR':('UNIXSTR', 'UNIXEND')}  # TODO
 
 OBSLOG_RECORD_KEYS = {
     # This should be a superset of mkidcore.metadata.XKID_KEY_INFO
@@ -138,7 +138,7 @@ def get_obslog_record(start, duration):
     fits_kv_pairs['UNIXSTR'] = start
     fits_kv_pairs['UNIXEND'] = fits_kv_pairs['UNIXSTR'] + duration
     return metadata.build_header(metadata=fits_kv_pairs, use_simbad=False, KEY_INFO=metadata.XKID_KEY_INFO,
-                                 DEFAULT_CARDSET=metadata.DEFAULT_XKID_CARDSET)
+                                 DEFAULT_CARDSET=metadata.DEFAULT_XKID_CARDSET, unknown_keys='create')
 
 
 def gen2dashboard_yaml_to_redis(yaml, redis):
@@ -165,10 +165,12 @@ def gen2dashboard_yaml_to_redis(yaml, redis):
 
 def merge_start_stop_headers(header_start, header_stop):
     """Build a final observation header out of the start and stop headers"""
-    for k in MIDPOINT_FITS_KEYS:
-        header_stop[k] = (header_start[k] + header_stop[k]) / 2
     for k in START_FITS_KEYS:
         header_stop[k] = header_start[k]
+
+    for k in MIDPOINT_FITS_KEYS:
+        a, b = MIDPOINT_FITS_KEYS[k]
+        header_stop[k] = (header_stop[a] + header_stop[b]) / 2
     return header_stop
 
 
