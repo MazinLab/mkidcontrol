@@ -37,6 +37,13 @@ LASER_KEYS = ('device-settings:laserflipperduino:laserbox:808:power',
               'device-settings:laserflipperduino:laserbox:1310:power'
               )
 
+MIRROR_STATUS_KEY = ('status:device:laserflipperduino:flipper-position')
+LASER_POWER_STATUS_KEYS = ('status:device:laserflipperduino:laser-808',
+                           'status:device:laserflipperduino:laser-904',
+                           'status:device:laserflipperduino:laser-980',
+                           'status:device:laserflipperduino:laser-1120',
+                           'status:device:laserflipperduino:laser-1310')
+
 
 if __name__ == "__main__":
 
@@ -75,6 +82,11 @@ if __name__ == "__main__":
                             log.info("Laser power set")
                         redis.store({cmd.setting: cmd.value})
                         redis.store({STATUS_KEY: "OK"})
+
+                        statuses = laserduino.statuses()
+                        statuskeys = LASER_POWER_STATUS_KEYS + MIRROR_STATUS_KEY
+                        for i, value in enumerate(statuses.values()):
+                            redis.store({statuskeys[i]: value})
                     except IOError as e:
                         redis.store({STATUS_KEY: f"Error {e}"})
                         log.error(f"Comm error: {e}")

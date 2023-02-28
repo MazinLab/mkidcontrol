@@ -33,8 +33,8 @@ ENCODER_STEPS_PER_MM = 34555
 
 STATUS_KEY = "status:device:focus:status"
 
-FOCUS_POSITION_MM_KEY = 'status:device:focus:position:mm'
-FOCUS_POSITION_ENCODER_KEY = 'status:device:focus:position:encoder'
+FOCUS_POSITION_MM_KEY = 'status:device:focus:position-mm'
+FOCUS_POSITION_ENCODER_KEY = 'status:device:focus:position-encoder'
 
 TS_KEYS = (FOCUS_POSITION_MM_KEY, FOCUS_POSITION_ENCODER_KEY)
 
@@ -48,7 +48,6 @@ JOG_KEY = 'device-settings:focus:jog'
 SETTING_KEYS = tuple(COMMANDSFOCUS.keys())
 COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY, JOG_KEY,
                                                                         HOME_KEY, MOVE_TO_MM_KEY, MOVE_TO_ENC_KEY]])
-
 
 def callback(pos_mm, pos_enc):
     vals = [pos_mm, pos_enc]
