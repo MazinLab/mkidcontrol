@@ -28,8 +28,12 @@ MODEL_KEY = "status:device:filterwheel:model"
 SETTING_KEYS = tuple(COMMANDSFILTERWHEEL.keys())
 COMMAND_KEYS = (f"command:{key}" for key in SETTING_KEYS)
 
+FILTERWHEEL_CURRENT_POSITION_KEY = 'status:device:filterwheel:position'
+FILTERWHEEL_CURRENT_FILTER_KEY = 'status:device:filterwheel:filter'
+
 FILTERWHEEL_POSITION_KEY = 'device-settings:filterwheel:position'
 FILTERWHEEL_FILTER_KEY = 'device-settings:filterwheel:filter'
+
 
 if __name__ == "__main__":
 
@@ -66,6 +70,12 @@ if __name__ == "__main__":
                             fw.set_filter_pos(cmd.command_value)
                             redis.store({cmd.setting: cmd.value})
                             redis.store({FILTERWHEEL_FILTER_KEY: FILTERS[cmd.value]})
+                            current_pos = fw.get_filter_pos()
+                            redis.store({FILTERWHEEL_CURRENT_POSITION_KEY: current_pos})
+                            redis.store({FILTERWHEEL_CURRENT_FILTER_KEY: FILTERS[current_pos]})
+                            if current_pos != cmd.value:
+                                redis.store({cmd.setting: current_pos})
+                                redis.store({FILTERWHEEL_FILTER_KEY: FILTERS[current_pos]})
                             redis.store({STATUS_KEY: "OK"})
                     except IOError as e:
                         redis.store({STATUS_KEY: f"Error {e}"})
