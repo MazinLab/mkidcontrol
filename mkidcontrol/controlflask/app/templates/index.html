@@ -8,6 +8,12 @@
             <main role="main" class="col-12">
                 <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
                     <div class="flex-column col-4">
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-2 border-bottom">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
+                                UTC:
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3" id="utc-timestamp"></div>
+                        </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-2">
                             {% if sending_photons %}
                                 {{ render_field(obs.obsStartStop, class="btn btn-danger", onclick="send_obs_info(this.id)", value="Stop Observing") }}
@@ -299,6 +305,8 @@
                         Plotly.restyle(update['id'], {z: [data['z']]});
                         break;
                 }
+                var t = Math.floor((new Date()).getTime() / 1000)
+                $("#utc-timestamp").text(t)
             }
             if (pixel[0] != -1 && pixel[1] != -1) {
                 Plotly.extendTraces('pixel_lightcurve', {x:[[update['time']]], y:[[data['z'][pixel[1]][pixel[0]]]]}, [0])
