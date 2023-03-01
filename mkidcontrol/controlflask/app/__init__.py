@@ -81,7 +81,7 @@ def create_app(config_class=Config, cliargs=None):
     redis.setup_redis(ts_keys=REDIS_TS_KEYS)
     app.redis = redis
 
-    dashcfg = loadcfg(redis.read('xkid:configuration:file:yaml:dashboard'))
+    dashcfg = loadcfg(redis.read('xkid:configuration:file:yaml:dashboard')) #TODO make consistent!!!!!
     beammap = dashcfg.beammap
     app.array_view_params = {'int_time': 1,
                              'min_cts': 0,

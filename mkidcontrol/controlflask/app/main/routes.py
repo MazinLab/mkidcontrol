@@ -38,7 +38,7 @@ from mkidcontrol.config import FLASK_KEYS, REDIS_TS_KEYS, FLASK_CHART_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
 
-from mkidcontrol.agents.xkid.observingAgent import INSTRUMENT_OBSERVING_KEY
+from mkidcontrol.agents.xkid.observingAgent import OBSERVING_EVENT_KEY
 
 # TODO: ObsLog, ditherlog, dashboardlog
 
@@ -649,13 +649,13 @@ def dashplot():
             current_flat_file = current_app.redis.read(CURRENT_FLAT_FILE_KEY)
 
             # TODO: When live (toggle online/offline here? So we can pull up the gui without roaches and annoyingly long image load lags?)
-            # current_app.liveimage.startIntegration(integrationTime=int_time)
+            current_app.liveimage.startIntegration(start=0, integrationTime=int_time)
             # t = time.time()
-            # im = current_app.liveimage.receiveImage()
+            im = current_app.liveimage.receiveImage()
 
-            im = np.random.uniform(5000, size=(125 * 80)).reshape((125, 80)).astype(int)
-            im = im.tolist()
-            time.sleep(int_time)
+            # im = np.random.uniform(5000, size=(125 * 80)).reshape((125, 80)).astype(int)
+            # im = im.tolist()
+            # time.sleep(int_time)
 
             tic = time.time()
             # if active_dark_file != current_dark_file:
