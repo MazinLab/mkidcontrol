@@ -231,15 +231,15 @@ tcs:
 
 
 instrument:
-  conex-ref-x':
-  conex-ref-y':
-  conex-dpdx':
-  conex-dpdy':
-  device-angle':
-  firmware-version':
-  platescale':
-  pixel-ref-x':
-  pixel-ref-y':
+  conex-ref-x:
+  conex-ref-y:
+  conex-dpdx:
+  conex-dpdy:
+  device-angle:
+  firmware-version:
+  platescale:
+  pixel-ref-x:
+  pixel-ref-y:
 
 readout:
   count_rate_limit: 5000
