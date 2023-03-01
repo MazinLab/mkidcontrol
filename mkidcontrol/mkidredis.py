@@ -64,7 +64,7 @@ class MKIDRedis:
             except ResponseError:
                 logging.getLogger(__name__).debug(f"Redistimeseries key '{k}' already exists.")
 
-    def store(self, data, timeseries=False):
+    def store(self, data, timeseries=False, encode_json=False):
         """
         Function for storing data in redis. This is a wrapper that allows us to store either type of redis key:value
         pairs (timeseries or 'normal'). Any TS keys must have been previously created.
@@ -81,18 +81,24 @@ class MKIDRedis:
                 self._connect_ts()
             for k, v in generator:
                 logging.getLogger(__name__).info(f"Setting ts {k} to {v}")
+                if encode_json:
+                    v = json.dumps(v)
                 self.redis_ts.add(key=k, value=v, timestamp='*')
         else:
             for k, v in generator:
                 logging.getLogger(__name__).info(f"Setting {k} to {v}")
+                if encode_json:
+                    v = json.dumps(v)
                 self.redis.set(k, v)
-                self.publish(k, v, store=False)
+                self.publish(k, v, store=False, encode_json=False)
 
-    def publish(self, channel, message, store=True):
+    def publish(self, channel, message, store=True, encode_json=False):
         """
         Publishes message to channel. Channels need not have been previously created nor must there be a subscriber.
         returns the number of listeners of the channel
         """
+        if encode_json:
+            message = json.dumps(message)
         if store:
             self.store({channel: message})
         return self.redis.publish(channel, message)

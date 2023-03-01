@@ -46,13 +46,13 @@ BEAMMAP_FILE_KEY = 'datasaver:beammap'
 GUI_LIVE_IMAGE_DEFAULTS_KEY = 'gui:live_image_config'
 
 OBSERVING_REQUEST_CHANNEL = 'command:observation-request'
-INSTRUMENT_OBSERVING_KEY = 'status:instrument-observing'
+OBSERVING_EVENT_KEY = 'command:event:observing'
 
 GEN2_REDIS_MAP = {'dashboard.max_count_rate': 'readout:count_rate_limit',
                   'beammap': BEAMMAP_FILE_KEY,
                   'roaches': GEN2_ROACHES_KEY,
                   'packetmaster.captureport': GEN2_CAPTURE_PORT_KEY,
-                  'roaches.fpgpath': 'instrument:firmware-version'}
+                  'roaches.fpgpath': 'gen2:firmware-version'}
 
 MAGAOX_KEYS = {
     'tcsi.telpos.am': ('tcs:airmass', 'AIRMASS', 'Airmass at start'),
@@ -343,44 +343,52 @@ if __name__ == "__main__":
             except RedisError as e:
                 log.error(f'Error in command listener: {e}')
 
+    def rotate_log(log, logs_dir):
+        if not log.handlers or os.path.dirname(log.handlers[0].baseFilename) != logs_dir:
+            handler = logging.FileHandler(os.path.join(logs_dir, f'obslog_{datetime.utcnow()}.json'), 'a')
+            handler.setFormatter(logging.Formatter('%(message)s'))
+            handler.setLevel('INFO')
+            try:
+                obs_log.removeHandler(log.handlers[0])
+            except IndexError:
+                pass
+            log.addHandler(handler)
+
 
     request_thread = threading.Thread(name='Command Listener', target=_req_q_targ)
     request_thread.daemon = True
     request_thread.start()
     FITS_FILE_TIME = 10
+
+    redis.store(OBSERVING_EVENT_KEY,
+                {'name': '', 'state': 'stopped', 'seq_i': 0, 'seq_n':0, 'start': 0, 'type': 'abort'},
+                encode_json=True)
     try:
         while True:
             if not limitless_integration:
                 request = request_q.get(block=True)
-
+                last_request = request.copy()
+                last_request['state'] = 'started'
                 if request['type'] == 'abort':
                     getLogger(__name__).debug(f'Request to stop while nothing in progress.')
                     pm.stopWriting()
-                    redis.publish(INSTRUMENT_OBSERVING_KEY, "not observing", store=True)
                     continue
-
 
                 limitless_integration = request['duration'] == 0
                 fits_exp_time = FITS_FILE_TIME if limitless_integration else request['duration']
 
                 bin_dir, fits_dir, logs_dir = update_paths()
-                if not obs_log.handlers or os.path.dirname(obs_log.handlers[0].baseFilename) != logs_dir:
-                    handler = logging.FileHandler(os.path.join(logs_dir, f'obslog_{datetime.utcnow()}.json'), 'a')
-                    handler.setFormatter(logging.Formatter('%(message)s'))
-                    handler.setLevel('INFO')
-                    try:
-                        obs_log.removeHandler(obs_log.handlers[0])
-                    except IndexError:
-                        pass
-                    obs_log.addHandler(handler)
+                rotate_log(obs_log, logs_dir)
 
                 pm.startWriting(bin_dir)
-                fits_imagecube.startIntegration(startTime=mkcu.next_utc_second(), integrationTime=fits_exp_time)
-                md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
+                x = datetime.utcnow()
+                fits_imagecube.startIntegration(startTime=mkcu.next_second(x), integrationTime=fits_exp_time)
+                md_start = get_obslog_record(x.timestamp(), fits_exp_time)
                 obs_log.info(json.dumps(dict(md_start)))
-                redis.publish(INSTRUMENT_OBSERVING_KEY, "observing", store=True)
+                redis.store(OBSERVING_EVENT_KEY, last_request, encode_json=True)
 
             try:
+                # last_request = request
                 request = request_q.get(timeout=fits_exp_time - .1)
             except queue.Empty:
                 pass
@@ -391,23 +399,23 @@ if __name__ == "__main__":
                     pm.stopWriting()  # Stop writing photons, no need to touch the imagecube
                     #TODO write out a truncated fits?
                     limitless_integration = False
-                    redis.publish(INSTRUMENT_OBSERVING_KEY, "not observing", store=True)
+                    last_request['state'] = 'stopped'
+                    redis.store(OBSERVING_EVENT_KEY, last_request, encode_json=True)
                     continue
 
             im_data, start_t, expo_t = fits_imagecube.receiveImage(timeout=True, return_info=True)
             md_end = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
+            md_start['wavecal'] = md_end['wavecal'] = fits_imagecube.wavecalID #.decode('UTF-8', "backslashreplace")
+            md_start['wmin'] = md_end['wmin'] = fits_imagecube.wvlStart
+            md_start['wmax'] = md_end['wmax'] = fits_imagecube.wvlStop
             image = fits.ImageHDU(data=im_data, header=merge_start_stop_headers(md_start, md_end))
             if limitless_integration:
                 fits_imagecube.startIntegration(startTime=0, integrationTime=fits_exp_time)
                 md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
 
-            # TODO need to set these keys properly
-            image.header['wavecal'] = fits_imagecube.wavecalID #.decode('UTF-8', "backslashreplace")
-            image.header['wmin'] = fits_imagecube.wvlStart
-            image.header['wmax'] = fits_imagecube.wvlStop
             header_dict = dict(image.header)
 
-            t = 'sum' if request['type'] in ('dwell', 'object') else request['type']
+            t = 'sum' if request['type'] in ('dwell', 'stare') else request['type']
             fac = CalFactory(t, images=image, mask=beammap.failmask,
                              flat=redis.read(ACTIVE_FLAT_FILE_KEY),
                              dark=redis.read(ACTIVE_DARK_FILE_KEY))
@@ -416,12 +424,12 @@ if __name__ == "__main__":
                 fn = os.path.join(fits_dir, redis.read(DARK_FILE_TEMPLATE_KEY).format(**header_dict))
                 name = os.path.splitext(os.path.basename(fn))[0]
                 fac.generate(fname=fn, save=True, threaded=True, name=name, overwrite=True,
-                             complete_callback=lambda x: redis.store(ACTIVE_DARK_FILE_KEY, x))
+                             complete_callback=lambda x: redis.store({ACTIVE_DARK_FILE_KEY: x}))
             elif request['type'] == 'flat':
                 fn = os.path.join(fits_dir, redis.read(FLAT_FILE_TEMPLATE_KEY).format(**header_dict))
                 name = os.path.splitext(os.path.basename(fn))[0]
                 fac.generate(fname=fn, save=True, name=name, overwrite=True, threaded=True,
-                             complete_callback=lambda x: redis.store(ACTIVE_FLAT_FILE_KEY, x))
+                             complete_callback=lambda x: redis.store({ACTIVE_FLAT_FILE_KEY: x}))
             elif request['type'] in ('dwell', 'stare'):
                 fn = os.path.join(fits_dir, redis.read(SCI_FILE_TEMPLATE_KEY).format(**header_dict))
                 fac.generate(fname=fn, name=request['name'], save=True, overwrite=True, threaded=True,

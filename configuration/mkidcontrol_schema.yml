@@ -1,5 +1,4 @@
 status:
-  instrument-observing: 'observing'
   device:
     conex:
       status: "OK"
@@ -171,6 +170,10 @@ device-settings:
     soak-time: 3600
     soak-current: 9.25
 
+#command:event:observing publishes a json dictionary of the form
+#  {'name':str, 'state':started | stopped, 'seq_i':#, 'seq_n':# 'start':timestamp of request,
+#    'type':}'
+# the name and timestamp are of the request being serviced
 command:
   be-cold-at: 0000000000
   get-cold: 'now'
@@ -178,6 +181,7 @@ command:
   cancel-scheduled-cooldown: 'cancel'
   event:
     quenching: False
+    observing: ""
   conex:
     stop: 'stop'
     move: "{'x':x, 'y':y}"
@@ -236,7 +240,7 @@ instrument:
   conex-dpdx:
   conex-dpdy:
   device-angle:
-  firmware-version:
+
   platescale:
   pixel-ref-x:
   pixel-ref-y:
@@ -246,6 +250,7 @@ readout:
 gen2:
   dashboard-yaml: ''
   roaches: ''  #json.dumps(dashboard.roaches.to_dict())
+  firmware-version:
 gui:
   live_image_config: '{"nRows": 125, "nCols": 80, "useWvl": false, "nWvlBins": 1, "useEdgeBins": false, "wvlStart": 0.0, "wvlStop": 0.0}'
 datasaver:
