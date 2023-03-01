@@ -876,8 +876,8 @@ def command_conex():
             startx, starty = dith_info['start'].split(',')
             endx, endy = dith_info['stop'].split(',')
             conex_cmd = "conex:dither"
-            send_dict = {'startx': float(startx), 'endx': float(endx),
-                         'starty': float(starty), 'endy': float(endy),
+            send_dict = {'startx': float(startx), 'stopx': float(endx),
+                         'starty': float(starty), 'stopy': float(endy),
                          'n': int(float(dith_info['n'])), 't': float(dith_info['t'])}
         elif cmd == "stop":
             conex_cmd = "conex:stop"

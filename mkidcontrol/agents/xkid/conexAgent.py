@@ -111,19 +111,11 @@ class ConexController:
             self.redis.publish(CONEX_CONTROLLER_STATE_KEY, json.dumps(self.state))
 
     def _update_cur_status(self, s):
-        if isinstance(s, str):
-            pass
-        else:
-            s = json.dumps(s)
         with self._rlock:
             self.cur_status = s
             self.redis.publish(CONEX_CONTROLLER_STATUS_KEY, s)
 
     def _update_operation_status(self, s):
-        if isinstance(s, str):
-            pass
-        else:
-            s = json.dumps(s)
         with self._rlock:
             self.operation_status = s
             self.redis.publish(CONEX_OPERATION_STATUS_KEY, s)
@@ -144,7 +136,7 @@ class ConexController:
             self._halt_dither = True
             self._updateState('Offline')
         self.redis.store({CONEX_X: pos[0], CONEX_Y: pos[1]}, timeseries=True)
-        return {'state': self.state, 'pos': pos, 'conexstatus': status[2], 'limits': self.conex.limits}
+        return json.dumps({'state': self.state, 'pos': pos, 'conexstatus': status[2], 'limits': self.conex.limits})
 
     def do_go_to(self, x, y):
         # TODO
@@ -292,10 +284,10 @@ class ConexController:
         self.stop(wait=False)  # stop whatever we were doing before (including a previous dither)
         with self._rlock:
             self._update_cur_status(self.status())
-            if self.cur_status['state'] == 'Offline': return False
+            if json.loads(self.cur_status)['state'] == 'Offline': return False
             self._halt_dither = False
             self._startedMove = 0
-        self._preDitherPos = self.cur_status['pos']
+        self._preDitherPos = json.loads(self.cur_status)['pos']
         self._movement_thread = threading.Thread(target=self.dither_two_point, args=(dither_dict,), name="Dithering thread")
         self._movement_thread.daemon = True
         self._movement_thread.start()
@@ -334,8 +326,8 @@ class ConexController:
         for p in points:
             startTime, endTime = self._dither_move(p[0], p[1], dither_dict['t'])
             if startTime is not None:
-                x_locs.append(self.cur_status['pos'][0])
-                y_locs.append(self.cur_status['pos'][1])
+                x_locs.append(json.loads(self.cur_status)['pos'][0])
+                y_locs.append(json.loads(self.cur_status)['pos'][1])
                 startTimes.append(startTime)
                 endTimes.append(endTime)
             if self._halt_dither: break
@@ -348,8 +340,8 @@ class ConexController:
                     if self.conex.in_bounds((p[0] + x_sub[i], p[1] + y_sub[i])):
                         startTime, endTime = self._dither_move(p[0] + x_sub[i], p[1] + y_sub[i], dither_dict['subT'])
                         if startTime is not None:
-                            x_locs.append(self.cur_status['pos'][0])
-                            y_locs.append(self.cur_status['pos'][1])
+                            x_locs.append(json.loads(self.cur_status)['pos'][0])
+                            y_locs.append(json.loads(self.cur_status)['pos'][1])
                             startTimes.append(startTime)
                             endTimes.append(endTime)
                     if self._halt_dither: break
@@ -412,8 +404,8 @@ class ConexController:
             for y in y_list:
                 startTime, endTime = self._dither_move(x, y, dither_dict['t'])
                 if startTime is not None:
-                    x_locs.append(self.cur_status['pos'][0])
-                    y_locs.append(self.cur_status['pos'][1])
+                    x_locs.append(json.loads(self.cur_status)['pos'][0])
+                    y_locs.append(json.loads(self.cur_status)['pos'][1])
                     startTimes.append(startTime)
                     endTimes.append(endTime)
                 if self._halt_dither: break
@@ -426,8 +418,8 @@ class ConexController:
                         if self.conex.in_bounds((x + x_sub[i], y + y_sub[i])):
                             startTime, endTime = self._dither_move(x + x_sub[i], y + y_sub[i], dither_dict['subT'])
                             if startTime is not None:
-                                x_locs.append(self.cur_status['pos'][0])
-                                y_locs.append(self.cur_status['pos'][1])
+                                x_locs.append(json.loads(self.cur_status)['pos'][0])
+                                y_locs.append(json.loads(self.cur_status)['pos'][1])
                                 startTimes.append(startTime)
                                 endTimes.append(endTime)
                         if self._halt_dither: break
@@ -481,7 +473,7 @@ class ConexController:
         self.stop(wait=False)  # If the user wants to move, then forcibly stop whatever we were doing before (indcluding dithers)
         with self._rlock:
             self._update_cur_status(self.status())
-            if self.cur_status['state'] == 'Offline': return False
+            if json.loads(self.cur_status)['state'] == 'Offline': return False
             self._startedMove += 1
         self._movement_thread = threading.Thread(target=self.move, args=(x, y,),
                                        name=f'Move to ({x}, {y})')
@@ -577,6 +569,7 @@ def dither_two_point_positions(start_x, start_y, stop_x, stop_y, user_n_steps, s
     if not (np.all(x_grid == 0) or np.all(y_grid == 0)):
         points.append((x_grid[-1], y_grid[-1]))
     return points
+
 
 
 if __name__ == "__main__":
