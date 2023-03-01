@@ -63,8 +63,9 @@ CONEX_COMMANDS = tuple([MOVE_COMMAND_KEY, DITHER_COMMAND_KEY, STOP_COMMAND_KEY])
 SETTING_KEYS = tuple(COMMANDSCONEX.keys())
 COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + list(CONEX_COMMANDS)])
 
-
 OBSERVING_REQUEST_CHANNEL = 'command:observation:request'
+
+DITHER_LOG_KEY = "paths:logs-folder-name"
 
 
 class ConexController:
