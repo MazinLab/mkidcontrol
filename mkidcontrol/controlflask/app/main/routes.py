@@ -874,10 +874,10 @@ def command_conex():
         elif cmd == "dither":
             dith_info = json.loads(request.values.get("dither_info"))
             startx, starty = dith_info['start'].split(',')
-            endx, endy = dith_info['stop'].split(',')
+            stopx, stopy = dith_info['stop'].split(',')
             conex_cmd = "conex:dither"
-            send_dict = {'startx': float(startx), 'stopx': float(endx),
-                         'starty': float(starty), 'stopy': float(endy),
+            send_dict = {'startx': float(startx), 'stopx': float(stopx),
+                         'starty': float(starty), 'stopy': float(stopy),
                          'n': int(float(dith_info['n'])), 't': float(dith_info['t'])}
         elif cmd == "stop":
             conex_cmd = "conex:stop"
