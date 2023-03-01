@@ -38,6 +38,8 @@ from mkidcontrol.config import FLASK_KEYS, REDIS_TS_KEYS, FLASK_CHART_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
 
+from mkidcontrol.agents.xkid.observingAgent import INSTRUMENT_OBSERVING_KEY
+
 # TODO: ObsLog, ditherlog, dashboardlog
 
 # TODO: Add redis key capturing whether we are observing or not!
@@ -115,8 +117,8 @@ def index():
     obs = ObsControlForm()
     conex = ConexForm()
 
-    sending_photons = os.path.exists(current_app.dashcfg.paths.send_photons_file)
-    cooldown_scheduled = True if (current_app.redis.read('device-settings:magnet:cooldown-scheduled') == "yes") else False
+    sending_photons = True if (current_app.redis.read(INSTRUMENT_OBSERVING_KEY).lower() == "observing") else False
+    cooldown_scheduled = True if (current_app.redis.read('device-settings:magnet:cooldown-scheduled').lower() == "yes") else False
     if cooldown_scheduled:
         cooldown_time = float(current_app.redis.read('device-settings:magnet:cooldown-scheduled:timestamp'))
         cooldown_time = datetime.datetime.fromtimestamp(cooldown_time).strptime('%Y-%m-%dT%H:%M')

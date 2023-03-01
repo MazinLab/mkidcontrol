@@ -1,4 +1,5 @@
 status:
+  instrument-observing: 'observing'
   device:
     conex:
       status: "OK"

@@ -46,6 +46,7 @@ BEAMMAP_FILE_KEY = 'datasaver:beammap'
 GUI_LIVE_IMAGE_DEFAULTS_KEY = 'gui:live_image_config'
 
 OBSERVING_REQUEST_CHANNEL = 'command:observation-request'
+INSTRUMENT_OBSERVING_KEY = 'status:instrument-observing'
 
 GEN2_REDIS_MAP = {'dashboard.max_count_rate': 'readout:count_rate_limit',
                   'beammap': BEAMMAP_FILE_KEY,
@@ -355,6 +356,7 @@ if __name__ == "__main__":
                 if request['type'] == 'abort':
                     getLogger(__name__).debug(f'Request to stop while nothing in progress.')
                     pm.stopWriting()
+                    redis.publish(INSTRUMENT_OBSERVING_KEY, "not observing", store=True)
                     continue
 
 
@@ -376,6 +378,7 @@ if __name__ == "__main__":
                 fits_imagecube.startIntegration(startTime=mkcu.next_utc_second(), integrationTime=fits_exp_time)
                 md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
                 obs_log.info(json.dumps(dict(md_start)))
+                redis.publish(INSTRUMENT_OBSERVING_KEY, "observing", store=True)
 
             try:
                 request = request_q.get(timeout=fits_exp_time - .1)
@@ -388,6 +391,7 @@ if __name__ == "__main__":
                     pm.stopWriting()  # Stop writing photons, no need to touch the imagecube
                     #TODO write out a truncated fits?
                     limitless_integration = False
+                    redis.publish(INSTRUMENT_OBSERVING_KEY, "not observing", store=True)
                     continue
 
             im_data, start_t, expo_t = fits_imagecube.receiveImage(timeout=True, return_info=True)
