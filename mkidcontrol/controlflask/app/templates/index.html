@@ -353,6 +353,7 @@
         source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
         source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
 
+        // Helper functions for handling submitting data from clicked events
         var obsstopsource = new EventSource("/receive_obs_dict");
         obsstopsource.addEventListener("message", function(e){
             var to_disable = ["flat", "dark"]
@@ -385,7 +386,6 @@
         obsstopsource.addEventListener("open", function (e) {console.log('Receive Obs_dict Connection was opened: ', e);}, false);
         obsstopsource.addEventListener("error", function (e) {console.log("Receive Obs_dict Connection errored out: ", e);}, false);
 
-        // Helper functions for handling submitting data from clicked events
         function send_obs_info(buttonid){
             var obs_button = document.getElementById(buttonid)
             var to_disable = ["flat", "dark"]
