@@ -1,5 +1,12 @@
 loggers:
-  observingAgent: debug
+  observingAgent:
+    observingAgent: DEBUG
+    mkidcontrol.mkidredis: WARNING
+    purepyindi2: ERROR
+    "":
+      handlers: [ default ]
+      level: DEBUG
+      propagate: False
   controlDirector:
     werkzeug: warning
     controlDirector:

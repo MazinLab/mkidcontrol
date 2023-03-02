@@ -205,6 +205,8 @@ class MagAOX_INDI2(threading.Thread):
             #     continue
             # ts = datetime.now().timestamp() if message.timestamp is None else message.timestamp.timestamp()
             update[MAGAOX_KEYS[indikey][0]]=elem.value
+        if not update:
+            return
         self.log.debug(update)
         self.redis.store(update)
 
