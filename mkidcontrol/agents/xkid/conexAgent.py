@@ -575,7 +575,7 @@ if __name__ == "__main__":
     redis.setup_redis()
     util.setup_logging('conexAgent')
 
-    timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M")
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
     create_log('dither',
                logfile=os.path.join(redis.read(DITHER_LOG_KEY), 'dither_{}.log'.format(timestamp)),
                console=False, mpsafe=True, propagate=False,
