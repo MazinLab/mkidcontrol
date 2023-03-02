@@ -137,6 +137,17 @@ def index():
                            pix_lightcurve=pix_lightcurve, sensorkeys=list(FLASK_CHART_KEYS.values()))
 
 
+@bp.route('/instrument_settings', methods=['GET', 'POST'])
+def instrument_settings():
+    """
+    """
+    conex = ConexForm()
+
+    array_fig = initialize_array_figure(current_app.array_view_params)
+
+    return render_template('instrument_settings.html', conex=conex, array_fig=array_fig)
+
+
 @bp.route('/other_plots', methods=['GET'])
 def other_plots():
     """
