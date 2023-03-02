@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {{ super() }}
+
+    <div class="container-fluid">
+        <div class="flex-row">
+            <main role="main" class="col-12">
+                <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
+                    <div class="flex-column col-4">
+
+                    </div>
+
+                    <div class="flex-column col-4 border-left">
+                        <div class="flex-column flex-wrap flex-md-nowrap py-2 mb-3">
+                            <div id="dash"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex-column col-4 border-left">
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 w-25">
+                                <h4>Dither</h4>
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border px-2 w-75">
+                                <div class="px-1 w-10"><span class="dot" id="conex_status_dot"></span></div>
+                                <div class="px-1 w-10">Status: </div><div class="px-1 mw-80" id="conex_control_status"></div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.start_pos) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.stop_pos) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.dither_start, class = "btn btn-dark", onclick="command_conex(event, this.id)" ) }}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border-bottom">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.dwell_time) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                                {{ render_field(conex.n_steps) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 border-top border-left">
+                                {{ render_field(conex.conex_position, onkeypress="command_conex(event, this.id)") }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2 border-top">
+                                {{ render_field(conex.conex_stop, class ="btn btn-dark", onclick="command_conex(event, this.id)" ) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        var arrayfig = {{ array_fig | safe }};
+        Plotly.react('dash', arrayfig)
+
+        var rediskeys = {{ sensorkeys | safe }};
+        var pixel = [-1, -1];
+        var array_update_time;
+
+        var psource = new EventSource('{{ url_for("main.dashplot") }}');
+        psource.addEventListener("dashplot", function (event) {
+            var update = JSON.parse(event.data);
+            var elem = document.getElementById(update['id']);
+            var data = JSON.parse(update['data']);
+            array_update_time = update['time'];
+            if (elem) {
+                switch (update['kind']) {
+                    case "full":
+                        Plotly.react(update['id'], data);
+                        break;
+                    case "partial":
+                        Plotly.restyle(update['id'], {z: [data['z']]});
+                        break;
+                }
+                var t = Math.floor((new Date()).getTime() / 1000)
+                $("#utc-timestamp").text(t)
+            }
+            if (pixel[0] != -1 && pixel[1] != -1) {
+                Plotly.extendTraces('pixel_lightcurve', {x:[[update['time']]], y:[[data['z'][pixel[1]][pixel[0]]]]}, [0])
+            }
+        }, false);
+        psource.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
+        psource.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
+
+        function delete_pixel_lightcurve_trace(){
+            pixel = [-1, -1]
+            Plotly.deleteTraces('pixel_lightcurve', 0);
+            Plotly.react('pixel_lightcurve', {{ pix_lightcurve | safe }})
+        };
+
+        function command_conex(event, buttonid){
+            if (event.key == "Enter") {
+                var position = document.getElementById('conex_position').value;
+                var send_data = {'cmd': 'move', 'position': position};
+            } else if (buttonid == "dither_start") {
+                var start = document.getElementById('start_pos').value;
+                var stop = document.getElementById('stop_pos').value;
+                var t = document.getElementById('dwell_time').value;
+                var n = document.getElementById('n_steps').value;
+                var send_data = {'cmd': 'dither', 'dither_info': JSON.stringify({'n': n, 't': t, 'start': start, 'stop': stop})};
+            } else if (buttonid == "conex_stop") {
+                var send_data = {'cmd': 'stop'};
+            }
+            $.ajax({
+                    type:'POST',
+                    url: "{{ url_for('main.command_conex') }}",
+                    data: send_data,
+                    success: function(d){
+                        var response = JSON.parse(d);
+
+                        var status_dot = document.getElementById("conex_status_dot");
+                        if (response['success'] == 1) {
+                            status_dot.style.backgroundColor = "green"
+                        } else {
+                            status_dot.style.backgroundColor = "red"
+                        }
+                        fade_color(status_dot, 5000)
+                    }
+            })
+        }
+
+        // Update the max/min count rates on the array viewer or the update rate
+        function update_array_view_params(event, buttonid){
+            if (event.key === "Enter"){
+                var val = document.getElementById(buttonid).value;
+                $.ajax({
+                    type:'POST',
+                    url: "{{ url_for('main.update_array_viewer_params', param='', value='' ) }}" + '/' + buttonid + '/' + val,
+                    data: {},
+                    success: function (d){
+                        var new_val = JSON.parse(d)['value'];
+                        document.getElementById(buttonid).value = new_val
+                    }
+                })
+            }
+        }
+
+        // Helper function to change color of a command status div back to grey
+        function fade_color (div_id, timeout=3000) {
+            setInterval(function() {
+                div_id.style.backgroundColor = '#bbb'
+            }, timeout)
+        }
+    </script>
+
+{% endblock %}
