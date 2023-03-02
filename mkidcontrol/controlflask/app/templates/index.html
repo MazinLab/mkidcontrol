@@ -479,8 +479,10 @@
             if ((event.key === "Enter") || (buttonid.includes("home_focus"))) {
                 $.ajax({
                     type:'POST',
-                    url: "{{ url_for('main.move_focus', position='') }}"+position,
-                    data: {},
+                    url: "{{ url_for('main.move_focus') }}",
+                    data: {
+                        position: position
+                    },
                     success: function(d){
                         var response = JSON.parse(d);
                         var status_dot = document.getElementById("focus_status_dot");
@@ -530,8 +532,10 @@
         function command_hs(buttonid) {
             $.ajax({
                 type: 'POST',
-                url: "{{ url_for('main.command_heatswitch', to_position='' ) }}" + '/' + buttonid,
-                data: {},
+                url: "{{ url_for('main.command_heatswitch') }}",
+                data: {
+                    to_position: buttonid
+                },
                 success: function (d) {
                     var response = JSON.parse(d);
 
@@ -550,8 +554,11 @@
             var at_value = document.getElementById('schedule_at').value;
             $.ajax({
                 type:'POST',
-                url: "{{ url_for('main.command_magnet', cmd='', at='') }}" + '/' + buttonid + '/' + at_value,
-                data: {},
+                url: "{{ url_for('main.command_magnet') }}",
+                data: {
+                    cmd: buttonid,
+                    at: at_value
+                },
                 success: function (d){
                     var data = JSON.parse(d)
                     console.log(data)
@@ -595,8 +602,10 @@
                 var flippermoveto = flipperpos_id.val();
                 $.ajax({
                     type: 'POST',
-                    url: "{{ url_for('main.flip_mirror', position='') }}" + flippermoveto,
-                    data: {},
+                    url: "{{ url_for('main.flip_mirror') }}",
+                    data: {
+                        position: flippermoveto
+                    },
                     success: function(d){
                         var response = JSON.parse(d);
                         var status_dot = document.getElementById("flipper_status_dot");
@@ -619,8 +628,10 @@
                 var filtermoveto = filterpos_id.val();
                 $.ajax({
                     type: 'POST',
-                    url: "{{ url_for('main.change_filter', filter='' ) }}" + filtermoveto,
-                    data: {},
+                    url: "{{ url_for('main.change_filter') }}",
+                    data: {
+                        filter: filtermoveto
+                    },
                     success: function(d){
                         var response = JSON.parse(d);
                         var status_dot = document.getElementById("filter_status_dot");

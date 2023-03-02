@@ -783,9 +783,12 @@ def update_laser_powers():
     return json.dumps(resp)
 
 
-@bp.route('/flip_mirror/<position>', methods=["POST"])
-def flip_mirror(position):
+@bp.route('/flip_mirror', methods=["POST"])
+def flip_mirror():
     msg_success = 0
+
+    if request.method == "POST":
+        position = request.values.get("position")
 
     if position.lower() == "up":
         new_pos = "Up"
@@ -808,9 +811,12 @@ def flip_mirror(position):
     return json.dumps(resp)
 
 
-@bp.route('/move_focus/<position>', methods=["POST"])
-def move_focus(position):
+@bp.route('/move_focus', methods=["POST"])
+def move_focus():
     msg_success = 0
+    if request.method == "POST":
+        position = request.values.get("position")
+        
     if position == "home":
         log.debug("Sending command to home focus stage")
         msg_success += current_app.redis.publish('command:device-settings:focus:home', 'home', store=False)
@@ -827,8 +833,12 @@ def move_focus(position):
     return json.dumps(resp)
 
 
-@bp.route('/change_filter/<filter>', methods=['POST'])
-def change_filter(filter):
+@bp.route('/change_filter', methods=['POST'])
+def change_filter():
+
+    if request.method == "POST":
+        filter = request.values.get("filter")
+
     filterno, filtername = filter.split(':')
     msg_success = 0
 
@@ -897,9 +907,11 @@ def command_conex():
     return json.dumps({'success': msg_success})
 
 
-@bp.route('/command_heatswtich/<to_position>', methods=['POST'])
-def command_heatswitch(to_position):
+@bp.route('/command_heatswtich', methods=['POST'])
+def command_heatswitch():
     # TODO: Enable/disable heatswitch commands?
+    if request.method == "POST":
+        to_position = request.values.get("to_position")
     to_position = to_position.lstrip('hs_')
     msg_success = 0
 
@@ -917,8 +929,13 @@ def command_heatswitch(to_position):
     return json.dumps({'success': msg_success})
 
 
-@bp.route('/command_magnet/<cmd>/<at>', methods=['POST'])
-def command_magnet(cmd, at):
+@bp.route('/command_magnet', methods=['POST'])
+def command_magnet():
+
+    if request.method == "POST":
+        cmd = request.values.get("cmd")
+        at = request.values.get("at")
+
     log.debug(f"Heard command {cmd} (at {at})")
     msg_success = 0
     now = time.time()
@@ -952,10 +969,3 @@ def notifications():
     notifications = current_user.notifications.filter(
         Notification.timestamp > since).order_by(Notification.timestamp.asc())
     return jsonify([{'name': n.name, 'data': n.get_data(), 'timestamp': n.timestamp} for n in notifications])
-
-
-def spin_up_packetmaster(dashcfgfile, initializing_gui=False):
-    # TODO: This is where we should spin up packetmaster/create a dither log. This allows us to run it on initialization
-    #  of the gui or when we update the dashboard cfg
-    #  NB This should only create a new dither log on the initialization of the gui, not on updating the file
-    pass
