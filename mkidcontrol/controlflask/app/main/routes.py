@@ -606,7 +606,7 @@ def multi_sensor_fig(titles):
         else:
             fig.add_trace(go.Scatter(x=data[0], y=data[1], mode='lines', name=data[2], visible=False))
     fig.update_layout(
-        dict(xaxis=dict(tickangle=0, nticks=5), updatemenus=list([dict(buttons=update_menus, x=0.01, xanchor='left', y=1.1, yanchor='top')])))
+        dict(xaxis=dict(tickangle=45, nticks=5), updatemenus=list([dict(buttons=update_menus, x=0.01, xanchor='left', y=1.1, yanchor='top')])))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
