@@ -81,7 +81,7 @@ def create_app(config_class=Config, cliargs=None):
     redis.setup_redis(ts_keys=REDIS_TS_KEYS)
     app.redis = redis
 
-    dashcfg = loadcfg(redis.read('paths:config-folder-name'))
+    dashcfg = loadcfg(redis.read('gen2:dashboard-yaml'))
     beammap = dashcfg.beammap
     app.base_dir = app.config.get ('XKID_BASE_DIR')
     app.array_view_params = {'int_time': 1,
