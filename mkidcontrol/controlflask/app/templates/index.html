@@ -356,7 +356,7 @@
         // Helper functions for handling submitting data from clicked events
         var obsstopsource = new EventSource("/report_obs_status");
         obsstopsource.addEventListener("message", function(e){
-            var to_disable = ["flat", "dark"]
+            var to_disable = ["flat", "dark", "dither_start"]
             var newdata = JSON.parse(e.data);
             if (newdata['status'] == "started") {
                 var newClass = "btn btn-danger";
