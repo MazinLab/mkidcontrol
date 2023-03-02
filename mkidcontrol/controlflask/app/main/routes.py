@@ -756,7 +756,7 @@ def report_obs_status():
     def _stream():
         while True:
             obs_state = current_app.redis.read("command:event:observing", decode_json=True)
-            log.debug(f"Observation is {obs_state}")
+            # log.debug(f"Observation is {obs_state}")
             msg = f"retry:5\ndata: {obs_state}\n\n"
             yield msg
 
