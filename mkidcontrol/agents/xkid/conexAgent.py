@@ -18,13 +18,16 @@ TODO: Publish obs_dict at start/stop of each dwell step
 """
 
 import logging
+import os
 import sys
 import json
 import numpy as np
 import time
 import threading
 from serial import SerialException
+from datetime import datetime
 
+import mkidcore
 from mkidcore.corelog import create_log
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.mkidredis as redis
@@ -578,11 +581,11 @@ if __name__ == "__main__":
     redis.setup_redis(ts_keys=TS_KEYS)
     util.setup_logging('conexAgent')
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
-    create_log('ObsLog',
-               logfile=os.path.join(config.paths.logs, 'obslog_{}.json'.format(timestamp)),
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M")
+    create_log('dither',
+               logfile=os.path.join(redis.read(DITHER_LOG_KEY), 'dither_{}.log'.format(timestamp)),
                console=False, mpsafe=True, propagate=False,
-               fmt='%(message)s',
+               fmt='%(asctime)s %(message)s',
                level=mkidcore.corelog.DEBUG)
 
     try:
