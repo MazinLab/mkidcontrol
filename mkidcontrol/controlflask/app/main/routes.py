@@ -117,7 +117,7 @@ def index():
     obs = ObsControlForm()
     conex = ConexForm()
 
-    sending_photons = True if (current_app.redis.read(OBSERVING_EVENT_KEY).lower() == "observing") else False
+    sending_photons = True if (current_app.redis.read(OBSERVING_EVENT_KEY, decode_json=True)['state'].lower() == "started") else False
     cooldown_scheduled = True if (current_app.redis.read('device-settings:magnet:cooldown-scheduled').lower() == "yes") else False
     if cooldown_scheduled:
         cooldown_time = float(current_app.redis.read('device-settings:magnet:cooldown-scheduled:timestamp'))
