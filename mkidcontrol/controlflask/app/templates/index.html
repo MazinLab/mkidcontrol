@@ -21,7 +21,7 @@
                                 {{ render_field(obs.obsStartStop, class="btn btn-primary", onclick="send_obs_info(this.id)",  value="Start Observing") }}
                             {% endif %}
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
-                                {{ render_field(obs.name ) }}
+                                {{ render_field(obs.obsName ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
                                 {{ render_field(obs.obs_duration ) }}
@@ -371,15 +371,15 @@
                 if (newdata['type'] != "abort"){
                     document.getElementById(to_disable[i]).disabled = true
                     document.getElementById("obs_duration").disabled = true
-                    document.getElementById("name").disabled = true
+                    document.getElementById("obsName").disabled = true
                 } else {
                     document.getElementById(to_disable[i]).disabled = false
                     document.getElementById("obs_duration").disabled = false
-                    document.getElementById("name").disabled = false
+                    document.getElementById("obsName").disabled = false
                     // document.getElementById("obs_duration").value = 0.0;
                 }
             }
-            document.getElementById("name").value = name;
+            document.getElementById("obsName").value = name;
             document.getElementById("obsStartStop").setAttribute("class", newClass);
             document.getElementById("obsStartStop").setAttribute("value", newText);
         })
@@ -395,14 +395,14 @@
 
             if (document.getElementById("obsStartStop").value.includes("Start")) {
                 if (to_disable.includes(buttonid)) {
-                    if (document.getElementById("name").value === "---") {
+                    if (document.getElementById("obsName").value === "---") {
                         name = obs_button.value
                     } else {
-                        name = document.getElementById("name").value
+                        name = document.getElementById("obsName").value
                     }
                     var obs_type = obs_button.value
                 } else {
-                    name = document.getElementById("name").value
+                    name = document.getElementById("obsName").value
                     var obs_type = "Stare"
                 }
                 var send_url = "{{ url_for('main.send_obs_dict', startstop='start' ) }}";
@@ -503,11 +503,12 @@
                 var position = document.getElementById('conex_position').value;
                 var send_data = {'cmd': 'move', 'position': position};
             } else if (buttonid == "dither_start") {
+                var name = document.getElementById('obsName').value
                 var start = document.getElementById('start_pos').value;
                 var stop = document.getElementById('stop_pos').value;
                 var t = document.getElementById('dwell_time').value;
                 var n = document.getElementById('n_steps').value;
-                var send_data = {'cmd': 'dither', 'dither_info': JSON.stringify({'n': n, 't': t, 'start': start, 'stop': stop})};
+                var send_data = {'cmd': 'dither', 'dither_info': JSON.stringify({'name': name, 'n': n, 't': t, 'start': start, 'stop': stop})};
             } else if (buttonid == "conex_stop") {
                 var send_data = {'cmd': 'stop'};
             }

@@ -894,14 +894,15 @@ def command_conex():
             startx, starty = dith_info['start'].split(',')
             stopx, stopy = dith_info['stop'].split(',')
             conex_cmd = "conex:dither"
-            send_dict = {'startx': float(startx), 'stopx': float(stopx),
+            send_dict = {'name': dith_info['name'],
+                         'startx': float(startx), 'stopx': float(stopx),
                          'starty': float(starty), 'stopy': float(stopy),
                          'n': int(float(dith_info['n'])), 't': float(dith_info['t'])}
         elif cmd == "stop":
             conex_cmd = "conex:stop"
             send_dict = {}
 
-    msg_success += current_app.redis.publish(conex_cmd, json.dumps(send_dict), store=False)
+    msg_success += current_app.redis.publish(f"command:{conex_cmd}", json.dumps(send_dict), store=False)
     log.debug(f"Commanding conex to {cmd}. Params: {send_dict}")
 
     return json.dumps({'success': msg_success})
