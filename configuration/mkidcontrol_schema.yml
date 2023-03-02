@@ -233,14 +233,12 @@ tcs:
   seeing-fwhm-corr: '' # Seeing Correction
   seeing-time: '' # Seeing Timestamp
 
-
 instrument:
   conex-ref-x:
   conex-ref-y:
   conex-dpdx:
   conex-dpdy:
   device-angle:
-
   platescale:
   pixel-ref-x:
   pixel-ref-y:
