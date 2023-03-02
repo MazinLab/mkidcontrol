@@ -385,7 +385,7 @@ if __name__ == "__main__":
                 md_start = get_obslog_record(x.timestamp(), fits_exp_time)
                 tics[-1] = time.time() - tics[-1]
                 obs_log.info(json.dumps(dict(md_start)))
-                redis.store(dict(OBSERVING_EVENT_KEY=last_request), encode_json=True)
+                redis.store({OBSERVING_EVENT_KEY:last_request}, encode_json=True)
 
             try:
                 tics.append(time.time())
@@ -400,7 +400,7 @@ if __name__ == "__main__":
                     # TODO write out a truncated fits?
                     limitless_integration = False
                     last_request['state'] = 'stopped'
-                    redis.store(dict(OBSERVING_EVENT_KEY=last_request), encode_json=True)
+                    redis.store({OBSERVING_EVENT_KEY:last_request}, encode_json=True)
                     continue
 
             tics.append(time.time())
@@ -417,6 +417,9 @@ if __name__ == "__main__":
                 fits_imagecube.startIntegration(startTime=0, integrationTime=fits_exp_time)
                 tics[0] = time.time() - tics[0]
                 md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
+            else:
+                last_request['state'] = 'stopped'
+                redis.store({OBSERVING_EVENT_KEY: last_request}, encode_json=True)
 
             header_dict = dict(image.header)
 
@@ -439,6 +442,7 @@ if __name__ == "__main__":
                 fn = os.path.join(fits_dir, redis.read(SCI_FILE_TEMPLATE_KEY).format(**header_dict))
                 fac.generate(fname=fn, name=request['name'], save=True, overwrite=True, threaded=True,
                              complete_callback=lambda x: redis.store({LAST_SCI_FILE_KEY: x}))
+
             if not limitless_integration:
                 tics=[]
 
