@@ -846,8 +846,13 @@ def change_filter(filter):
     return json.dumps(resp)
 
 
-@bp.route('/update_array_viewer_params/<param>/<value>', methods=['POST'])
-def update_array_viewer_params(param, value):
+@bp.route('/update_array_viewer_params', methods=['POST'])
+def update_array_viewer_params():
+
+    if request.method == "POST":
+        param = request.values.get("param")
+        value = request.values.get("value")
+
     log.info(f"Updating array viewer parameter {param} to {value}")
     if param == "int_time":
         new_val = min(max(float(value), 0.01), 10.0)

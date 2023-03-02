@@ -575,8 +575,11 @@
                 var val = document.getElementById(buttonid).value;
                 $.ajax({
                     type:'POST',
-                    url: "{{ url_for('main.update_array_viewer_params', param='', value='' ) }}" + '/' + buttonid + '/' + val,
-                    data: {},
+                    url: "{{ url_for('main.update_array_viewer_params') }}",
+                    data: {
+                        param: buttonid,
+                        value: val
+                    },
                     success: function (d){
                         var new_val = JSON.parse(d)['value'];
                         document.getElementById(buttonid).value = new_val
