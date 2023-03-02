@@ -708,16 +708,16 @@ def dashplot():
 def send_obs_dict(startstop):
     # TODO: Modify this to be a 'sender' that either sends a start or stop obs dict.
     if request.method == "POST":
-        target = request.values.get("name")
-        if target == "---":
-            target = ''
+        name = request.values.get("name")
+        if name == "---":
+            name = ''
         obs_type = request.values.get("type").lower()
         duration = float(request.values.get("duration"))
         start = datetime.datetime.utcnow().timestamp()
         seq_i = int(request.values.get("seq_i"))
         seq_n = int(request.values.get("seq_n"))
         if obs_type != "abort":
-            obs_dict = {'name': target, "type": obs_type,
+            obs_dict = {'name': name, "type": obs_type,
                         'duration': duration, 'start': start,
                         'seq_i': seq_i, 'seq_n': seq_n}
         else:
@@ -727,11 +727,11 @@ def send_obs_dict(startstop):
     log.info(f"Observing command: {obs_dict}")
 
     if startstop == "start":
-        log.info(f"Start observing target: {target}")
+        log.info(f"Start observing: {name}")
         current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
-        current_app.redis.store({"observing:target": target})
+        # current_app.redis.store({"observing:target": name})
     else:
-        log.info(f"Stop observing target: {target}")
+        log.info(f"Stop observing: {name}")
         current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
     return '', 204
 

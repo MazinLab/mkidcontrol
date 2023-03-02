@@ -21,7 +21,7 @@
                                 {{ render_field(obs.obsStartStop, class="btn btn-primary", onclick="send_obs_info(this.id)",  value="Start Observing") }}
                             {% endif %}
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
-                                {{ render_field(obs.target ) }}
+                                {{ render_field(obs.name ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
                                 {{ render_field(obs.obs_duration ) }}
@@ -361,25 +361,25 @@
             if (newdata['type'] != "abort") {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
-                var target = newdata['name'];
+                var name = newdata['name'];
             } else {
                 var newClass = "btn btn-primary";
                 var newText = "Start Observing";
-                var target = "---";
+                var name = "---";
             }
             for (let i=0; i< to_disable.length; i++) {
                 if (newdata['type'] != "abort"){
                     document.getElementById(to_disable[i]).disabled = true
                     document.getElementById("obs_duration").disabled = true
-                    document.getElementById("target").disabled = true
+                    document.getElementById("name").disabled = true
                 } else {
                     document.getElementById(to_disable[i]).disabled = false
                     document.getElementById("obs_duration").disabled = false
-                    document.getElementById("target").disabled = false
+                    document.getElementById("name").disabled = false
                     // document.getElementById("obs_duration").value = 0.0;
                 }
             }
-            document.getElementById("target").value = target;
+            document.getElementById("name").value = name;
             document.getElementById("obsStartStop").setAttribute("class", newClass);
             document.getElementById("obsStartStop").setAttribute("value", newText);
         })
@@ -391,18 +391,18 @@
             var to_disable = ["flat", "dark"]
 
             var duration = document.getElementById('obs_duration').value
-            var target;
+            var name;
 
             if (document.getElementById("obsStartStop").value.includes("Start")) {
                 if (to_disable.includes(buttonid)) {
-                    if (document.getElementById("target").value === "---") {
-                        target = obs_button.value
+                    if (document.getElementById("name").value === "---") {
+                        name = obs_button.value
                     } else {
-                        target = document.getElementById("target").value
+                        name = document.getElementById("name").value
                     }
                     var obs_type = obs_button.value
                 } else {
-                    target = document.getElementById("target").value
+                    name = document.getElementById("name").value
                     var obs_type = "Stare"
                 }
                 var send_url = "{{ url_for('main.send_obs_dict', startstop='start' ) }}";
@@ -414,7 +414,7 @@
                     type:'POST',
                     url: send_url,
                     data: {
-                        name: target,
+                        name: name,
                         type: obs_type,
                         duration: duration,
                         seq_i: 0,
