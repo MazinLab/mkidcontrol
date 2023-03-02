@@ -24,7 +24,7 @@ extern "C" {
 
 #define N_DONE_SEMS 10
 #define MKIDSHM_VERSION 4
-#define TIMEDWAIT_FUDGE 5000 //half ms
+#define TIMEDWAIT_FUDGE 0 //half ms
 #define STRBUFLEN 80
 #define WVLIDLEN 150
 typedef int image_t; //can mess around with changing this w/o many subsitutions

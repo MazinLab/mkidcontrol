@@ -1,6 +1,7 @@
 loggers:
   observingAgent:
     observingAgent: DEBUG
+    observingAgent.magaox: INFO
     mkidcontrol.mkidredis: WARNING
     purepyindi2: ERROR
     "":

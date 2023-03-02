@@ -179,6 +179,7 @@ command:
   get-cold: 'now'
   abort-cooldown: 'abort'
   cancel-scheduled-cooldown: 'cancel'
+  device-settings: # replicant of device-settings top level tree
   event:
     quenching: False
     observing: ""

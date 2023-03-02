@@ -10,6 +10,7 @@ from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
 from mkidcore.objects import Beammap  # must keep to have the yaml parser loaded
+import calendar
 from mkidcore import metadata
 from mkidcore import utils as mkcu
 from mkidcore.config import load as load_yaml_config
@@ -136,7 +137,7 @@ def get_obslog_record(start, duration):
 
     except RedisError:
         fits_kv_pairs = {}
-        getLogger(__name__).error('Failed to query redis for metadata. Most values will be defaults.')
+        log.error('Failed to query redis for metadata. Most values will be defaults.')
     fits_kv_pairs['UNIXSTR'] = start
     fits_kv_pairs['UNIXEND'] = fits_kv_pairs['UNIXSTR'] + duration
     return metadata.build_header(metadata=fits_kv_pairs, use_simbad=False, KEY_INFO=metadata.XKID_KEY_INFO,
@@ -204,7 +205,7 @@ class MagAOX_INDI2(threading.Thread):
             # if metric_value in (None, float('inf'), float('-inf')):
             #     continue
             # ts = datetime.now().timestamp() if message.timestamp is None else message.timestamp.timestamp()
-            update[MAGAOX_KEYS[indikey][0]]=elem.value
+            update[MAGAOX_KEYS[indikey][0]] = elem.value
         if not update:
             return
         self.log.debug(update)
@@ -356,17 +357,17 @@ if __name__ == "__main__":
     request_thread.start()
     FITS_FILE_TIME = 10
 
-    redis.store({OBSERVING_EVENT_KEY:
-                     {'name': '', 'state': 'stopped', 'seq_i': 0, 'seq_n': 0, 'start': 0, 'type': 'abort'}},
-                encode_json=True)
+    last_request = {'name': '', 'state': 'stopped', 'seq_i': 0, 'seq_n': 0, 'start': 0, 'type': 'abort'}
+    redis.store({OBSERVING_EVENT_KEY: last_request}, encode_json=True)
     try:
         while True:
+
             if not limitless_integration:
                 request = request_q.get(block=True)
                 last_request = request.copy()
                 last_request['state'] = 'started'
                 if request['type'] == 'abort':
-                    getLogger(__name__).debug(f'Request to stop while nothing in progress.')
+                    log.debug(f'Request to stop while nothing in progress.')
                     pm.stopWriting()
                     continue
 
@@ -378,22 +379,22 @@ if __name__ == "__main__":
 
                 pm.startWriting(bin_dir)
                 x = datetime.utcnow()
-                tics=[time.time()]
-                fits_imagecube.startIntegration(startTime=mkcu.next_second(x), integrationTime=fits_exp_time)
+                tics = [time.time()]
+                fits_imagecube.startIntegration(startTime=calendar.timegm(datetime.utcnow().timetuple()) + 1,
+                                                integrationTime=fits_exp_time)
                 md_start = get_obslog_record(x.timestamp(), fits_exp_time)
-                tics[-1]=time.time()-tics[-1]
+                tics[-1] = time.time() - tics[-1]
                 obs_log.info(json.dumps(dict(md_start)))
                 redis.store(dict(OBSERVING_EVENT_KEY=last_request), encode_json=True)
 
             try:
                 tics.append(time.time())
                 request = request_q.get(timeout=fits_exp_time - .1)
-                tics[-1] = time.time() - tics[-1]
             except queue.Empty:
-                pass
+                tics[-1] = time.time() - tics[-1]
             else:
                 if request['type'] != 'abort':
-                    getLogger(__name__).warning(f'Ignoring observation request because one is already in progress')
+                    log.warning(f'Ignoring observation request because one is already in progress')
                 else:
                     pm.stopWriting()  # Stop writing photons, no need to touch the imagecube
                     # TODO write out a truncated fits?
@@ -401,17 +402,20 @@ if __name__ == "__main__":
                     last_request['state'] = 'stopped'
                     redis.store(dict(OBSERVING_EVENT_KEY=last_request), encode_json=True)
                     continue
+
             tics.append(time.time())
             im_data, start_t, expo_t = fits_imagecube.receiveImage(timeout=True, return_info=True)
             tics[-1] = time.time() - tics[-1]
-            log.info(f'Start: {tics[0]*1000:.0f} ms, Abort pause: {tics[1]:.2f} s, Receive pause: {tics[2]:.2f} s')
+            log.info(f'Start: {tics[0] * 1000:.0f} ms, Abort pause: {tics[1]:.2f} s, Receive pause: {tics[2]:.2f} s')
             md_end = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
             md_start['wavecal'] = md_end['wavecal'] = fits_imagecube.wavecalID  # .decode('UTF-8', "backslashreplace")
             md_start['wmin'] = md_end['wmin'] = fits_imagecube.wvlStart
             md_start['wmax'] = md_end['wmax'] = fits_imagecube.wvlStop
             image = fits.ImageHDU(data=im_data, header=merge_start_stop_headers(md_start, md_end))
             if limitless_integration:
+                tics[0] = time.time()
                 fits_imagecube.startIntegration(startTime=0, integrationTime=fits_exp_time)
+                tics[0] = time.time() - tics[0]
                 md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
 
             header_dict = dict(image.header)
@@ -435,6 +439,8 @@ if __name__ == "__main__":
                 fn = os.path.join(fits_dir, redis.read(SCI_FILE_TEMPLATE_KEY).format(**header_dict))
                 fac.generate(fname=fn, name=request['name'], save=True, overwrite=True, threaded=True,
                              complete_callback=lambda x: redis.store({LAST_SCI_FILE_KEY: x}))
+            if not limitless_integration:
+                tics=[]
 
     except Exception as e:
         log.critical(f'Fatal Error: {e}')
