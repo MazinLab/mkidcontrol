@@ -2,10 +2,10 @@
 	path = mkidreadout
 	url = https://github.com/MazinLab/MKIDReadout
 	branch = develop
-[submodule "magaoxindi"]
-	path = magaoxindi
-	url = https://github.com/magao-x/purepyindi
 [submodule "mkidcore"]
 	path = mkidcore
 	url = https://www.github.com/mazinlab/mkidcore.git
 	branch = develop
+[submodule "purepyindi2"]
+	path = purepyindi2
+	url = https://github.com/xwcl/purepyindi2.git
