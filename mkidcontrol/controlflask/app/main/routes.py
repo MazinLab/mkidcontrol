@@ -702,7 +702,7 @@ def dashplot():
             else:
                 data = json.dumps({'id': 'dash',
                                    'kind': 'partial',
-                                   'data': json.dumps({'z': im}),
+                                   'data': json.dumps({'z': im}, cls=plotly.utils.PlotlyJSONEncoder),
                                    'time': datetime.datetime.fromtimestamp(time.time()).strftime(
                                        "%m/%d/%Y %H:%M:%S.%f")[:-4]})
 
