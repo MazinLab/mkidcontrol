@@ -418,6 +418,7 @@ def system():
 @bp.route('/new_night', methods=['GET', 'POST'])
 def new_night():
     # TODO: Turn new night & configuration into one page once further stabilized & tested
+    # TODO: Add "you must restart the gui if you change the beammap" message
     newnight = NewNightForm()
     ymls_to_copy = ['dashboard.yml', 'hightemplar.yml', 'roaches.yml']
 
