@@ -15,7 +15,7 @@ from mkidcore import utils as mkcu
 from mkidcore.config import load as load_yaml_config
 from astropy.io import fits
 from mkidcore.fits import CalFactory
-from purepyindi.client import INDIClient, ConnectionStatus
+from purepyindi2 import messages, client
 from mkidcontrol.packetmaster3.packetmaster import Packetmaster
 from mkidcontrol.config import REDIS_TS_KEYS
 import logging
@@ -88,7 +88,7 @@ MAGAOX_KEYS = {
 }
 
 START_FITS_KEYS = ('UNIXSTR',)  # TODO
-MIDPOINT_FITS_KEYS = {'UNIXSTR':('UNIXSTR', 'UNIXEND')}  # TODO
+MIDPOINT_FITS_KEYS = {'UNIXSTR': ('UNIXSTR', 'UNIXEND')}  # TODO
 
 OBSLOG_RECORD_KEYS = {
     # This should be a superset of mkidcore.metadata.XKID_KEY_INFO
@@ -132,10 +132,10 @@ def get_obslog_record(start, duration):
     """
     try:
         kv_pairs = redis.read(list(OBSLOG_RECORD_KEYS.keys()), ts_value_only=True, error_missing=False)
-        fits_kv_pairs = {OBSLOG_RECORD_KEYS[k]:v for k, v in kv_pairs.items()}
+        fits_kv_pairs = {OBSLOG_RECORD_KEYS[k]: v for k, v in kv_pairs.items()}
 
     except RedisError:
-        fits_kv_pairs = None
+        fits_kv_pairs = {}
         getLogger(__name__).error('Failed to query redis for metadata. Most values will be defaults.')
     fits_kv_pairs['UNIXSTR'] = start
     fits_kv_pairs['UNIXEND'] = fits_kv_pairs['UNIXSTR'] + duration
@@ -183,59 +183,51 @@ def parse_args():
     return parser.parse_args()
 
 
-class MagAOX_INDI(threading.Thread):
+class MagAOX_INDI2(threading.Thread):
+    INTERESTING_DEVICES = ['tcsi', 'holoop', 'loloop', 'camwfs']
+
     def __init__(self, redis, *args, start=False, **kwargs):
-        super(MagAOX_INDI, self).__init__(name='MagAO-X INDI Manager')
+        super(MagAOX_INDI2, self).__init__(*args, name='MagAO-X INDI Manager', **kwargs)
         self.daemon = True
         self.redis = redis
+        self.log = log.getChild('magaox')
         if start:
             self.start()
 
+    def indi2redis(self, message: messages.IndiMessage):
+        device_name, prop_name = message.device, message.name
+        update = {}
+        for element_name, elem in message.elements():
+            indikey = f'{device_name}.{prop_name}.{element_name}'
+            if indikey not in MAGAOX_KEYS:
+                continue
+            # if metric_value in (None, float('inf'), float('-inf')):
+            #     continue
+            # ts = datetime.now().timestamp() if message.timestamp is None else message.timestamp.timestamp()
+            update[MAGAOX_KEYS[indikey][0]]=elem.value
+        self.log.debug(update)
+        self.redis.store(update)
+
     def run(self):
-        def indi2redis(element, changed):
-            if changed:
-                indikey = f'{element.property.device.name}.{element.property.name}.{element.name}'
-                log.getChild('magaox').debug(MAGAOX_KEYS[indikey][0], element.value)
-                self.redis.store(MAGAOX_KEYS[indikey][0], element.value)
-
-        from collections import defaultdict
-        keys_by_device = defaultdict(list)
-        for k in MAGAOX_KEYS:
-            d, p, e = k.split('.')
-            keys_by_device[d].append((p, e))
-
-        indi = INDIClient('localhost', 7624)  # TODO add error handling and autorecovery
-        unwatched = set(keys_by_device.keys())
-        first_start = True
+        # from collections import defaultdict
+        # keys_by_device = defaultdict(list)
+        # for k in MAGAOX_KEYS:
+        #     d, p, e = k.split('.')
+        #     keys_by_device[d].append((p, e))
 
         while True:
-
-            if indi.status == ConnectionStatus.ERROR or first_start:
-                log.info("Starting MagAO-X connection")
-                try:
-                    indi.start()
-                    first_start = False
-                except Exception:
-                    log.error(f"Failed to start, connection status: {indi.status}")
-                # unwatched = set(keys_by_device.keys())  #TODO
-
-            while unwatched and indi.status == ConnectionStatus.CONNECTED:
-                for d in list(unwatched):
-                    try:
-                        dev = indi.devices[d]
-                    except Exception:
-                        log.getChild('magaox').debug(f'Device {d} not available')
-                        continue
-
-                    try:
-                        for p, e in keys_by_device[d]:
-                            dev.properties[p].elements[e].add_watcher(indi2redis)
-                    except KeyError as e:
-                        log.getChild('magaox').debug(f'Device {d} missing {p}, {e}')
-                    else:
-                        unwatched.discard(d)
-
-            time.sleep(1)
+            try:
+                c = client.IndiClient()
+                c.register_callback(self.indi2redis)
+                c.connect()
+                for device_name in self.INTERESTING_DEVICES:
+                    c.get_properties(device_name)
+                self.log.info("Listening for metrics")
+                while True:
+                    time.sleep(1)
+            except Exception:
+                self.log.exception("Restarting IndiClient on error...")
+                time.sleep(1)
 
 
 def update_paths():
@@ -264,14 +256,14 @@ def test_load_redis(redis):
         DARK_FILE_TEMPLATE_KEY: 'xkid_dark_{UT-STR}_{UNIXSTR:.1f}.fits',
         FLAT_FILE_TEMPLATE_KEY: 'xkid_flat_{UT-STR}_{UNIXSTR:.1f}.fits',
         SCI_FILE_TEMPLATE_KEY: 'xkid_{UT-STR}_{UNIXSTR:.1f}.fits',
-        'instrument:conex-ref-x':0.0,
-        'instrument:conex-ref-y':0.0,
-        'instrument:conex-dpdx':0.0,
-        'instrument:conex-dpdy':0.0,
-        'instrument:device-angle':0.0,
-        'instrument:platescale':0.0,
-        'instrument:pixel-ref-x':1,
-        'instrument:pixel-ref-y':1,
+        'instrument:conex-ref-x': 0.0,
+        'instrument:conex-ref-y': 0.0,
+        'instrument:conex-dpdx': 0.0,
+        'instrument:conex-dpdy': 0.0,
+        'instrument:device-angle': 0.0,
+        'instrument:platescale': 0.0,
+        'instrument:pixel-ref-x': 1,
+        'instrument:pixel-ref-y': 1,
     }
     redis.store(data)
 
@@ -283,9 +275,9 @@ def validate_request(x):
         if x['type'] != 'abort':
             assert 'name' in x, 'Request name missing'
             assert 'start' in x, 'start missing'
-            assert x['start'] >= datetime.utcnow().timestamp()-60, 'start must be no older than 60s from now'
+            assert x['start'] >= datetime.utcnow().timestamp() - 60, 'start must be no older than 60s from now'
             assert 'seq_n' in x, 'seq_n missing'
-            assert isinstance(x['seq_n'], int) and x['seq_n']>=1, 'seq_n must be an int >= 1'
+            assert isinstance(x['seq_n'], int) and x['seq_n'] >= 1, 'seq_n must be an int >= 1'
             assert 'seq_i' in x, 'seq_i missing'
             assert isinstance(x['seq_i'], int) and 0 <= x['seq_i'] < x['seq_n'], 'seq_i must be an int in [0,seq_n)'
             assert 'duration' in x, 'duration missing'
@@ -304,7 +296,7 @@ if __name__ == "__main__":
         pass
         # test_load_redis(redis)
 
-    indi_thread = MagAOX_INDI(redis, start=True)
+    indi_thread = MagAOX_INDI2(redis, start=True)
 
     g2_cfg = gen2dashboard_yaml_to_redis(redis.read(DASHBOARD_YAML_KEY), redis)
     beammap = g2_cfg.beammap
@@ -330,6 +322,7 @@ if __name__ == "__main__":
 
     request_q = Queue()
 
+
     def _req_q_targ():
         while True:
             try:
@@ -342,6 +335,7 @@ if __name__ == "__main__":
                     request_q.put(x)
             except RedisError as e:
                 log.error(f'Error in command listener: {e}')
+
 
     def rotate_log(log, logs_dir):
         if not log.handlers or os.path.dirname(log.handlers[0].baseFilename) != logs_dir:
@@ -360,8 +354,8 @@ if __name__ == "__main__":
     request_thread.start()
     FITS_FILE_TIME = 10
 
-    redis.store(OBSERVING_EVENT_KEY,
-                {'name': '', 'state': 'stopped', 'seq_i': 0, 'seq_n':0, 'start': 0, 'type': 'abort'},
+    redis.store({OBSERVING_EVENT_KEY:
+                     {'name': '', 'state': 'stopped', 'seq_i': 0, 'seq_n': 0, 'start': 0, 'type': 'abort'}},
                 encode_json=True)
     try:
         while True:
@@ -382,14 +376,17 @@ if __name__ == "__main__":
 
                 pm.startWriting(bin_dir)
                 x = datetime.utcnow()
+                tics=[time.time()]
                 fits_imagecube.startIntegration(startTime=mkcu.next_second(x), integrationTime=fits_exp_time)
                 md_start = get_obslog_record(x.timestamp(), fits_exp_time)
+                tics[-1]=time.time()-tics[-1]
                 obs_log.info(json.dumps(dict(md_start)))
-                redis.store(OBSERVING_EVENT_KEY, last_request, encode_json=True)
+                redis.store(dict(OBSERVING_EVENT_KEY=last_request), encode_json=True)
 
             try:
-                # last_request = request
+                tics.append(time.time())
                 request = request_q.get(timeout=fits_exp_time - .1)
+                tics[-1] = time.time() - tics[-1]
             except queue.Empty:
                 pass
             else:
@@ -397,15 +394,17 @@ if __name__ == "__main__":
                     getLogger(__name__).warning(f'Ignoring observation request because one is already in progress')
                 else:
                     pm.stopWriting()  # Stop writing photons, no need to touch the imagecube
-                    #TODO write out a truncated fits?
+                    # TODO write out a truncated fits?
                     limitless_integration = False
                     last_request['state'] = 'stopped'
-                    redis.store(OBSERVING_EVENT_KEY, last_request, encode_json=True)
+                    redis.store(dict(OBSERVING_EVENT_KEY=last_request), encode_json=True)
                     continue
-
+            tics.append(time.time())
             im_data, start_t, expo_t = fits_imagecube.receiveImage(timeout=True, return_info=True)
+            tics[-1] = time.time() - tics[-1]
+            log.info(f'Start: {tics[0]*1000:.0f} ms, Abort pause: {tics[1]:.2f} s, Receive pause: {tics[2]:.2f} s')
             md_end = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
-            md_start['wavecal'] = md_end['wavecal'] = fits_imagecube.wavecalID #.decode('UTF-8', "backslashreplace")
+            md_start['wavecal'] = md_end['wavecal'] = fits_imagecube.wavecalID  # .decode('UTF-8', "backslashreplace")
             md_start['wmin'] = md_end['wmin'] = fits_imagecube.wvlStart
             md_start['wmax'] = md_end['wmax'] = fits_imagecube.wvlStop
             image = fits.ImageHDU(data=im_data, header=merge_start_stop_headers(md_start, md_end))
@@ -438,3 +437,4 @@ if __name__ == "__main__":
     except Exception as e:
         log.critical(f'Fatal Error: {e}')
         pm.quit()
+        raise

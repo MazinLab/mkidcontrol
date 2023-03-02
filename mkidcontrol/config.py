@@ -2,7 +2,6 @@ import json
 import pkg_resources
 import os
 from dotenv import load_dotenv
-import numpy as np
 
 from mkidcontrol.commands import COMMAND_DICT
 
@@ -11,19 +10,21 @@ from mkidcontrol.agents.lakeshore336Agent import TS_KEYS as TS_KEYS_ls336
 from mkidcontrol.agents.lakeshore372Agent import TS_KEYS as TS_KEYS_ls372
 from mkidcontrol.agents.lakeshore625Agent import TS_KEYS as TS_KEYS_ls625
 from mkidcontrol.agents.xkid.magnetAgent import TS_KEYS as TS_KEYS_magnet
-#TODO: Make sure all schema keys are accounted for
+
+# TODO: Make sure all schema keys are accounted for
 REDIS_DB = 0
 
 REDIS_TS_RETENTION = 60 * 60 * 1000  # 60 min
 
-#TODO: Concatenate all ts keys
+# TODO: Concatenate all ts keys
 TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
-                 'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
-                 'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current',
-                 'status:magnet:field', 'status:device:ls625:output-voltage', 'status:device:heatswitch:motor:position',
-                 'status:device:focus:position:mm', 'status:device:focus:position:encoder')
+           'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
+           'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current',
+           'status:magnet:field', 'status:device:ls625:output-voltage', 'status:device:heatswitch:motor:position',
+           'status:device:focus:position:mm', 'status:device:focus:position:encoder')
 
-REDIS_TS_KEYS = tuple(np.unique(TS_KEYS_hs + TS_KEYS_ls336 + TS_KEYS_ls372 + TS_KEYS_ls625 + TS_KEYS_magnet + list(TS_KEYS)))
+REDIS_TS_KEYS = tuple(set(TS_KEYS_hs + TS_KEYS_ls336 + TS_KEYS_ls372 +
+                          TS_KEYS_ls625 + TS_KEYS_magnet + list(TS_KEYS)))
 
 REDIS_STATUS_KEYS = ('status:device:heatswitch:position',
                      'status:device:ls336:status',
@@ -48,7 +49,6 @@ FLASK_CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
                     'Magnet I': 'status:magnet:current',
                     'Magnet Field': 'status:magnet:field',
                     'LS625 Output V': 'status:device:ls625:output-voltage'}
-
 
 FLASK_KEYS = list(COMMAND_DICT.keys()) + list(REDIS_TS_KEYS) + list(REDIS_STATUS_KEYS)
 
@@ -839,6 +839,8 @@ REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                          'device-settings:mkidarray:regulating-temp': 0.090,
                          }
                 }
+
+
 # REDIS_SCHEMA['keys'].update(effects)
 
 
