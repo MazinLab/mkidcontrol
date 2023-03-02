@@ -735,20 +735,19 @@ def send_obs_dict(startstop):
         current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
     return '', 204
 
-@bp.route('/receive_obs_dict', methods=["GET"])
-def receive_obs_dict():
+@bp.route('/report_obs_status', methods=["GET"])
+def report_obs_status():
     """
     Receives an obs_dict and passes it back to flask to handle appropriately
-    TODO: Make sure that this triggers after starting/stopping observing has been successful
     N.B: if there's any issue with starting, one may just click 'stop', otherwise
     """
     @stream_with_context
     def _stream():
         while True:
-            for k, v in current_app.redis.listen("command:observation-request"):
-                log.debug(f"Heard {k}, {v}")
-                msg = f"retry:5\ndata: {v}\n\n"
-                yield msg
+            obs_state = current_app.redis.read("command:event:observing", decode_json=True)
+            log.debug(f"Observation is {obs_state}")
+            msg = f"retry:5\ndata: {obs_state}\n\n"
+            yield msg
 
     return current_app.response_class(_stream(), mimetype='text/event-stream', content_type='text/event-stream')
 

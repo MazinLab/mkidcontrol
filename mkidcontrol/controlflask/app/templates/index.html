@@ -354,11 +354,11 @@
         source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
 
         // Helper functions for handling submitting data from clicked events
-        var obsstopsource = new EventSource("/receive_obs_dict");
+        var obsstopsource = new EventSource("/report_obs_status");
         obsstopsource.addEventListener("message", function(e){
             var to_disable = ["flat", "dark"]
             var newdata = JSON.parse(e.data);
-            if (newdata['type'] != "abort") {
+            if (newdata['status'] == "started") {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
                 var name = newdata['name'];
