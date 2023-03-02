@@ -77,6 +77,7 @@
             var data = sentdata[key];
             var time = data[2];
             var value = data[1];
+            // TODO: Plotly.react
             Plotly.extendTraces(div, {x:[[time]], y:[[value]]}, [trace])
         }
 
