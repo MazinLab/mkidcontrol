@@ -117,7 +117,7 @@ def index():
     obs = ObsControlForm()
     conex = ConexForm()
 
-    sending_photons = True if (current_app.redis.read(INSTRUMENT_OBSERVING_KEY).lower() == "observing") else False
+    sending_photons = True if (current_app.redis.read(OBSERVING_EVENT_KEY).lower() == "observing") else False
     cooldown_scheduled = True if (current_app.redis.read('device-settings:magnet:cooldown-scheduled').lower() == "yes") else False
     if cooldown_scheduled:
         cooldown_time = float(current_app.redis.read('device-settings:magnet:cooldown-scheduled:timestamp'))
@@ -426,7 +426,7 @@ def new_night():
         base_dir = current_app.base_dir
 
         newdate = datetime.datetime.utcnow().strftime("%Y%m%d")
-        new_night_dir = os.path.join(base_dir, newdate)
+        new_night_dir = os.path.join(base_dir, f"ut{newdate}")
         try:
             os.mkdir(new_night_dir)
         except FileExistsError:
