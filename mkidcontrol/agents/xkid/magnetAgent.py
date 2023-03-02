@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from collections import defaultdict
 from transitions import MachineError, State
-from transitions.extensions import LockedMachine
+from transitions.extensions import LockedMachine, LockedGraphMachine
 import pkg_resources
 
 from mkidcontrol.devices import write_persisted_state, load_persisted_state
@@ -113,6 +113,67 @@ def compute_initial_state(statefile):
     return initial_state
 
 
+# class Magnet():
+#     pass
+#
+# m = Magnet()
+#
+# t = [{'trigger': 'abort', 'source': '*', 'dest': 'start_deramping'},
+#     {'trigger': 'quench', 'source': '*', 'dest': 'off', 'prepare': 'kill_current'},
+#     {'trigger': 'start', 'source': 'off', 'dest': 'hs_closing',
+#     'prepare': 'close_heatswitch'},
+#     {'trigger': 'start', 'source': 'deramping', 'dest': 'hs_closing',
+#     'prepare': 'close_heatswitch'},
+#     {'trigger': 'next', 'source': 'hs_closing', 'dest': 'start_ramping', 'conditions': 'heatswitch_closed'},
+#     {'trigger': 'next', 'source': 'hs_closing', 'dest': None, 'prepare': 'close_heatswitch'},
+#     {'trigger': 'next', 'source': 'start_ramping', 'dest': None, 'before': 'begin_ramp_up'},
+#     {'trigger': 'next', 'source': 'start_ramping', 'dest': 'ramping', 'conditions': 'ramp_ok'},
+#     {'trigger': 'next', 'source': 'ramping', 'dest': None, 'unless': 'current_ready_to_soak',
+#     'conditions': 'ramp_ok'},
+#     {'trigger': 'next', 'source': 'ramping', 'dest': 'soaking', 'conditions': 'current_ready_to_soak'},
+#     {'trigger': 'next', 'source': 'soaking', 'dest': None, 'unless': 'soak_time_expired',
+#     'conditions': 'current_at_soak'},
+#     {'trigger': 'next', 'source': 'soaking', 'dest': 'hs_opening',
+#     'prepare': ('open_heatswitch', 'ls372_to_pid'),
+#     'conditions': ('current_at_soak', 'soak_time_expired')},
+#     {'trigger': 'next', 'source': 'soaking', 'dest': 'start_deramping'},
+#     {'trigger': 'next', 'source': 'hs_opening', 'dest': 'start_cooling',
+#     'conditions': ('heatswitch_opened', 'ls372_in_pid')},
+#     {'trigger': 'next', 'source': 'hs_opening', 'dest': None,
+#     'prepare': ('open_heatswitch', 'ls372_to_pid')},
+#     {'trigger': 'next', 'source': 'start_cooling', 'dest': None, 'before': 'begin_ramp_down'},
+#     {'trigger': 'next', 'source': 'start_cooling', 'dest': 'cooling', 'conditions': 'deramp_ok'},
+#     {'trigger': 'next', 'source': 'cooling', 'dest': None, 'unless': 'device_ready_for_regulate',
+#     'conditions': ('heatswitch_opened', 'deramp_ok')},
+#     {'trigger': 'next', 'source': 'cooling', 'dest': 'regulating', 'before': 'ls372_to_pid',
+#     'conditions': ('heatswitch_opened', 'ls372_in_pid', 'deramp_ok')},
+#     {'trigger': 'next', 'source': 'cooling', 'dest': 'start_deramping', 'conditions': 'heatswitch_closed'},
+#     {'trigger': 'next', 'source': 'regulating', 'dest': None,
+#     'conditions': ('device_regulatable', 'ls372_in_pid')},
+#     {'trigger': 'next', 'source': 'regulating', 'dest': 'start_deramping'},
+#     {'trigger': 'next', 'source': 'start_deramping', 'dest': None, 'prepare': 'begin_ramp_down'},
+#     {'trigger': 'next', 'source': 'start_deramping', 'dest': 'deramping', 'conditions': 'deramp_ok'},
+#     {'trigger': 'next', 'source': 'deramping', 'dest': None, 'unless': 'current_off',
+#     'prepare': 'begin_ramp_down'},
+#     {'trigger': 'next', 'source': 'deramping', 'dest': 'off'},
+#     {'trigger': 'next', 'source': 'off', 'dest': None}
+#     ]
+#
+# s = (State('off', on_enter=['record_entry', 'kill_current']),
+#     State('hs_closing', on_enter='record_entry'),
+#     State('start_ramping', on_enter='record_entry'),
+#     State('ramping', on_enter='record_entry'),
+#     State('soaking', on_enter='record_entry'),
+#     State('hs_opening', on_enter='record_entry'),
+#     State('start_cooling', on_enter='record_entry'),
+#     State('cooling', on_enter='record_entry'),
+#     State('regulating', on_enter='record_entry'),
+#     State('start_deramping', on_enter='record_entry'),
+#     # Entering ramping MUST succeed
+#     State('deramping', on_enter='record_entry'))
+#
+# mach = LockedGraphMachine(model=m, transitions=t, states=s)
+
 class MagnetController(LockedMachine):
     LOOP_INTERVAL = 1
     BLOCKS = defaultdict(set)  # This holds the ls625 commands that are blocked out in a given state
@@ -131,15 +192,11 @@ class MagnetController(LockedMachine):
              'prepare': 'close_heatswitch'},
             {'trigger': 'start', 'source': 'deramping', 'dest': 'hs_closing',
              'prepare': 'close_heatswitch'},
-            # {'trigger': 'start', 'source': 'cooling', 'dest': 'hs_closing', 'prepare': 'close_heatswitch'},
-            # {'trigger': 'start', 'source': 'regulating', 'dest': 'hs_closing', 'prepare': 'close_heatswitch'},
-            # {'trigger': 'start', 'source': 'soak', 'dest': 'hs_closing', 'prepare': 'close_heatswitch'},
 
             # Transitions for cooldown progression
 
             # stay in hs_closing until it is closed then transition to ramping
             # if we can't get the status from redis then the conditions default to false and we stay put
-            # {'trigger': 'next', 'source': 'hs_closing', 'dest': 'ramping', 'conditions': 'heatswitch_closed'},
             {'trigger': 'next', 'source': 'hs_closing', 'dest': 'start_ramping', 'conditions': 'heatswitch_closed'},
             {'trigger': 'next', 'source': 'hs_closing', 'dest': None, 'prepare': 'close_heatswitch'},
 
