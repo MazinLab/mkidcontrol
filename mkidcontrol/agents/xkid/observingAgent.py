@@ -2,7 +2,6 @@
 import queue
 import threading
 import time
-from logging import getLogger
 import os
 import argparse
 from datetime import datetime
@@ -10,9 +9,9 @@ from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
 from mkidcore.objects import Beammap  # must keep to have the yaml parser loaded
+import typing
 import calendar
 from mkidcore import metadata
-from mkidcore import utils as mkcu
 from mkidcore.config import load as load_yaml_config
 from astropy.io import fits
 from mkidcore.fits import CalFactory
@@ -196,6 +195,8 @@ class MagAOX_INDI2(threading.Thread):
             self.start()
 
     def indi2redis(self, message: messages.IndiMessage):
+        if not isinstance(message, typing.get_args(messages.IndiDefSetMessage)):
+            return
         device_name, prop_name = message.device, message.name
         update = {}
         for element_name, elem in message.elements():
@@ -212,12 +213,6 @@ class MagAOX_INDI2(threading.Thread):
         self.redis.store(update)
 
     def run(self):
-        # from collections import defaultdict
-        # keys_by_device = defaultdict(list)
-        # for k in MAGAOX_KEYS:
-        #     d, p, e = k.split('.')
-        #     keys_by_device[d].append((p, e))
-
         while True:
             try:
                 c = client.IndiClient()
@@ -289,8 +284,33 @@ def validate_request(x):
         raise e
 
 
-if __name__ == "__main__":
+def rotate_log(log, logs_dir):
+    if not log.handlers or os.path.dirname(log.handlers[0].baseFilename) != logs_dir:
+        handler = logging.FileHandler(os.path.join(logs_dir, f'obslog_{datetime.utcnow()}.json'), 'a')
+        handler.setFormatter(logging.Formatter('%(message)s'))
+        handler.setLevel('INFO')
+        try:
+            obs_log.removeHandler(log.handlers[0])
+        except IndexError:
+            pass
+        log.addHandler(handler)
 
+
+def _req_q_targ(redis, q):
+    while True:
+        try:
+            for x in redis.listen(OBSERVING_REQUEST_CHANNEL, value_only=True, decode='json'):
+                try:
+                    validate_request(x)
+                except AssertionError as e:
+                    log.warning(f'Ignoring invalid observing request: {e}')
+                    continue
+                q.put(x)
+        except RedisError as e:
+            log.error(f'Error in command listener: {e}')
+
+
+if __name__ == "__main__":
     util.setup_logging('observingAgent')
     redis.setup_redis(ts_keys=REDIS_TS_KEYS)
 
@@ -304,8 +324,8 @@ if __name__ == "__main__":
     g2_cfg = gen2dashboard_yaml_to_redis(redis.read(DASHBOARD_YAML_KEY), redis)
     beammap = g2_cfg.beammap
 
-    livecfg = redis.read(GUI_LIVE_IMAGE_DEFAULTS_KEY, decode_json=True) or DEFAULT_PM_IMAGE_CFG
-    fitscfg = redis.read(FITS_IMAGE_DEFAULTS_KEY, decode_json=True) or DEFAULT_PM_IMAGE_CFG
+    livecfg = redis.read(GUI_LIVE_IMAGE_DEFAULTS_KEY, decode_json=True)
+    fitscfg = redis.read(FITS_IMAGE_DEFAULTS_KEY, decode_json=True)
     n_roaches = len(redis.read(GEN2_ROACHES_KEY, error_missing=True, decode_json=True)['in_use'])
     port = redis.read(GEN2_CAPTURE_PORT_KEY, error_missing=True, decode_json=True)
 
@@ -324,35 +344,7 @@ if __name__ == "__main__":
     bin_dir, fits_dir, logs_dir = update_paths()
 
     request_q = Queue()
-
-
-    def _req_q_targ():
-        while True:
-            try:
-                for x in redis.listen(OBSERVING_REQUEST_CHANNEL, value_only=True, decode='json'):
-                    try:
-                        validate_request(x)
-                    except AssertionError as e:
-                        log.warning(f'Ignoring invalid observing request: {e}')
-                        continue
-                    request_q.put(x)
-            except RedisError as e:
-                log.error(f'Error in command listener: {e}')
-
-
-    def rotate_log(log, logs_dir):
-        if not log.handlers or os.path.dirname(log.handlers[0].baseFilename) != logs_dir:
-            handler = logging.FileHandler(os.path.join(logs_dir, f'obslog_{datetime.utcnow()}.json'), 'a')
-            handler.setFormatter(logging.Formatter('%(message)s'))
-            handler.setLevel('INFO')
-            try:
-                obs_log.removeHandler(log.handlers[0])
-            except IndexError:
-                pass
-            log.addHandler(handler)
-
-
-    request_thread = threading.Thread(name='Command Listener', target=_req_q_targ)
+    request_thread = threading.Thread(name='Command Listener', target=_req_q_targ, args=(redis, request_q))
     request_thread.daemon = True
     request_thread.start()
     FITS_FILE_TIME = 10
@@ -364,13 +356,18 @@ if __name__ == "__main__":
 
             if not limitless_integration:
                 request = request_q.get(block=True)
-                last_request = request.copy()
-                last_request['state'] = 'started'
                 if request['type'] == 'abort':
                     log.debug(f'Request to stop while nothing in progress.')
                     pm.stopWriting()
                     continue
 
+                request['duration'] = int(request['duration'])
+                last_request = request.copy()
+                last_request['state'] = 'started'
+
+                dur = 'infinite' if request['duration'] == 0 else f'{request["duration"]} s'
+                log.info(f'Received request for {dur} {request["type"]} observation named '
+                         f'{request["name"]}, {int(request["seq_i"])+1}/{request["seq_n"]}')
                 limitless_integration = request['duration'] == 0
                 fits_exp_time = FITS_FILE_TIME if limitless_integration else request['duration']
 
@@ -385,7 +382,7 @@ if __name__ == "__main__":
                 md_start = get_obslog_record(x.timestamp(), fits_exp_time)
                 tics[-1] = time.time() - tics[-1]
                 obs_log.info(json.dumps(dict(md_start)))
-                redis.store({OBSERVING_EVENT_KEY:last_request}, encode_json=True)
+                redis.store({OBSERVING_EVENT_KEY: last_request}, encode_json=True)
 
             try:
                 tics.append(time.time())
@@ -400,7 +397,9 @@ if __name__ == "__main__":
                     # TODO write out a truncated fits?
                     limitless_integration = False
                     last_request['state'] = 'stopped'
-                    redis.store({OBSERVING_EVENT_KEY:last_request}, encode_json=True)
+                    redis.store({OBSERVING_EVENT_KEY: last_request}, encode_json=True)
+                    log.info(f'Aborted observation of {request["type"]} "{request["name"]}",'
+                             f'{int(request["seq_i"])+1}/{request["seq_n"]}.')
                     continue
 
             tics.append(time.time())
@@ -412,6 +411,7 @@ if __name__ == "__main__":
             md_start['wmin'] = md_end['wmin'] = fits_imagecube.wvlStart
             md_start['wmax'] = md_end['wmax'] = fits_imagecube.wvlStop
             image = fits.ImageHDU(data=im_data, header=merge_start_stop_headers(md_start, md_end))
+            image.header['EXPTIME'] = fits_exp_time
             if limitless_integration:
                 tics[0] = time.time()
                 fits_imagecube.startIntegration(startTime=0, integrationTime=fits_exp_time)
@@ -420,6 +420,8 @@ if __name__ == "__main__":
             else:
                 last_request['state'] = 'stopped'
                 redis.store({OBSERVING_EVENT_KEY: last_request}, encode_json=True)
+                log.info(f'Observation of {request["type"]} "{request["name"]}", '
+                         f'{int(request["seq_i"])+1}/{request["seq_n"]} complete')
 
             header_dict = dict(image.header)
 
@@ -444,7 +446,7 @@ if __name__ == "__main__":
                              complete_callback=lambda x: redis.store({LAST_SCI_FILE_KEY: x}))
 
             if not limitless_integration:
-                tics=[]
+                tics = []
 
     except Exception as e:
         log.critical(f'Fatal Error: {e}')
