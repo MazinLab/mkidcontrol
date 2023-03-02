@@ -28,7 +28,7 @@ from serial import SerialException
 from datetime import datetime
 
 import mkidcore
-from mkidcore.corelog import create_log
+from mkidcore.corelog import create_log, getLogger
 from mkidcontrol.mkidredis import RedisError
 import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
@@ -59,8 +59,6 @@ CONEX_OPERATION_STATUS_KEY = "status:device:conex:operation-status"
 CONEX_X = "status:device:conex:position-x"
 CONEX_Y = "status:device:conex:position-y"
 
-TS_KEYS = (CONEX_X, CONEX_Y)
-
 CONEX_COMMANDS = tuple([MOVE_COMMAND_KEY, DITHER_COMMAND_KEY, STOP_COMMAND_KEY])
 
 SETTING_KEYS = tuple(COMMANDSCONEX.keys())
@@ -73,7 +71,6 @@ DITHER_LOG_KEY = "paths:logs-folder-name"
 
 class ConexController:
     """
-    TODO: Add monitor function
     The ConexController manages the Conex() base class
 
     It also implements a thread safe dither routine
@@ -106,27 +103,18 @@ class ConexController:
         except:
             pass
         self.cur_status = self.status()
-        self.operation_status = self.status()
 
     def _updateState(self, newState):
         with self._rlock:
             self.state = (self.state[1], newState)
-
+            log.info(f"{CONEX_CONTROLLER_STATE_KEY}, {json.dumps(self.state)}")
             self.redis.publish(CONEX_CONTROLLER_STATE_KEY, json.dumps(self.state))
 
     def _update_cur_status(self, s):
         with self._rlock:
             self.cur_status = s
+            log.info(f"{CONEX_CONTROLLER_STATUS_KEY}, {s}")
             self.redis.publish(CONEX_CONTROLLER_STATUS_KEY, s)
-
-    def _update_operation_status(self, s):
-        with self._rlock:
-            self.operation_status = s
-            self.redis.publish(CONEX_OPERATION_STATUS_KEY, s)
-
-    def _publish_state_change(self):
-        # TODO: Tell the obslog what we're doing here
-        self.redis.publish(CONEX_CONTROLLER_LAST_CHANGE_KEY, f"{self.state[0]}->{self.state[1]}")
 
     def status(self):
         pos = (np.NaN, np.NaN)
@@ -135,15 +123,15 @@ class ConexController:
             status = self.conex.status()
             pos = self.conex.position()
             log.debug(f"Conex: {status[1]} @ pos {pos}")
+            self.redis.store({CONEX_X: pos[0], CONEX_Y: pos[1]})
         except (IOError, SerialException):
             log.error('Unable to get conex status', exc_info=True)
             self._halt_dither = True
             self._updateState('Offline')
-        self.redis.store({CONEX_X: pos[0], CONEX_Y: pos[1]}, timeseries=True)
+        log.info(f"CONEX X: {pos[0]}, CONEX Y: {pos[1]}")
         return json.dumps({'state': self.state, 'pos': pos, 'conexstatus': status[2], 'limits': self.conex.limits})
 
     def do_go_to(self, x, y):
-        # TODO
         log.info(f"Starting move to ({x}, {y})")
         started = self.start_move(x, y)
         if started:
@@ -154,7 +142,6 @@ class ConexController:
             thread.start()
 
     def do_dither(self, dither_dict):
-        # TODO
         log.info("Starting dither")
         started = self.start_dither(dither_dict)
         if started:
@@ -168,47 +155,41 @@ class ConexController:
         log.info('Conex Movement Stopped by user.')
         s = self.stop(wait=False)  # blocking
         with self._rlock:
-            self._update_operation_status(s)
-        self._publish_state_change()
+            self._update_cur_status(s)
 
     def _wait4dither(self):
         d = self.queryDither()
         with self._rlock:
-            self._update_operation_status(d['status'])
-        self._publish_state_change()
+            self._update_cur_status(d['status'])
         pos_tolerance = 0.003
         while not d['completed']:
-            time.sleep(0.001)
+            time.sleep(1)
             try:
                 d = self.queryDither()
 
-                oldPos = self.operation_status['pos']
-                newPos = d['status']['pos']
+                oldPos = json.loads(self.cur_status)['pos']
+                newPos = json.loads(d['status'])['pos']
                 posNear = (np.abs(newPos[0] - oldPos[0]) <= pos_tolerance) and (
                         np.abs(newPos[1] - oldPos[1]) <= pos_tolerance)
                 with self._rlock:
-                    self._update_operation_status(d['status'])
+                    self._update_cur_status(d['status'])
                 if not posNear:  # If the position changed
-                    self._publish_state_change()
                     pass
             except:
                 d = {'completed': False}
-        # self.complete.emit(d)  TODO: Choose how to notify that the dither is done. This is where we use self.log_dither
-        self.logdither(d)  # TODO incorporate logging to a file
+        self.logdither(d)
         log.info('Finished dither')
 
     def _wait4move(self):
         d = self.queryMove()
-        self._update_operation_status(d['status'])
-        pos_tolerance = 0.003
+        self._update_cur_status(d['status'])
         while not d['completed']:
             time.sleep(0.0001)
             try:
                 d = self.queryMove()
-                self._update_operation_status(d['status'])
+                self._update_cur_status(d['status'])
             except:
                 d={'completed':False}
-        self._publish_state_change()
         log.info('Finished conex GOTO')
 
     def queryMove(self):
@@ -252,7 +233,7 @@ class ConexController:
                 except IndexError:
                     pass
         if dith is None:  # check if a dither was popped
-            estTime = time.time() + 1  # estimated unix time of when dither will complete
+            estTime = datetime.datetime.utcnow().timestamp() + 1  # estimated unix time of when dither will complete
         return {'status': self.cur_status, 'estTime': estTime, 'dither': dith, 'completed': completed}
 
     def stop(self, wait=False):
@@ -301,6 +282,7 @@ class ConexController:
         """
         INPUTS:
             dither_dict - dictionary with keys:
+                        name: (str) Name of dither, will be passed to observingAgent for storage & logging
                         startx: (float) start x loc in conex degrees
                         endx: (float) end x loc
                         starty: (float) start y loc
@@ -319,6 +301,7 @@ class ConexController:
         """
         points = dither_two_point_positions(dither_dict['startx'], dither_dict['starty'], dither_dict['stopx'],
                                             dither_dict['stopy'], dither_dict['n'])
+        len_dith = len(points)
 
         subDither = 'subStep' in dither_dict.keys() and dither_dict['subStep'] > 0 and \
                     'subT' in dither_dict.keys() and dither_dict['subT'] > 0
@@ -327,8 +310,8 @@ class ConexController:
         y_locs = []
         startTimes = []
         endTimes = []
-        for p in points:
-            startTime, endTime = self._dither_move(p[0], p[1], dither_dict['t'])
+        for i, p in enumerate(points):
+            startTime, endTime = self._dither_move(p[0], p[1], dither_dict['t'], dither_dict['name'], i, len_dith)
             if startTime is not None:
                 x_locs.append(json.loads(self.cur_status)['pos'][0])
                 y_locs.append(json.loads(self.cur_status)['pos'][1])
@@ -364,89 +347,92 @@ class ConexController:
         dith['ylocs'] = y_locs
         dith['startTimes'] = startTimes
         dith['endTimes'] = endTimes
+
+        # self.logdither(dith)
         with self._rlock:
             self._completed_dithers.append(dith)
 
-    def dither(self, dither_dict):
-        """
-        INPUTS:
-            dither_dict - dictionary with keys:
-                        startx: (float) start x loc in conex degrees
-                        endx: (float) end x loc
-                        starty: (float) start y loc
-                        endy: (float) end y loc
-                        n: (int) number of steps in square grid
-                        t: (float) dwell time in seconds
-                        subStep: (float) degrees to offset for subgrid pattern
-                        subT: (float) dwell time for subgrid
 
-                        subStep and subT are optional
+    # def dither(self, dither_dict):
+    #     """
+    #     INPUTS:
+    #         dither_dict - dictionary with keys:
+    #                     startx: (float) start x loc in conex degrees
+    #                     endx: (float) end x loc
+    #                     starty: (float) start y loc
+    #                     endy: (float) end y loc
+    #                     n: (int) number of steps in square grid
+    #                     t: (float) dwell time in seconds
+    #                     subStep: (float) degrees to offset for subgrid pattern
+    #                     subT: (float) dwell time for subgrid
+    #
+    #                     subStep and subT are optional
+    #
+    #     appends a dictionary to the self._completed_dithers attribute
+    #         keys - same as dither_dict but additionally
+    #                it has keys (xlocs, ylocs, startTimes, endTimes)
+    #
+    #     """
+    #     # Ennabling single direction sweeps
+    #     if dither_dict['startx'] == dither_dict['endx']:
+    #         x_list = np.linspace(dither_dict['startx'], dither_dict['endx'], 1)
+    #     else:
+    #         x_list = np.linspace(dither_dict['startx'], dither_dict['endx'], dither_dict['n'])
+    #     if dither_dict['starty'] == dither_dict['endy']:
+    #         y_list = np.linspace(dither_dict['starty'], dither_dict['endy'], 1)
+    #     else:
+    #         y_list = np.linspace(dither_dict['starty'], dither_dict['endy'], dither_dict['n'])
+    #
+    #     subDither = 'subStep' in dither_dict.keys() and dither_dict['subStep'] > 0 and \
+    #                 'subT' in dither_dict.keys() and dither_dict['subT'] > 0
+    #
+    #     x_locs = []
+    #     y_locs = []
+    #     startTimes = []
+    #     endTimes = []
+    #     for x in x_list:
+    #         for y in y_list:
+    #             startTime, endTime = self._dither_move(x, y, dither_dict['t'])
+    #             if startTime is not None:
+    #                 x_locs.append(json.loads(self.cur_status)['pos'][0])
+    #                 y_locs.append(json.loads(self.cur_status)['pos'][1])
+    #                 startTimes.append(startTime)
+    #                 endTimes.append(endTime)
+    #             if self._halt_dither: break
+    #
+    #             # do sub dither if neccessary
+    #             if subDither:
+    #                 x_sub = [-dither_dict['subStep'], 0, dither_dict['subStep'], 0]
+    #                 y_sub = [0, dither_dict['subStep'], 0, -dither_dict['subStep']]
+    #                 for i in range(len(x_sub)):
+    #                     if self.conex.in_bounds((x + x_sub[i], y + y_sub[i])):
+    #                         startTime, endTime = self._dither_move(x + x_sub[i], y + y_sub[i], dither_dict['subT'])
+    #                         if startTime is not None:
+    #                             x_locs.append(json.loads(self.cur_status)['pos'][0])
+    #                             y_locs.append(json.loads(self.cur_status)['pos'][1])
+    #                             startTimes.append(startTime)
+    #                             endTimes.append(endTime)
+    #                     if self._halt_dither: break
+    #             if self._halt_dither: break
+    #         if self._halt_dither: break
+    #
+    #     # Dither has completed (or was stopped prematurely)
+    #     if not self._halt_dither:  # no errors and not stopped
+    #         self.move(*self._preDitherPos)
+    #         with self._rlock:
+    #             if not self._halt_dither:  # still no errors nor stopped
+    #                 self._updateState("Idle")
+    #             self._update_cur_status(self.status())
+    #
+    #     dith = dither_dict.copy()
+    #     dith['xlocs'] = x_locs  # could be empty if errored out or stopped too soon
+    #     dith['ylocs'] = y_locs
+    #     dith['startTimes'] = startTimes
+    #     dith['endTimes'] = endTimes
+    #     with self._rlock:
+    #         self._completed_dithers.append(dith)
 
-        appends a dictionary to the self._completed_dithers attribute
-            keys - same as dither_dict but additionally
-                   it has keys (xlocs, ylocs, startTimes, endTimes)
-
-        """
-        # Ennabling single direction sweeps
-        if dither_dict['startx'] == dither_dict['endx']:
-            x_list = np.linspace(dither_dict['startx'], dither_dict['endx'], 1)
-        else:
-            x_list = np.linspace(dither_dict['startx'], dither_dict['endx'], dither_dict['n'])
-        if dither_dict['starty'] == dither_dict['endy']:
-            y_list = np.linspace(dither_dict['starty'], dither_dict['endy'], 1)
-        else:
-            y_list = np.linspace(dither_dict['starty'], dither_dict['endy'], dither_dict['n'])
-
-        subDither = 'subStep' in dither_dict.keys() and dither_dict['subStep'] > 0 and \
-                    'subT' in dither_dict.keys() and dither_dict['subT'] > 0
-
-        x_locs = []
-        y_locs = []
-        startTimes = []
-        endTimes = []
-        for x in x_list:
-            for y in y_list:
-                startTime, endTime = self._dither_move(x, y, dither_dict['t'])
-                if startTime is not None:
-                    x_locs.append(json.loads(self.cur_status)['pos'][0])
-                    y_locs.append(json.loads(self.cur_status)['pos'][1])
-                    startTimes.append(startTime)
-                    endTimes.append(endTime)
-                if self._halt_dither: break
-
-                # do sub dither if neccessary
-                if subDither:
-                    x_sub = [-dither_dict['subStep'], 0, dither_dict['subStep'], 0]
-                    y_sub = [0, dither_dict['subStep'], 0, -dither_dict['subStep']]
-                    for i in range(len(x_sub)):
-                        if self.conex.in_bounds((x + x_sub[i], y + y_sub[i])):
-                            startTime, endTime = self._dither_move(x + x_sub[i], y + y_sub[i], dither_dict['subT'])
-                            if startTime is not None:
-                                x_locs.append(json.loads(self.cur_status)['pos'][0])
-                                y_locs.append(json.loads(self.cur_status)['pos'][1])
-                                startTimes.append(startTime)
-                                endTimes.append(endTime)
-                        if self._halt_dither: break
-                if self._halt_dither: break
-            if self._halt_dither: break
-
-        # Dither has completed (or was stopped prematurely)
-        if not self._halt_dither:  # no errors and not stopped
-            self.move(*self._preDitherPos)
-            with self._rlock:
-                if not self._halt_dither:  # still no errors nor stopped
-                    self._updateState("Idle")
-                self._update_cur_status(self.status())
-
-        dith = dither_dict.copy()
-        dith['xlocs'] = x_locs  # could be empty if errored out or stopped too soon
-        dith['ylocs'] = y_locs
-        dith['startTimes'] = startTimes
-        dith['endTimes'] = endTimes
-        with self._rlock:
-            self._completed_dithers.append(dith)
-
-    def _dither_move(self, x, y, t):
+    def _dither_move(self, x, y, t, name, move_num, seq_len):
         """
             Helper function for dither()
 
@@ -456,18 +442,25 @@ class ConexController:
         """
         polltime = 0.1  # wait for dwell time but have to check if stop was pressed periodically
         self.move(x, y)
+        time.sleep(0.25)
         if self._halt_dither: return None, None  # Stopped or error during move
-        self._updateState("Dither dwell for {:.1f} seconds".format(t))
+        self._updateState(f"Dither dwell for {t} seconds")
         # dwell at position
-        startTime = time.time()
+        startTime = datetime.datetime.utcnow().timestamp()
+        obs_dict = {'name': name, 'type': 'dwell',
+                       'seq_i': move_num, 'seq_n': seq_len,
+                       'duration': t, 'start': startTime}
+        self.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
         dwell_until = startTime + t
-        endTime = time.time()
+        endTime = datetime.datetime.utcnow().timestamp()
+
         with self._rlock:
             self._update_cur_status(self.status())
         while self._halt_dither == False and endTime < dwell_until:
             sleep = min(polltime, dwell_until - endTime)
             time.sleep(max(sleep, 0))
-            endTime = time.time()
+            endTime = datetime.datetime.utcnow().timestamp()
+        time.sleep(1) # NB Give the observing agent extra time so that you don't start moving before the dwell step ends
         return startTime, endTime
 
     def start_move(self, x, y):
@@ -510,15 +503,16 @@ class ConexController:
                 self._completedMoves += 1
 
     def logdither(self, d):
-        state = d['status']['state'][1]
+        print("LOGGING DITHER!!")
+        state = json.loads(d['status'])['state'][1]
         if state == 'Stopped':
-            log.error("Dither aborted early by user STOP. Conex Status=" + str(d['status']['conexstatus']))
+            log.error("Dither aborted early by user STOP. Conex Status=" + str(json.loads(d['status'])['conexstatus']))
         elif state.startswith('Error'):
-            log.error("Dither aborted from error. Conex State=" + state + " Conex Status=" + str(d['status']['conexstatus']))
+            log.error("Dither aborted from error. Conex State=" + state + " Conex Status=" + str(json.loads(d['status'])['conexstatus']))
         dither_dict = d['dither']
         msg = "Dither Path: ({}, {}) --> ({}, {}), {} steps {} seconds".format(
             dither_dict['startx'], dither_dict['starty'],
-            dither_dict['endx'], dither_dict['endy'],
+            dither_dict['stopx'], dither_dict['stopy'],
             dither_dict['n'], dither_dict['t'])
         if 'subStep' in dither_dict.keys() and dither_dict['subStep'] > 0 and \
             'subT' in dither_dict.keys() and dither_dict['subT'] > 0:
@@ -526,6 +520,7 @@ class ConexController:
         msg = msg + "\n\tstarts={}\n\tends={}\n\tpath={}\n".format(dither_dict['startTimes'],
                                                                    dither_dict['endTimes'],
                                                                    zip(dither_dict['xlocs'], dither_dict['ylocs']))
+        getLogger('dither').info(msg)
 
 
 def dither_two_point_positions(start_x, start_y, stop_x, stop_y, user_n_steps, single_pixel_move=0.015):
@@ -575,10 +570,9 @@ def dither_two_point_positions(start_x, start_y, stop_x, stop_y, user_n_steps, s
     return points
 
 
-
 if __name__ == "__main__":
 
-    redis.setup_redis(ts_keys=TS_KEYS)
+    redis.setup_redis()
     util.setup_logging('conexAgent')
 
     timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M")
