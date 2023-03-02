@@ -61,7 +61,7 @@ class ObsControlForm(FlaskForm):
     obsStartStop = SubmitField("")
     obsName = StringField("Name", default='---')
     wavecal = SubmitField("Wavecal")
-    obs_duration = FloatField("Duration (s):", default=0.0)
+    obs_duration = FloatField("Duration (s):", default=60.0)
     flat = SubmitField("Flat")
     dark = SubmitField("Dark")
     min_cts = IntegerField("Min:", default=0)
