@@ -865,7 +865,7 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['bmazin@ucsb.edu', 'baileyji@ucsb.edu', 'nswimmer@ucsb.edu']
     SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', True)
-    DASH_CFG = os.environ.get("DASH_CFG")
+    XKID_BASE_DIR = "/data/XKID"
 
     FLASK_RUN_HOST = '0.0.0.0'
     FLASK_RUN_PORT = 8000

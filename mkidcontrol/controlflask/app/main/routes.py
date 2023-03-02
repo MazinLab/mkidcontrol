@@ -57,8 +57,8 @@ from mkidcontrol.agents.xkid.observingAgent import OBSERVING_EVENT_KEY
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
 
 
-CURRENT_DARK_FILE_KEY = "xkid:configuration:dark:filename"
-CURRENT_FLAT_FILE_KEY = "xkid:configuration:flat:filename"
+CURRENT_DARK_FILE_KEY = "datasaver:dark"
+CURRENT_FLAT_FILE_KEY = "datasaver:flat"
 
 redis.setup_redis(ts_keys=REDIS_TS_KEYS)
 
@@ -422,10 +422,10 @@ def new_night():
     ymls_to_copy = ['dashboard.yml', 'hightemplar.yml', 'roaches.yml']
 
     if request.method == "POST":
-        current_dir = redis.read('xkid:configuration:directory:cfg-dir')
-        base_dir = redis.read('xkid:configuration:directory:base-dir')
+        current_dir = redis.read('paths:data-dir')
+        base_dir = current_app.base_dir
 
-        newdate = datetime.datetime.now().strftime("%Y%m%d")
+        newdate = datetime.datetime.utcnow().strftime("%Y%m%d")
         new_night_dir = os.path.join(base_dir, newdate)
         try:
             os.mkdir(new_night_dir)
@@ -436,8 +436,8 @@ def new_night():
             shutil.copy(os.path.join(current_dir, yml), new_night_dir)
 
         try:
-            redis.store({'xkid:configuration:directory:cfg-dir': new_night_dir})
-            redis.store({'xkid:configuration:file:yaml:dashboard': os.path.join(new_night_dir, 'dashboard.yml')})
+            redis.store({'paths:data-dir': new_night_dir})
+            redis.store({'gen2-dashboard-yaml': os.path.join(new_night_dir, 'dashboard.yml')})
         except RedisError as e:
             log.warning(f"Error communicating with redis! Error: {e}")
 

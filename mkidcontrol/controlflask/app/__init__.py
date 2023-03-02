@@ -81,8 +81,9 @@ def create_app(config_class=Config, cliargs=None):
     redis.setup_redis(ts_keys=REDIS_TS_KEYS)
     app.redis = redis
 
-    dashcfg = loadcfg(redis.read('xkid:configuration:file:yaml:dashboard')) #TODO make consistent!!!!!
+    dashcfg = loadcfg(redis.read('paths:config-folder-name'))
     beammap = dashcfg.beammap
+    app.base_dir = app.config.get ('XKID_BASE_DIR')
     app.array_view_params = {'int_time': 1,
                              'min_cts': 0,
                              'max_cts': 2500,
@@ -93,8 +94,6 @@ def create_app(config_class=Config, cliargs=None):
                    wvlStart=dashcfg.dashboard.wave_start, wvlStop=dashcfg.dashboard.wave_stop)
     app.liveimage = im
 
-    app.dashcfg = dashcfg
-    # app.ditherlog = create_log(app.dashcfg.paths.logs)  # TODO: Properly parse path
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)
