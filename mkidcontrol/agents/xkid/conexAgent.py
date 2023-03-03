@@ -52,6 +52,11 @@ CONEX_CONTROLLER_STATE_KEY = "status:device:conex:controller-state"
 CONEX_X = "status:device:conex:position-x"
 CONEX_Y = "status:device:conex:position-y"
 
+CONEX_REF_X_KEY = "instrument:conex-ref-x"
+CONEX_REF_Y_KEY = "instrument:conex-ref-y"
+PIXEL_REF_X_KEY = "instrument:pixel-ref-x"
+PIXEL_REF_Y_KEY = "instrument:pixel-ref-y"
+
 OBSERVING_REQUEST_CHANNEL = 'command:observation:request'
 OBSERVING_KEYS = (OBSERVING_REQUEST_CHANNEL, OBSERVING_EVENT_KEY)
 

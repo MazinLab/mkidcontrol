@@ -93,6 +93,13 @@
                 var send_data = {'cmd': 'dither', 'dither_info': JSON.stringify({'n': n, 't': t, 'start': start, 'stop': stop})};
             } else if (buttonid == "conex_stop") {
                 var send_data = {'cmd': 'stop'};
+            } else if (buttonid == "update_conex_refs") {
+                var conex_ref_x = document.getElementById("conex_ref_x").value;
+                var conex_ref_y = document.getElementById("conex_ref_y").value;
+                var pixel_ref_x = document.getElementById("pixel_ref_x").value;
+                var pixel_ref_y = document.getElementById("pixel_ref_y").value;
+                var send_data = {'cmd': 'normalize', 'conex_ref_x': conex_ref_x, 'conex_ref_y': conex_ref_y,
+                    'pixel_ref_x': pixel_ref_x, 'pixel_ref_y': pixel_ref_y};
             }
             $.ajax({
                     type:'POST',

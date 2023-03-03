@@ -39,6 +39,7 @@ from mkidcontrol.config import FLASK_KEYS, REDIS_TS_KEYS, FLASK_CHART_KEYS
 from mkidcontrol.controlflask.app.main.forms import *
 
 from mkidcontrol.agents.xkid.observingAgent import OBSERVING_EVENT_KEY
+from mkidcontrol.agents.xkid.conexAgent import CONEX_REF_X_KEY, CONEX_REF_Y_KEY, PIXEL_REF_X_KEY, PIXEL_REF_Y_KEY
 
 # TODO: ObsLog, ditherlog, dashboardlog
 
@@ -912,6 +913,15 @@ def command_conex():
         elif cmd == "stop":
             conex_cmd = "conex:stop"
             send_dict = {}
+        elif cmd == "normalize":
+            conex_ref_x = request.values.get("conex_ref_x")
+            conex_ref_y = request.values.get("conex_ref_y")
+            pixel_ref_x = request.values.get("pixel_ref_x")
+            pixel_ref_y = request.values.get("pixel_ref_y")
+            update_dict = {CONEX_REF_X_KEY: conex_ref_x, CONEX_REF_Y_KEY: conex_ref_y,
+                           PIXEL_REF_X_KEY: pixel_ref_x, PIXEL_REF_Y_KEY: pixel_ref_y}
+            current_app.redis.store({update_dict})
+            msg_success += 1
 
     msg_success += current_app.redis.publish(f"command:{conex_cmd}", json.dumps(send_dict), store=False)
     log.debug(f"Commanding conex to {cmd}. Params: {send_dict}")
