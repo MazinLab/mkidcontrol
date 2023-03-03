@@ -14,7 +14,7 @@
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border px-2 w-75">
                                 <div class="px-1 w-10"><span class="dot" id="conex_status_dot"></span></div>
-                                <div class="px-1 w-10">Status: </div><div class="px-1 mw-80" id="conex_control_status"></div>
+                                <div class="px-1 w-10">Status: </div><div class="px-1 mw-40" id="conex_control_status"></div><div class="px-1 w-10">@ pos: </div><div class="px-1 mw-40">(<div class="px-1" id="conex_xpos"></div>,<div class="px-1" id="conex_ypos">)</div></div>
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border-bottom">
@@ -31,7 +31,21 @@
                     </div>
 
                     <div class="flex-column col-4 border-left">
-
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                            {{ render_field(norm.conex_ref_x) }}
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                            {{ render_field(norm.conex_ref_y) }}
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                            {{ render_field(norm.pixel_ref_x) }}
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                            {{ render_field(norm.pixel_ref_y) }}
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 px-2">
+                            {{ render_field(norm.update_conex_refs, class = "btn btn-dark", onclick="command_conex(event, this.id)" ) }}
+                        </div>
                     </div>
                 </div>
             </main>

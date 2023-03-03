@@ -39,6 +39,7 @@ class ConexNormalizationForm(FlaskForm):
     conex_ref_y = FloatField("Conex Y Reference")
     pixel_ref_x = FloatField("Pixel X Reference")
     pixel_ref_y = FloatField("Pixel Y Reference")
+    update_conex_refs = SubmitField("Update Conex References")
 
 
 class FilterWheelForm(FlaskForm):
