@@ -34,6 +34,13 @@ class ConexForm(FlaskForm):
     conex_stop = SubmitField("Stop")
 
 
+class ConexNormalizationForm(FlaskForm):
+    conex_ref_x = FloatField("Conex X Reference")
+    conex_ref_y = FloatField("Conex Y Reference")
+    pixel_ref_x = FloatField("Pixel X Reference")
+    pixel_ref_y = FloatField("Pixel Y Reference")
+
+
 class FilterWheelForm(FlaskForm):
     from mkidcontrol.commands import FILTERS
     filter = SelectField("Filter", choices=[f"{f[0]}:{f[1]}" for f in FILTERS.items()])
