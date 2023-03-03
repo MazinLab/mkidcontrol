@@ -49,8 +49,6 @@ ENABLE_CONEX_KEY = "device-settings:conex:enabled"
 
 CONEX_CONTROLLER_STATUS_KEY = "status:device:conex:controller-status"
 CONEX_CONTROLLER_STATE_KEY = "status:device:conex:controller-state"
-CONEX_CONTROLLER_LAST_CHANGE_KEY = "status:device:conex:controller-last-change"
-CONEX_OPERATION_STATUS_KEY = "status:device:conex:operation-status"
 CONEX_X = "status:device:conex:position-x"
 CONEX_Y = "status:device:conex:position-y"
 
