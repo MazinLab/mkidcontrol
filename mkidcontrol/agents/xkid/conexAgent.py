@@ -634,17 +634,8 @@ if __name__ == "__main__":
                         cc.do_dither(val)
                         redis.store({STATUS_KEY: "OK"})
                         log.info(f"Started dither with params: {val}")
-                    elif key == STOP_COMMAND_KEY:
-                        log.debug("Stopping conex")
-                        cc.do_halt()
-                        redis.store({STATUS_KEY: "OK"})
-                        log.info("Conex stopped!")
-                    elif key == OBSERVING_EVENT_KEY and val['state'] == "stopped":
-                        log.debug("Stopping conex")
-                        cc.do_halt()
-                        redis.store({STATUS_KEY: "OK"})
-                        log.info("Conex stopped!")
-                    elif key == OBSERVING_REQUEST_CHANNEL and val['type'] == "abort":
+                    elif key == STOP_COMMAND_KEY or (key == OBSERVING_EVENT_KEY and val['state'] == "stopped") or \
+                        key == OBSERVING_REQUEST_CHANNEL and val['type'] == "abort":
                         log.debug("Stopping conex")
                         cc.do_halt()
                         redis.store({STATUS_KEY: "OK"})
