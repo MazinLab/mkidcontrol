@@ -117,7 +117,7 @@ def index():
     obs = ObsControlForm()
     conex = ConexForm()
 
-    sending_photons = True if (current_app.redis.read(OBSERVING_EVENT_KEY, decode_json=True)['state'].lower() == "started") else False
+    last_observing_event = current_app.redis.read(OBSERVING_EVENT_KEY, decode_json=True)
     cooldown_scheduled = True if (current_app.redis.read('device-settings:magnet:cooldown-scheduled').lower() == "yes") else False
     if cooldown_scheduled:
         cooldown_time = float(current_app.redis.read('device-settings:magnet:cooldown-scheduled:timestamp'))
@@ -131,7 +131,7 @@ def index():
     array_fig = initialize_array_figure(current_app.array_view_params)
     pix_lightcurve = pixel_lightcurve()
 
-    return render_template('index.html', sending_photons=sending_photons, magnetform=magnetform, hsform=hsform, fw=fw,
+    return render_template('index.html', last_observing_event=last_observing_event, magnetform=magnetform, hsform=hsform, fw=fw,
                            focus=focus, form=form, laserbox=laserbox, obs=obs, conex=conex, sensor_fig=sensor_fig,
                            array_fig=array_fig, cooldown_scheduled=cooldown_scheduled, cooldown_time=cooldown_time,
                            pix_lightcurve=pix_lightcurve, sensorkeys=list(FLASK_CHART_KEYS.values()))

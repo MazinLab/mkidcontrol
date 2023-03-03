@@ -15,11 +15,7 @@
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3" id="utc-timestamp"></div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-2">
-                            {% if sending_photons %}
                                 {{ render_field(obs.obsStartStop, class="btn btn-danger", onclick="send_obs_info(this.id)", value="Stop Observing") }}
-                            {% else %}
-                                {{ render_field(obs.obsStartStop, class="btn btn-primary", onclick="send_obs_info(this.id)",  value="Start Observing") }}
-                            {% endif %}
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
                                 {{ render_field(obs.obsName ) }}
                             </div>
@@ -387,7 +383,7 @@
 
         function send_obs_info(buttonid){
             var obs_button = document.getElementById(buttonid)
-            var to_disable = ["flat", "dark"]
+            var to_disable = ["flat", "dark", "dither_start"]
 
             var duration = document.getElementById('obs_duration').value
             var name;
@@ -420,6 +416,38 @@
                         seq_n: 1
                     }
                 })
+        }
+
+        var init_data = {{ last_observing_event | safe }};
+        window.onload = function (){
+            console.log('initializing page')
+            var data = JSON.parse(init_data);
+            var to_disable = ["flat", "dark", "dither_start"]
+
+            if (data['state'] == 'started') {
+                var newClass = "btn btn-danger";
+                var newText = "Stop Observing";
+                var name = data['name'];
+            } else {
+                var newClass = "btn btn-primary";
+                var newText = "Start Observing";
+                var name = "---";
+            }
+            for (let i=0; i< to_disable.length; i++) {
+                if (data['type'] == "started"){
+                    document.getElementById(to_disable[i]).disabled = true
+                    document.getElementById("obs_duration").disabled = true
+                    document.getElementById("obsName").disabled = true
+                } else {
+                    document.getElementById(to_disable[i]).disabled = false
+                    document.getElementById("obs_duration").disabled = false
+                    document.getElementById("obsName").disabled = false
+                    // document.getElementById("obs_duration").value = 0.0;
+                }
+            }
+            document.getElementById("obsName").value = name;
+            document.getElementById("obsStartStop").setAttribute("class", newClass);
+            document.getElementById("obsStartStop").setAttribute("value", newText);
         }
 
         function update_lasers(event, buttonid){
