@@ -87,8 +87,10 @@ MAGAOX_KEYS = {
     'tcsi.seeing.mag2_time': ('tcs:seeing-time', 'SEETIM', 'Mag2 seeing time'),
 }
 
-START_FITS_KEYS = ('UNIXSTR',)  # TODO
-MIDPOINT_FITS_KEYS = {'UNIXSTR': ('UNIXSTR', 'UNIXEND')}  # TODO
+START_FITS_KEYS = ('UNIXSTR', 'MJD-STR', 'UT-STR')  # TODO
+MIDPOINT_FITS_KEYS = {'UNIXSTR': ('UNIXSTR', 'UNIXEND'),
+                      'MJD-STR': ('MJD-STR', 'MJD-END'),
+                      'UT-STR': ('UT-STR', 'UT-END')}  # TODO
 
 OBSLOG_RECORD_KEYS = {
     # This should be a superset of mkidcore.metadata.XKID_KEY_INFO
