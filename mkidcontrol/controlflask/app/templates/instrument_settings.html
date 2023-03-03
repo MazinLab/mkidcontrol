@@ -10,7 +10,7 @@
                     <div class="flex-column col-4">
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 w-25">
-                                <h4>Dither</h4>
+                                <h4>Conex Control</h4>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border px-2 w-75">
                                 <div class="px-1 w-10"><span class="dot" id="conex_status_dot"></span></div>
@@ -66,12 +66,6 @@
         }, false);
         psource.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
         psource.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
-
-        function delete_pixel_lightcurve_trace(){
-            pixel = [-1, -1]
-            Plotly.deleteTraces('pixel_lightcurve', 0);
-            Plotly.react('pixel_lightcurve', {{ pix_lightcurve | safe }})
-        };
 
         function command_conex(event, buttonid){
             if (event.key == "Enter") {
