@@ -755,11 +755,10 @@ def report_obs_status():
     @stream_with_context
     def _stream():
         while True:
-            time.sleep(0.75)
-            obs_state = current_app.redis.read("command:event:observing", decode_json=True)
-            # log.debug(f"Observation is {obs_state}")
-            msg = f"retry:5\ndata: {obs_state}\n\n"
-            yield msg
+            for key, val in redis.listen(OBSERVING_EVENT_KEY):
+                log.debug(f"Observating event! {val}")
+                msg = f"retry:5\ndata: {val}\n\n"
+                yield msg
 
     return current_app.response_class(_stream(), mimetype='text/event-stream', content_type='text/event-stream')
 

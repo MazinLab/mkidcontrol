@@ -350,37 +350,6 @@
         source.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
 
         // Helper functions for handling submitting data from clicked events
-        var obsstopsource = new EventSource("/report_obs_status");
-        obsstopsource.addEventListener("message", function(e){
-            var to_disable = ["flat", "dark", "dither_start"]
-            var newdata = JSON.parse(e.data);
-            if (newdata['status'] == "started") {
-                var newClass = "btn btn-danger";
-                var newText = "Stop Observing";
-                var name = newdata['name'];
-            } else {
-                var newClass = "btn btn-primary";
-                var newText = "Start Observing";
-                var name = "---";
-            }
-            for (let i=0; i< to_disable.length; i++) {
-                if (newdata['type'] != "abort"){
-                    document.getElementById(to_disable[i]).disabled = true
-                    document.getElementById("obs_duration").disabled = true
-                    document.getElementById("obsName").disabled = true
-                } else {
-                    document.getElementById(to_disable[i]).disabled = false
-                    document.getElementById("obs_duration").disabled = false
-                    document.getElementById("obsName").disabled = false
-                }
-            }
-            document.getElementById("obsName").value = name;
-            document.getElementById("obsStartStop").setAttribute("class", newClass);
-            document.getElementById("obsStartStop").setAttribute("value", newText);
-        })
-        obsstopsource.addEventListener("open", function (e) {console.log('Receive Obs_dict Connection was opened: ', e);}, false);
-        obsstopsource.addEventListener("error", function (e) {console.log("Receive Obs_dict Connection errored out: ", e);}, false);
-
         function send_obs_info(buttonid){
             var obs_button = document.getElementById(buttonid)
             var to_disable = ["flat", "dark", "dither_start"]
@@ -421,7 +390,18 @@
         var init_data = {{ last_observing_event | safe }};
         window.onload = function (){
             console.log('initializing page')
-            var data = JSON.parse(init_data);
+            update_obs_buttons(init_data)
+        }
+
+        var obsstopsource = new EventSource("/report_obs_status");
+        obsstopsource.addEventListener("message", function(e){
+            update_obs_buttons(e.data)
+        })
+        obsstopsource.addEventListener("open", function (e) {console.log('Receive Obs_dict Connection was opened: ', e);}, false);
+        obsstopsource.addEventListener("error", function (e) {console.log("Receive Obs_dict Connection errored out: ", e);}, false);
+
+        function update_obs_buttons(data) {
+            var data = JSON.parse(data);
             var to_disable = ["flat", "dark", "dither_start"]
 
             if (data['state'] == 'started') {
@@ -434,7 +414,7 @@
                 var name = "---";
             }
             for (let i=0; i< to_disable.length; i++) {
-                if (data['type'] == "started"){
+                if (data['state'] == "started"){
                     document.getElementById(to_disable[i]).disabled = true
                     document.getElementById("obs_duration").disabled = true
                     document.getElementById("obsName").disabled = true
@@ -442,7 +422,6 @@
                     document.getElementById(to_disable[i]).disabled = false
                     document.getElementById("obs_duration").disabled = false
                     document.getElementById("obsName").disabled = false
-                    // document.getElementById("obs_duration").value = 0.0;
                 }
             }
             document.getElementById("obsName").value = name;
