@@ -25,12 +25,12 @@ class ConfigPathForm(FlaskForm):
 
 
 class ConexForm(FlaskForm):
-    start_pos = StringField("Start (x, y)", default="0.0, 0.0")
-    stop_pos = StringField("Stop (x, y)", default="0.0, 0.0")
+    start_pos = StringField("Start (x, y)", default="0.000, 0.000")
+    stop_pos = StringField("Stop (x, y)", default="0.000, 0.000")
     n_steps = IntegerField("N Steps", default=5)
     dwell_time = IntegerField("Dwell (s)", default=30)
     dither_start = SubmitField("Dither")
-    conex_position = StringField("Position (x, y)", default="0.0, 0.0")
+    conex_position = StringField("Position (x, y)", default="0.000, 0.000")
     conex_stop = SubmitField("Stop")
 
 
