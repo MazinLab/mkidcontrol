@@ -89,7 +89,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='mkidcontrol',
-    version='0.7.0',
+    version='0.8.0',
     author='Noah Swimmer',
     author_email='nswimmer@ucsb.edu',
     description='MKID Instrument Control Software',
@@ -97,8 +97,6 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/MazinLab/mkidcontrol.git',
     packages=setuptools.find_packages(),
-    # TODO may prove to be a major headache and we need to use either entry points or break the files into two parts
-    #  with the script in bin/
     scripts=['mkidcontrol/agents/picturec/quenchAgent.py',
              'mkidcontrol/agents/xkid/heatswitchAgent.py',
              'mkidcontrol/agents/lakeshore240Agent.py',
@@ -113,7 +111,8 @@ setuptools.setup(
              'mkidcontrol/agents/xkid/laserflipperAgent.py',
              'mkidcontrol/agents/xkid/focusAgent.py',
              'mkidcontrol/agents/xkid/filterwheelAgent.py',
-             'mkidcontrol/agents/xkid/magnetAgent.py'],
+             'mkidcontrol/agents/xkid/magnetAgent.py',
+             'mkidcontrol/agents/xkid/observingAgent.py'],
     ext_modules=cythonize(extensions),
     classifiers=[
         "Programming Language :: Python :: 3",

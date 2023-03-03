@@ -158,9 +158,12 @@ class MagAOX_INDI2(threading.Thread):
             if indikey not in self.INTERESTING_PROPERTIES:
                 continue
             elif indikey in MAGAOX_FILTER_PROPS:
-                for a in self.client[indikey]:
-                    if self.client[indikey][a].value.lower() == 'on':
-                        update[MAGAOX_INDI2REDIS[indikey]] = a
+                try:
+                    for a in self.client[indikey]:
+                        if self.client[indikey][a].value.lower() == 'on':
+                            update[MAGAOX_INDI2REDIS[indikey]] = a
+                except KeyError as e:
+                    self.log.error(f'Unable to fetch {MAGAOX_INDI2REDIS[indikey]} from MagAO-X due to {e}')
             else:
                 indikey += f'.{element_name}'
                 if indikey not in MAGAOX_INDI2REDIS.values():
@@ -275,14 +278,17 @@ def _req_q_targ(redis, q):
 
 def fetch_request(request_q, block=True, timeout=None):
     request = request_q.get(block=block, timeout=timeout)
+    abort = request['type'] == 'abort'
+    if abort:
+        log.info(f'Received abort request')
+        return None, None, None, True
     request['duration'] = int(request['duration'])
     limitless = request['duration'] == 0
-    abort = request['type'] == 'abort'
     dur = 'infinite' if limitless else f'{request["duration"]} s'
     log.info(f'Received request for {dur} {request["type"]} observation named '
              f'{request["name"]}, {int(request["seq_i"]) + 1}/{request["seq_n"]}')
     header = {'object': request['name'], 'e_githsh': GIT_HASH, 'data-typ': request['type']}
-    return request, header, limitless, abort
+    return request, header, limitless, False
 
 
 if __name__ == "__main__":
@@ -324,9 +330,8 @@ if __name__ == "__main__":
     request_thread.start()
     FITS_FILE_TIME = 10
 
-    # last_request = {'name': '', 'state': 'stopped', 'seq_i': 0, 'seq_n': 0, 'start': 0, 'type': 'star'}
     redis.store({OBSERVING_EVENT_KEY: {'name': '', 'state': 'stopped', 'seq_i': 0,
-                                       'seq_n': 0, 'start': 0, 'type': 'star'}}, encode_json=True)
+                                       'seq_n': 0, 'start': 0, 'type': 'stare'}}, encode_json=True)
     try:
         while True:
 
