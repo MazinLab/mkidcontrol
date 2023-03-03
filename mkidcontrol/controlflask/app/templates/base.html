@@ -32,7 +32,9 @@
                 update_div("LS372", "status:device:ls372:status", newdata);
                 update_div("LS625", "status:device:ls625:status", newdata);
                 update_div("HSMotor", "status:device:heatswitch:status", newdata);
-                update_div("conex_control_status", "status:device:conex:controller-last-change", newdata);
+                update_div("conex_control_status", "status:device:conex:controller-state", newdata);
+                update_div("conex_xpos", "status:device:conex:position-x", newdata);
+                update_div("conex_ypos", "status:device:conex:position-y", newdata);
                 update_div("magnet_control_status", 'status:magnet:state', newdata);
                 update_service_div("LS336Service", "lakeshore336.service", newdata);
                 update_service_div("LS372Service", "lakeshore372.service", newdata);
@@ -63,7 +65,12 @@
                     var value = Number(data[1]).toFixed(3);
                 }
             } else {
-                var value = data;
+                if (key == "status:device:conex:controller-state") {
+                    var data = JSON.parse(data);
+                    var value = data[1];
+                } else {
+                    var value = data;
+                }
             }
             $("#"+div).text(value)
         }
