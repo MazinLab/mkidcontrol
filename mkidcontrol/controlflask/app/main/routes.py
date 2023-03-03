@@ -142,6 +142,7 @@ def instrument_settings():
     """
     """
     conex = ConexForm()
+    norm = ConexNormalizationForm()
 
     array_fig = initialize_array_figure(current_app.array_view_params)
 
