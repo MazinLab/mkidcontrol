@@ -775,7 +775,7 @@ class FilterWheel(USBFilterWheel):
 
 class HeatswitchMotor:
     TIMEOUT = 4194303 * 1.25 / 0.5e3  # Default timeout value is the number of steps + 25% divided by half the slowest speed we run at
-    MOTOR_POS_KEY = "status:device:heatswitch:motor:position"  # Integer between 0 and 4194303
+    MOTOR_POS_KEY = "status:device:heatswitch:motor-position"  # Integer between 0 and 4194303
     FULL_CLOSE_POSITION = 4194303  # Halfway point for motor position, physical hard stop with clamps closed on heat sinks
     FULL_OPEN_POSITION = 0  # Hard limit of the motor opening
     DEFAULT_MAX_VELOCITY = 1e3  # Maximum velocity empirically found with ARCONS
