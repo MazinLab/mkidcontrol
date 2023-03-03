@@ -72,6 +72,8 @@ class ObsControlForm(FlaskForm):
     obs_duration = FloatField("Duration (s):", default=60)
     flat = SubmitField("Flat")
     dark = SubmitField("Dark")
+    apply_flat = SubmitField("Apply Flat")
+    apply_dark = SubmitField("Apply Dark")
     min_cts = IntegerField("Min:", default=0)
     max_cts = IntegerField("Max:", default=2500)
     int_time = FloatField("Integrate (s):", default=1.0)

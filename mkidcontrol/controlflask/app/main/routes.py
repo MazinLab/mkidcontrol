@@ -662,7 +662,6 @@ def dashplot():
             current_dark_file = current_app.redis.read(CURRENT_DARK_FILE_KEY)
             current_flat_file = current_app.redis.read(CURRENT_FLAT_FILE_KEY)
 
-            # TODO: When live (toggle online/offline here? So we can pull up the gui without roaches and annoyingly long image load lags?)
             current_app.liveimage.startIntegration(startTime=0, integrationTime=int_time)
             # t = time.time()
             im = current_app.liveimage.receiveImage()
