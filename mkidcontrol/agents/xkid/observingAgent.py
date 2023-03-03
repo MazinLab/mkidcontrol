@@ -21,13 +21,13 @@ from mkidcontrol.config import REDIS_TS_KEYS
 import logging
 import json
 from queue import Queue
+from git import Repo
+from pkg_resources import resource_filename
 
-metadata.TIME_KEYS = ('MJD-END', 'MJD-STR', 'UT-END', 'UT-STR')
-metadata._time_key_builder = metadata._xkid_time_header
+repo = Repo(os.path.dirname(resource_filename('mkidcontrol', '')))
+GIT_HASH = commit_hash = repo.git.rev_parse("HEAD")
 
 log = logging.getLogger('observingAgent')
-
-TS_KEYS = REDIS_TS_KEYS
 
 DASHBOARD_YAML_KEY = 'gen2:dashboard-yaml'
 GEN2_ROACHES_KEY = 'gen2:roaches'
@@ -54,95 +54,44 @@ GEN2_REDIS_MAP = {'dashboard.max_count_rate': 'readout:count_rate_limit',
                   'packetmaster.captureport': GEN2_CAPTURE_PORT_KEY,
                   'roaches.fpgpath': 'gen2:firmware-version'}
 
-MAGAOX_KEYS = {
-    'tcsi.telpos.am': ('tcs:airmass', 'AIRMASS', 'Airmass at start'),
-    'tcsi.telpos.dec': ('tcs:dec', 'DEC', 'DEC of telescope pointing (+/-DD:MM:SS.SS)'),
-    'tcsi.telpos.el': ('tcs:el', 'ALTITUDE', 'Elevation of telescope pointing'),
-    'tcsi.telpos.epoch': ('tcs:epoch', 'EPOCH', 'Epoch of observation from MagAO-X'),
-    'tcsi.telpos.ha': ('tcs:ha', 'HA', 'description'),
-    'tcsi.telpos.ra': ('tcs:ra', 'RA', 'RA of telescope pointing (HH:MM:SS.SSS)'),
-    'tcsi.telpos.rotoff': ('tcs:rotoff', 'ROTOFF', 'Telescope rotator offset'),
-    'tcsi.teldata.az': ('tcs:az', 'AZIMUTH', 'Azimuth of telescope pointing'),
-    'tcsi.teldata.dome_stat': ('tcs:dome-state', 'DOMESTAT', 'State of the dome at exposure start time'),
-    'tcsi.teldata.guiding': ('tcs:guiding', 'GUIDING', 'Telescope guiding status'),
-    'tcsi.teldata.pa': ('tcs:pa', 'POSANG', 'Position Angle'),
-    'tcsi.teldata.slewing': ('tcs:slewing', 'SLEWING', 'Telescope slewing status'),
-    'tcsi.teldata.tracking': ('tcs:tracking', 'TRACKING', 'Telescope tracking status'),
-    'tcsi.teldata.zd': ('tcs:zd', 'ZD', 'Zenith distance at typical time'),
-    'tcsi.teltime.sidereal_time': ('tcs:sidereal-time', 'SIDETIME', 'Sidereal time at typical time'),
-    'tcsi.environment.dewpoint': ('tcs:dewpoint', 'DOM-DEW', 'Dewpoint'),
-    'tcsi.environment.humidity': ('tcs:humidity', 'DOM-HUM', 'Humidity'),
-    'tcsi.environment.temp-amb': ('tcs:temp-amb', 'DOM-TMPA', 'Ambient temperature'),
-    'tcsi.environment.wind': ('tcs:wind', 'DOM-WND', 'Wind speed'),
-    'tcsi.environment.winddir': ('tcs:winddir', 'DOM-WNDD', 'Wind direction'),
-    'tcsi.catalog.object': ('tcs:catalog-object', 'CATOBJ', 'Catalog Object'),
-    'tcsi.catdata.dec': ('tcs:catalog-dec', 'CATDEC', 'Catalog Dec.'),
-    'tcsi.catdata.epoch': ('tcs:catalog-epoch', 'CATEPOCH', 'Catalog Epoch'),
-    'tcsi.catdata.ra': ('tcs:catalog-ra', 'CATRA', 'CATRA', 'Catalog RA'),
-    'tcsi.seeing.dimm_fwhm': ('tcs:seeing-dimm-fwhm', 'DIMMSEE', 'DIMM seeing (FWHM)'),
-    'tcsi.seeing.dimm_fwhm_corr': ('tcs:seeing-dimm-fwhm-corr', 'DIMMSCOR', 'DIMM seeing correction'),
-    'tcsi.seeing.mag2_el': ('tcs:seeing-el', 'SEEEL', 'Mag2 seeing elevation'),
-    'tcsi.seeing.mag2_fwhm': ('tcs:seeing-fwhm', 'SEEING', 'Mag2 seeing (FWHM)'),
-    'tcsi.seeing.mag2_fwhm_corr': ('tcs:seeing-fwhm-corr', 'SEECOR', 'Mag2 seeing correction'),
-    'tcsi.seeing.mag2_time': ('tcs:seeing-time', 'SEETIM', 'Mag2 seeing time'),
-}
+START_FITS_KEYS = ('UNIXSTR', 'MJD-STR', 'UT-STR')
+MIDPOINT_FITS_KEYS = {'UNIXSTR': ('UNIXSTR', 'UNIXEND')}
 
-START_FITS_KEYS = ('UNIXSTR', 'MJD-STR', 'UT-STR')  # TODO
-MIDPOINT_FITS_KEYS = {'UNIXSTR': ('UNIXSTR', 'UNIXEND'),
-                      'MJD-STR': ('MJD-STR', 'MJD-END'),
-                      'UT-STR': ('UT-STR', 'UT-END')}  # TODO
-
-OBSLOG_RECORD_KEYS = {
-    # This should be a superset of mkidcore.metadata.XKID_KEY_INFO
-    # Keys are redis keys, values are fits keys
-    'status:temps:device-stage:temp': 'DET-TMP',
-    'datasaver:beammap': 'BMAP',
-    'paths:data-dir': 'CFGDIR',
-    'datasaver:dark': 'DARK',
-    'datasaver:flat': 'FLAT',
-    'status:device:conex:position-x': 'CONEXX',
-    'status:device:conex:position-y': 'CONEXY',
-    'status:device:filterwheel:filter': 'FLTPOS',
-    'status:device:focus:position-mm': 'FOCPOS',
-    'status:device:laserflipperduino:flipper-position': 'FLPPOS',
-    'status:device:heatswitch:position': 'HEATPOS',
-    'status:device:laserflipperduino:laser-808': 'cal808',
-    'status:device:laserflipperduino:laser-904': 'cal904',
-    'status:device:laserflipperduino:laser-980': 'cal980',
-    'status:device:laserflipperduino:laser-1120': 'cal1120',
-    'status:device:laserflipperduino:laser-1310': 'cal1310',
-    'instrument:platescale': 'PLTSCL',
-    'instrument:pixel-ref-x': 'PREFX',
-    'instrument:pixel-ref-y': 'PREFY',
-    'instrument:conex-ref-x': 'CXREFX',
-    'instrument:conex-ref-y': 'CXREFY',
-    'instrument:conex-dpdx': 'CDPDX',
-    'instrument:conex-dpdy': 'CDPDY',
-    'instrument:device-angle': 'DEVANG',
-    'instrument:firmware-version': 'FIRMV'
-}
-
-# Include all the MAGAOX KEYS
-OBSLOG_RECORD_KEYS.update({v[0]: v[1] for v in MAGAOX_KEYS.values()})
+MAGAOX_REDIS2INDI = {x.redis_key: x.indi_value for x in metadata.XKID_KEY_INFO.values() if x.indi_value}
+MAGAOX_INDI2REDIS = {v:k for k,v in MAGAOX_REDIS2INDI.items()}
+MAGAOX_FILTER_PROPS = ('stagebs.presetName', 'fwpupil.filterName', 'fwfpm.filterName', 'fwlyot.filterName',
+                       'stagepiaa1.presetName', 'stagepiaa2.presetName')
+for k in MAGAOX_FILTER_PROPS:
+    MAGAOX_INDI2REDIS[k] = MAGAOX_INDI2REDIS[f'{k}.XXX']
 
 
-def get_obslog_record(start, duration):
+def get_obslog_record(start=0.0, stop=0.0, duration=0.0, keys=None):
     """
     Grab all the data needed for an observation (as ultimately specified in the mkidcore.metadata.XKID_KEY_INFO)
     from redis using the OBSLOG_RECORD_KEYS dictionary and build them into a astropy.io.fits.Header suitable for
     logging or fits - file building
     """
+    kv_pairs = {}
     try:
-        kv_pairs = redis.read(list(OBSLOG_RECORD_KEYS.keys()), ts_value_only=True, error_missing=False)
-        fits_kv_pairs = {OBSLOG_RECORD_KEYS[k]: v for k, v in kv_pairs.items()}
-
+        redis_keys = [x['redis_key'] for x in metadata.XKID_KEY_INFO.values()]
+        kv_pairs = redis.read(redis_keys, ts_value_only=True, error_missing=False)
     except RedisError:
-        fits_kv_pairs = {}
         log.error('Failed to query redis for metadata. Most values will be defaults.')
+
+    fits_kv_pairs = {metadata.XKID_KEY_INFO[k]: v for k, v in kv_pairs.items()}
+
+    if keys:
+        for k, v in keys.items():
+            fits_kv_pairs[k] = v
+
     fits_kv_pairs['UNIXSTR'] = start
-    fits_kv_pairs['UNIXEND'] = fits_kv_pairs['UNIXSTR'] + duration
+    fits_kv_pairs['UNIXEND'] = stop
+    fits_kv_pairs['EXPTIME'] = duration
     return metadata.build_header(metadata=fits_kv_pairs, use_simbad=False, KEY_INFO=metadata.XKID_KEY_INFO,
-                                 DEFAULT_CARDSET=metadata.DEFAULT_XKID_CARDSET, unknown_keys='create')
+                                 DEFAULT_CARDSET=metadata.DEFAULT_XKID_CARDSET,
+                                 TIME_KEYS=metadata.XKID_TIME_KEYS,
+                                 TIME_KEY_BUILDER=metadata.xkid_time_builder,
+                                 unknown_keys='error')
 
 
 def gen2dashboard_yaml_to_redis(yaml, redis):
@@ -186,13 +135,15 @@ def parse_args():
 
 
 class MagAOX_INDI2(threading.Thread):
-    INTERESTING_DEVICES = ['tcsi', 'holoop', 'loloop', 'camwfs']
+    INTERESTING_DEVICES = [x.partition('.')[0] for x in MAGAOX_REDIS2INDI.values()]
+    INTERESTING_PROPERTIES = [x.rpartition('.')[0] for x in MAGAOX_REDIS2INDI.values()]
 
     def __init__(self, redis, *args, start=False, **kwargs):
         super(MagAOX_INDI2, self).__init__(*args, name='MagAO-X INDI Manager', **kwargs)
         self.daemon = True
         self.redis = redis
         self.log = log.getChild('magaox')
+        self.client = None
         if start:
             self.start()
 
@@ -200,28 +151,38 @@ class MagAOX_INDI2(threading.Thread):
         if not isinstance(message, typing.get_args(messages.IndiDefSetMessage)):
             return
         device_name, prop_name = message.device, message.name
-        update = {}
+        update = {}  # redis key: value
+
         for element_name, elem in message.elements():
-            indikey = f'{device_name}.{prop_name}.{element_name}'
-            if indikey not in MAGAOX_KEYS:
+            indikey = f'{device_name}.{prop_name}'
+            if indikey not in self.INTERESTING_PROPERTIES:
                 continue
-            # if metric_value in (None, float('inf'), float('-inf')):
-            #     continue
-            # ts = datetime.now().timestamp() if message.timestamp is None else message.timestamp.timestamp()
-            update[MAGAOX_KEYS[indikey][0]] = elem.value
+            elif indikey in MAGAOX_FILTER_PROPS:
+                for a in self.client[indikey]:
+                    if self.client[indikey][a].value.lower() == 'on':
+                        update[MAGAOX_INDI2REDIS[indikey]] = a
+            else:
+                indikey += f'.{element_name}'
+                if indikey not in MAGAOX_INDI2REDIS.values():
+                    continue
+                # if metric_value in (None, float('inf'), float('-inf')):
+                #     continue
+                # ts = datetime.now().timestamp() if message.timestamp is None else message.timestamp.timestamp()
+                update[MAGAOX_INDI2REDIS[indikey]] = elem.value
         if not update:
             return
         self.log.debug(update)
         self.redis.store(update)
 
     def run(self):
+
         while True:
             try:
-                c = client.IndiClient()
-                c.register_callback(self.indi2redis)
-                c.connect()
+                self.client = client.IndiClient()
+                self.client.register_callback(self.indi2redis)
+                self.client.connect()
                 for device_name in self.INTERESTING_DEVICES:
-                    c.get_properties(device_name)
+                    self.client.get_properties(device_name)
                 self.log.info("Listening for metrics")
                 while True:
                     time.sleep(1)
@@ -312,6 +273,18 @@ def _req_q_targ(redis, q):
             log.error(f'Error in command listener: {e}')
 
 
+def fetch_request(request_q, block=True, timeout=None):
+    request = request_q.get(block=block, timeout=timeout)
+    request['duration'] = int(request['duration'])
+    limitless = request['duration'] == 0
+    abort = request['type'] == 'abort'
+    dur = 'infinite' if limitless else f'{request["duration"]} s'
+    log.info(f'Received request for {dur} {request["type"]} observation named '
+             f'{request["name"]}, {int(request["seq_i"]) + 1}/{request["seq_n"]}')
+    header = {'object': request['name'], 'e_githsh': GIT_HASH, 'data-typ': request['type']}
+    return request, header, limitless, abort
+
+
 if __name__ == "__main__":
     util.setup_logging('observingAgent')
     redis.setup_redis(ts_keys=REDIS_TS_KEYS)
@@ -335,10 +308,10 @@ if __name__ == "__main__":
                       beammap=beammap, recreate_images=True)
     fits_imagecube = pm.sharedImages['fits']
 
-    limitless_integration = False
-    fits_exp_time = None
-    md_start = None
-    request = {'type': 'abort'}
+    limitless = False
+    # fits_exp_time = None
+    # md_start = None
+    # request = {'type': 'abort'}
 
     obs_log = logging.getLogger('obs_log')
     obs_log.propagate = False
@@ -351,79 +324,69 @@ if __name__ == "__main__":
     request_thread.start()
     FITS_FILE_TIME = 10
 
-    last_request = {'name': '', 'state': 'stopped', 'seq_i': 0, 'seq_n': 0, 'start': 0, 'type': 'abort'}
-    redis.store({OBSERVING_EVENT_KEY: last_request}, encode_json=True)
+    # last_request = {'name': '', 'state': 'stopped', 'seq_i': 0, 'seq_n': 0, 'start': 0, 'type': 'star'}
+    redis.store({OBSERVING_EVENT_KEY: {'name': '', 'state': 'stopped', 'seq_i': 0,
+                                       'seq_n': 0, 'start': 0, 'type': 'star'}}, encode_json=True)
     try:
         while True:
 
-            if not limitless_integration:
-                request = request_q.get(block=True)
-                if request['type'] == 'abort':
+            if not limitless:
+                request, header_info, limitless, abort = fetch_request(request_q, block=True)
+
+                if abort:
                     log.debug(f'Request to stop while nothing in progress.')
                     pm.stopWriting()
                     continue
 
-                request['duration'] = int(request['duration'])
-                last_request = request.copy()
-                last_request['state'] = 'started'
-
-                dur = 'infinite' if request['duration'] == 0 else f'{request["duration"]} s'
-                log.info(f'Received request for {dur} {request["type"]} observation named '
-                         f'{request["name"]}, {int(request["seq_i"])+1}/{request["seq_n"]}')
-                limitless_integration = request['duration'] == 0
-                fits_exp_time = FITS_FILE_TIME if limitless_integration else request['duration']
+                fits_exp_time = FITS_FILE_TIME if limitless else request['duration']
 
                 bin_dir, fits_dir, logs_dir = update_paths()
                 rotate_log(obs_log, logs_dir)
 
                 pm.startWriting(bin_dir)
-                x = datetime.utcnow()
-                tics = [time.time()]
-                fits_imagecube.startIntegration(startTime=calendar.timegm(datetime.utcnow().timetuple()) + 1,
-                                                integrationTime=fits_exp_time)
-                md_start = get_obslog_record(x.timestamp(), fits_exp_time)
-                tics[-1] = time.time() - tics[-1]
+                start_time = calendar.timegm(datetime.utcnow().timetuple()) + 1
+                fits_imagecube.startIntegration(startTime=start_time, integrationTime=fits_exp_time)
+                md_start = get_obslog_record(start=start_time, duration=fits_exp_time, keys=header_info)
                 obs_log.info(json.dumps(dict(md_start)))
-                redis.store({OBSERVING_EVENT_KEY: last_request}, encode_json=True)
+                request['state'] = 'started'
+                redis.store({OBSERVING_EVENT_KEY: request}, encode_json=True)
 
             try:
-                tics.append(time.time())
-                request = request_q.get(timeout=fits_exp_time - .1)
+                _, _, _, abort = fetch_request(request_q, timeout=fits_exp_time - .05)
             except queue.Empty:
-                tics[-1] = time.time() - tics[-1]
+                pass
             else:
-                if request['type'] != 'abort':
-                    log.warning(f'Ignoring observation request because one is already in progress')
-                else:
+                if abort:
                     pm.stopWriting()  # Stop writing photons, no need to touch the imagecube
-                    # TODO write out a truncated fits?
-                    limitless_integration = False
-                    last_request['state'] = 'stopped'
-                    redis.store({OBSERVING_EVENT_KEY: last_request}, encode_json=True)
+                    limitless = False
+                    request['state'] = 'stopped'
+                    redis.store({OBSERVING_EVENT_KEY: request}, encode_json=True)
                     log.info(f'Aborted observation of {request["type"]} "{request["name"]}",'
-                             f'{int(request["seq_i"])+1}/{request["seq_n"]}.')
+                             f'{int(request["seq_i"]) + 1}/{request["seq_n"]}.')
                     continue
+                else:
+                    log.warning(f'Ignored observation request because one is already in progress')
 
-            tics.append(time.time())
             im_data, start_t, expo_t = fits_imagecube.receiveImage(timeout=True, return_info=True)
-            tics[-1] = time.time() - tics[-1]
-            log.info(f'Start: {tics[0] * 1000:.0f} ms, Abort pause: {tics[1]:.2f} s, Receive pause: {tics[2]:.2f} s')
-            md_end = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
+            md_end = get_obslog_record(start=md_start['UNIXSTR'], stop=datetime.utcnow().timestamp(),
+                                       duration=fits_exp_time, keys=header_info)
+
+            # md_start['FRATE'] = md_end['FRATE']=
             md_start['wavecal'] = md_end['wavecal'] = fits_imagecube.wavecalID  # .decode('UTF-8', "backslashreplace")
             md_start['wmin'] = md_end['wmin'] = fits_imagecube.wvlStart
             md_start['wmax'] = md_end['wmax'] = fits_imagecube.wvlStop
-            image = fits.ImageHDU(data=im_data, header=merge_start_stop_headers(md_start, md_end))
-            image.header['EXPTIME'] = fits_exp_time
-            if limitless_integration:
-                tics[0] = time.time()
+            header = merge_start_stop_headers(md_start, md_end)
+            image = fits.ImageHDU(data=im_data, header=header)
+            obs_log.info(json.dumps(dict(header)))
+
+            if limitless:
                 fits_imagecube.startIntegration(startTime=0, integrationTime=fits_exp_time)
-                tics[0] = time.time() - tics[0]
-                md_start = get_obslog_record(datetime.utcnow().timestamp(), fits_exp_time)
+                md_start = get_obslog_record(start=datetime.utcnow().timestamp(), keys=header_info)
             else:
-                last_request['state'] = 'stopped'
-                redis.store({OBSERVING_EVENT_KEY: last_request}, encode_json=True)
+                request['state'] = 'stopped'
+                redis.store({OBSERVING_EVENT_KEY: request}, encode_json=True)
                 log.info(f'Observation of {request["type"]} "{request["name"]}", '
-                         f'{int(request["seq_i"])+1}/{request["seq_n"]} complete')
+                         f'{int(request["seq_i"]) + 1}/{request["seq_n"]} complete')
 
             header_dict = dict(image.header)
 
@@ -446,9 +409,6 @@ if __name__ == "__main__":
                 fn = os.path.join(fits_dir, redis.read(SCI_FILE_TEMPLATE_KEY).format(**header_dict))
                 fac.generate(fname=fn, name=request['name'], save=True, overwrite=True, threaded=True,
                              complete_callback=lambda x: redis.store({LAST_SCI_FILE_KEY: x}))
-
-            if not limitless_integration:
-                tics = []
 
     except Exception as e:
         log.critical(f'Fatal Error: {e}')
