@@ -33,8 +33,8 @@ REDIS_STATUS_KEYS = ('status:device:heatswitch:position',
                      'status:device:heatswitch:status',
                      'status:device:conex:controller-status',
                      'status:device:conex:controller-state',
-                     'status:device:conex:controller-state:last-change',
-                     'status:device:conex:operation-status',
+                     'status:device:conex:position-x',
+                     'status:device:conex:position-y',
                      'status:magnet:state',
                      'status:magnet:status')
 
