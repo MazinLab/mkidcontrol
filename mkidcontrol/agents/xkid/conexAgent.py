@@ -9,12 +9,6 @@ Axis syntax is: U -> rotation around the y-axis, V -> rotation around the y-axis
 
 Commands sent to conex for dithering/moving are dicts converted to strings via the json.dumps() to conveniently send
 complicated dicts over redis pubsub connections
-
-TODO: Log dither
-
-TODO: Store conext position sensibly
-
-TODO: Publish obs_dict at start/stop of each dwell step
 """
 
 import logging
@@ -34,6 +28,7 @@ import mkidcontrol.mkidredis as redis
 import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDSCONEX, LakeShoreCommand
 from mkidcontrol.devices import Conex
+from mkidcontrol.agents.xkid.observingAgent import OBSERVING_EVENT_KEY
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -59,12 +54,14 @@ CONEX_OPERATION_STATUS_KEY = "status:device:conex:operation-status"
 CONEX_X = "status:device:conex:position-x"
 CONEX_Y = "status:device:conex:position-y"
 
+OBSERVING_REQUEST_CHANNEL = 'command:observation:request'
+OBSERVING_KEYS = (OBSERVING_REQUEST_CHANNEL, OBSERVING_EVENT_KEY)
+
 CONEX_COMMANDS = tuple([MOVE_COMMAND_KEY, DITHER_COMMAND_KEY, STOP_COMMAND_KEY])
 
 SETTING_KEYS = tuple(COMMANDSCONEX.keys())
-COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + list(CONEX_COMMANDS)])
+COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + list(CONEX_COMMANDS)]) + OBSERVING_KEYS
 
-OBSERVING_REQUEST_CHANNEL = 'command:observation:request'
 
 DITHER_LOG_KEY = "paths:logs-folder-name"
 
@@ -352,7 +349,6 @@ class ConexController:
         with self._rlock:
             self._completed_dithers.append(dith)
 
-
     # def dither(self, dither_dict):
     #     """
     #     INPUTS:
@@ -457,6 +453,7 @@ class ConexController:
         with self._rlock:
             self._update_cur_status(self.status())
         while self._halt_dither == False and endTime < dwell_until:
+            # TODO CHECK FOR "OBSERVATION STOPPED"
             sleep = min(polltime, dwell_until - endTime)
             time.sleep(max(sleep, 0))
             endTime = datetime.datetime.utcnow().timestamp()
@@ -597,11 +594,15 @@ if __name__ == "__main__":
 
     # N.B. Conex movement/dither commands will be dicts turned into strings via json.dumps() for convenient sending and
     # ultimately reformatting over redis and flask connections.
+    # TODO: Listen for observation requests, specifically of 'type':'abort'
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
                 log.debug(f"conexAgent received {key}: {val}.")
-                key = key.removeprefix("command:")
+                if key in OBSERVING_KEYS:
+                    val = json.loads(val)
+                else:
+                    key = key.removeprefix("command:")
                 try:
                     if key in SETTING_KEYS:
                         try:
@@ -634,6 +635,16 @@ if __name__ == "__main__":
                         redis.store({STATUS_KEY: "OK"})
                         log.info(f"Started dither with params: {val}")
                     elif key == STOP_COMMAND_KEY:
+                        log.debug("Stopping conex")
+                        cc.do_halt()
+                        redis.store({STATUS_KEY: "OK"})
+                        log.info("Conex stopped!")
+                    elif key == OBSERVING_EVENT_KEY and val['state'] == "stopped":
+                        log.debug("Stopping conex")
+                        cc.do_halt()
+                        redis.store({STATUS_KEY: "OK"})
+                        log.info("Conex stopped!")
+                    elif key == OBSERVING_REQUEST_CHANNEL and val['type'] == "abort":
                         log.debug("Stopping conex")
                         cc.do_halt()
                         redis.store({STATUS_KEY: "OK"})
