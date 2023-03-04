@@ -195,10 +195,11 @@ class MagAOX_INDI2(threading.Thread):
 
 
 def update_paths():
-    data_dir = redis.read(DATA_DIR_KEY, decode_json=False)
-    fits_dir = os.path.join(data_dir, 'fits')
-    logs_dir = os.path.join(data_dir, 'logs')
-    bin_dir = os.path.join(data_dir, 'bin')
+    d = redis.read([DATA_DIR_KEY, 'fits-folder-name', 'logs-folder-name', 'bin-folder-name'])
+    data_dir = d['data-dir']
+    fits_dir = os.path.join(data_dir, d['fits-folder-name'])
+    logs_dir = os.path.join(data_dir, d['logs-folder-name'])
+    bin_dir = os.path.join(data_dir, d['bin-folder-name'])
     os.makedirs(fits_dir, exist_ok=True)
     os.makedirs(logs_dir, exist_ok=True)
     os.makedirs(bin_dir, exist_ok=True)
@@ -277,18 +278,17 @@ def _req_q_targ(redis, q):
 
 
 def fetch_request(request_q, block=True, timeout=None):
-    request = request_q.get(block=block, timeout=timeout)
-    abort = request['type'] == 'abort'
-    if abort:
+    req = request_q.get(block=block, timeout=timeout)
+    if req['type'] == 'abort':
         log.info(f'Received abort request')
         return None, None, None, True
-    request['duration'] = int(request['duration'])
-    limitless = request['duration'] == 0
-    dur = 'infinite' if limitless else f'{request["duration"]} s'
-    log.info(f'Received request for {dur} {request["type"]} observation named '
-             f'{request["name"]}, {int(request["seq_i"]) + 1}/{request["seq_n"]}')
-    header = {'object': request['name'], 'e_githsh': GIT_HASH, 'data-typ': request['type']}
-    return request, header, limitless, False
+    req['duration'] = int(req['duration'])
+    inf = req['duration'] == 0
+    dur = 'infinite' if limitless else f'{req["duration"]} s'
+    log.info(f'Received request for {dur} {req["type"]} observation named '
+             f'{req["name"]}, {int(req["seq_i"]) + 1}/{req["seq_n"]}')
+    head = {'object': req['name'], 'e_githsh': GIT_HASH, 'data-typ': req['type']}
+    return req, head, inf, False
 
 
 if __name__ == "__main__":
