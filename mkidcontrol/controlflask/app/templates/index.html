@@ -9,10 +9,8 @@
                 <div class="d-flex justify-content-center align-content-center flex-wrap flex-md-nowrap py-2 mb-3 border-bottom">
                     <div class="flex-column col-4">
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-2 border-bottom">
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
-                                UTC:
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3" id="utc-timestamp"></div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">UTC:</div><div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1" id="utc-timestamp"></div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">(Unix:</div><div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1" id="unix-timestamp"></div><div class="d-flex justify-content-center flex-wrap flex-md-nowrap">)</div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-2">
                                 {{ render_field(obs.obsStartStop, class="btn btn-danger", onclick="send_obs_info(this.id)", value="Stop Observing") }}
@@ -142,7 +140,7 @@
                                 <div class="px-1 w-50">Dec: </div><div class="px-1 mw-50" id="dec"></div>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
-                                <div class="px-1 w-50">Alt: </div><div class="px-1 mw-50" id="alt"></div>
+                                <div class="px-1 w-50">El: </div><div class="px-1 mw-50" id="el"></div>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
                                 <div class="px-1 w-50">Az: </div><div class="px-1 mw-50" id="az"></div>
@@ -309,8 +307,12 @@
                         Plotly.restyle(update['id'], {z: [data['z']]});
                         break;
                 }
-                var t = Math.floor((new Date()).getTime() / 1000)
-                $("#utc-timestamp").text(t)
+                var t = (new Date()).getTime();
+                var date = new Date(t);
+                var utc = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() + ", "+ date.toDateString();
+
+                $("#utc-timestamp").text(utc)
+                $("#unix-timestamp").text(Math.floor(t / 1000))
             }
             if (pixel[0] != -1 && pixel[1] != -1) {
                 Plotly.extendTraces('pixel_lightcurve', {x:[[update['time']]], y:[[data['z'][pixel[1]][pixel[0]]]]}, [0])
