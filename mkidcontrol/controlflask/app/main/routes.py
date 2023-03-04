@@ -463,7 +463,7 @@ def new_night():
 @bp.route('/configuration_paths', methods=['GET', 'POST'])
 def configuration_paths():
     cfgform = ConfigPathForm()
-    return render_template('configuration_paths.html', title=_('Configuration Paths'), cfgForm=cfgform)
+    return render_template('configuration_paths.html', title=_('Configuration Paths'), cfgf3orm=cfgform)
 
 
 @bp.route('/test_page', methods=['GET', 'POST'])

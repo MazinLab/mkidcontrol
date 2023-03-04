@@ -15,7 +15,7 @@ class NewNightForm(FlaskForm):
 
 
 class ConfigPathForm(FlaskForm):
-    dashboard_yaml = StringField("Dashboard yml:")
+    dashboard_yaml = StringField("Dashboard Yaml")
     dark_file = StringField("Active Dark File", default="-")
     flat_file = StringField("Active Flat File", default="-")
     sci_template_file = StringField("Template Sci File")
