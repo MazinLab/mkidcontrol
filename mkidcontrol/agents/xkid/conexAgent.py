@@ -65,7 +65,7 @@ CONEX_COMMANDS = tuple([MOVE_COMMAND_KEY, DITHER_COMMAND_KEY, STOP_COMMAND_KEY])
 SETTING_KEYS = tuple(COMMANDSCONEX.keys())
 COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + list(CONEX_COMMANDS)]) + OBSERVING_KEYS
 
-
+DATA_PATH_DIR_KEY = "paths:data-dir"
 DITHER_LOG_KEY = "paths:logs-folder-name"
 
 
@@ -184,7 +184,7 @@ class ConexController:
         d = self.queryMove()
         self._update_cur_status(d['status'])
         while not d['completed']:
-            time.sleep(0.0001)
+            time.sleep(.05)
             try:
                 d = self.queryMove()
                 self._update_cur_status(d['status'])
@@ -479,11 +479,13 @@ class ConexController:
 
         return True
 
-    def move(self, x, y):
+    def move(self, x:float, y:float):
         """
         Tells conex to move and collects errors
         """
-        self._updateState(f'Moving to {x:.2f}, {y:.2f}')
+        x = float(x)
+        y = float(y)
+        self._updateState(f'Moving to {x}, {y}')
         try:
             self.conex.move((x, y), blocking=True)  # block until conex is done moving (or stopped)
             if self._startedMove > 0:
@@ -577,7 +579,7 @@ if __name__ == "__main__":
 
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
     create_log('dither',
-               logfile=os.path.join(redis.read(DITHER_LOG_KEY), 'dither_{}.log'.format(timestamp)),
+               logfile=os.path.join(redis.read(DATA_PATH_DIR_KEY), redis.read(DITHER_LOG_KEY), f'dither_{timestamp}.log'),
                console=False, mpsafe=True, propagate=False,
                fmt='%(asctime)s %(message)s',
                level=mkidcore.corelog.DEBUG)
