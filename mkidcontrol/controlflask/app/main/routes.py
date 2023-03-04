@@ -665,10 +665,7 @@ def dashplot():
             current_app.liveimage.startIntegration(startTime=0, integrationTime=int_time)
             # t = time.time()
             im = current_app.liveimage.receiveImage()
-
-            # im = np.random.uniform(5000, size=(125 * 80)).reshape((125, 80)).astype(int)
             # im = im.tolist()
-            # time.sleep(int_time)
 
             tic = time.time()
             # if active_dark_file != current_dark_file:
