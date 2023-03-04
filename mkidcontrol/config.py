@@ -50,6 +50,8 @@ FLASK_CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
                     'Magnet Field': 'status:magnet:field',
                     'LS625 Output V': 'status:device:ls625:output-voltage'}
 
+FLASK_TCS_KEYS = ("tcs:airmass", "tcs:rotoff", "tcs:ra", "tcs:dec", "tcs:el", "tcs:az")
+
 FLASK_KEYS = list(COMMAND_DICT.keys()) + list(REDIS_TS_KEYS) + list(REDIS_STATUS_KEYS)
 
 REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},

@@ -36,6 +36,12 @@
                 update_div("conex_xpos", "status:device:conex:position-x", newdata);
                 update_div("conex_ypos", "status:device:conex:position-y", newdata);
                 update_div("magnet_control_status", 'status:magnet:state', newdata);
+                update_div("airmass", "tcs:airmass", newdata)
+                update_div("rotator", "tcs:rotoff", newdata)
+                update_div("ra", "tcs:ra", newdata)
+                update_div("dec", "tcs:dec", newdata)
+                update_div("el", "tcs:el", newdata)
+                update_div("az", "tcs:az", newdata)
                 update_service_div("LS336Service", "lakeshore336.service", newdata);
                 update_service_div("LS372Service", "lakeshore372.service", newdata);
                 update_service_div("LS625Service", "lakeshore625.service", newdata);
