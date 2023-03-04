@@ -24,8 +24,46 @@ import mkidcontrol.util as util
 from mkidcontrol.commands import COMMANDSFOCUS, LakeShoreCommand
 from mkidcontrol.devices import Focus
 
+DEFAULT_PARAMS = {'home': [[{'home_dir': 2,
+    'limit_switch': 1,
+    'home_velocity': 137439,
+    'offset_distance': 24576,
+    'msg': 'mot_get_homeparams',
+    'msgid': 1090,
+    'dest': 0,
+    'source': 0,
+    'chan_ident': 1}]],
+ 'jog': {'jog_mode': 2,
+  'step_size': 12288,
+  'min_velocity': 0,
+  'acceleration': 75,
+  'max_velocity': 164931,
+  'stop_mode': 2,
+  'msg': 'mot_get_jogparams',
+  'msgid': 1048,
+  'source': 0,
+  'dest': 0,
+  'chan_ident': 1},
+ 'move': {'backlash_distance': 246,
+  'msg': 'mot_get_genmoveparams',
+  'msgid': 1084,
+  'source': 0,
+  'dest': 0,
+  'chan_ident': 1},
+ 'velocity': {'min_velocity': 0,
+  'max_velocity': 164931,
+  'acceleration': 75,
+  'msg': 'mot_get_velparams',
+  'msgid': 1045,
+  'source': 0,
+  'dest': 0,
+  'chan_ident': 1}}
+
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger("focusAgent")
+from logging import getLogger
+l = getLogger('thorlabs_apt_device')
+l.setLevel("DEBUG")
 
 QUERY_INTERVAL = 1
 
