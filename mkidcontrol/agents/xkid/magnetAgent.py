@@ -200,7 +200,7 @@ class MagnetController(LockedMachine):
             {'trigger': 'next', 'source': 'hs_closing', 'dest': 'start_ramping', 'conditions': 'heatswitch_closed'},
             {'trigger': 'next', 'source': 'hs_closing', 'dest': None, 'prepare': 'close_heatswitch'},
 
-            {'trigger': 'next', 'source': 'start_ramping', 'dest': None, 'before': 'begin_ramp_up'},
+            {'trigger': 'next', 'source': 'start_ramping', 'dest': None, 'before': 'begin_ramp_up', 'unless': 'ramp_ok'},
             {'trigger': 'next', 'source': 'start_ramping', 'dest': 'ramping', 'conditions': 'ramp_ok'},
 
             # stay in ramping, as long as the ramp is going OK

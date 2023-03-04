@@ -67,13 +67,13 @@ if __name__ == "__main__":
                     try:
                         log.info(f"Processing command {cmd}")
                         if key == FILTERWHEEL_POSITION_KEY:
-                            fw.set_filter_pos(cmd.command_value)
-                            redis.store({cmd.setting: cmd.value})
-                            redis.store({FILTERWHEEL_FILTER_KEY: FILTERS[cmd.value]})
+                            fw.set_filter_pos(int(cmd.command_value))
+                            redis.store({cmd.setting: cmd.command_value})
+                            redis.store({FILTERWHEEL_FILTER_KEY: FILTERS[cmd.command_value]})
                             current_pos = fw.get_filter_pos()
                             redis.store({FILTERWHEEL_CURRENT_POSITION_KEY: current_pos})
                             redis.store({FILTERWHEEL_CURRENT_FILTER_KEY: FILTERS[current_pos]})
-                            if current_pos != cmd.value:
+                            if current_pos != cmd.command_value:
                                 redis.store({cmd.setting: current_pos})
                                 redis.store({FILTERWHEEL_FILTER_KEY: FILTERS[current_pos]})
                             redis.store({STATUS_KEY: "OK"})
