@@ -476,7 +476,6 @@ class Focus(TDC001):
     def position_encoder(self):
         return self.status['enc_count']
 
-    @property
     def position(self):
         return {'mm': self.status['position'], 'encoder': self.status['enc_count']}
 
@@ -492,7 +491,7 @@ class Focus(TDC001):
         except (IOError, SerialException) as e:
             raise IOError(f"Error communicating with focus slider: {e}")
 
-    def move_to(self, dest, units='mm', error_on_disallowed=False):
+    def move_to(self, dest:float, units='mm', error_on_disallowed=False):
         """
         Perform an absolute move to <position> <units>.
         Position must be provided
@@ -500,6 +499,9 @@ class Focus(TDC001):
         Legal values in mm are [0, 50]
         Legal values in encoder are [0, 1727750]
         """
+
+        dest = float(dest)
+
         if units == 'mm':
             dest_encoder = dest * self.ENCODER_STEPS_PER_MM
             dest_mm = dest
@@ -511,7 +513,7 @@ class Focus(TDC001):
 
         log.info(f"Move requested to {dest_mm} mm (encoder position {dest_encoder}).")
         try:
-            if dest_encoder >= self.MAXIMUM_POSITION_ENCODER:
+            if dest_encoder > self.MAXIMUM_POSITION_ENCODER:
                 if error_on_disallowed:
                     log.debug(f"Requested a move to {dest_encoder} ({dest_mm}mm), beyond the maximum value ({self.MAXIMUM_POSITION_ENCODER}/{self.MAXIMUM_POSITION_MM} mm)")
                     raise ValueError(f"Requested a move to {dest_encoder} ({dest_mm}mm), beyond the maximum value ({self.MAXIMUM_POSITION_ENCODER}/{self.MAXIMUM_POSITION_MM} mm)")
@@ -520,7 +522,7 @@ class Focus(TDC001):
                               f"Attempting a move to {self.MAXIMUM_POSITION_ENCODER} ({self.MAXIMUM_POSITION_MM} mm)")
                     dest_encoder = self.MAXIMUM_POSITION_ENCODER
                     dest_mm = self.MAXIMUM_POSITION_MM
-            elif dest_encoder <= self.MINIMUM_POSITION_ENCODER:
+            elif dest_encoder < self.MINIMUM_POSITION_ENCODER:
                 if error_on_disallowed:
                     log.debug(f"Requested a move to {dest_encoder} ({dest_mm}mm), beyond the minimum value ({self.MINIMUM_POSITION_ENCODER}/{self.MINIMUM_POSITION_MM} mm)")
                     raise ValueError(f"Requested a move to {dest_encoder} ({dest_mm}mm), beyond the minimum value ({self.MINIMUM_POSITION_ENCODER}/{self.MINIMUM_POSITION_MM} mm)")
@@ -529,12 +531,12 @@ class Focus(TDC001):
                               f"Moving to {self.MINIMUM_POSITION_ENCODER} ({self.MINIMUM_POSITION_MM} mm)")
                     dest_encoder = self.MINIMUM_POSITION_ENCODER
                     dest_mm = self.MINIMUM_POSITION_MM
-            self.move_absolute(dest_encoder)
+            self.move_absolute(int(dest_encoder))
             log.debug(f"Moved to position {dest_encoder} ({dest_mm} mm)")
         except (IOError, SerialException) as e:
             raise IOError(f"Error communicating with focus slider: {e}")
 
-    def move_by(self, dist, units='mm', error_on_disallowed=False):
+    def move_by(self, dist: float, units='mm', error_on_disallowed=False):
         """
         Perform a relative move by <dist> <units>
         Position must be provided
@@ -545,6 +547,9 @@ class Focus(TDC001):
          move in one direction and then make that move
         Raises a value error if units are in
         """
+
+        dist = float(dist)
+
         if units == 'mm':
             dist_encoder = dist * self.ENCODER_STEPS_PER_MM
             dist_mm = dist
@@ -2646,7 +2651,7 @@ class Laserflipperduino(SerialDevice):
             raise ValueError(f"Illegal mirror position requested: '{position}'. Legal values are ('down', 'up')")
         pin, val = self.query((5, byte_val)).split(':')
         self.status[int(pin)] = int(val)
-        if val == 0:
+        if int(val) == 0:
             log.info(f"Mirror flipped down")
         else:
             log.info(f"Mirror flipped up")
