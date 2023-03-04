@@ -470,7 +470,7 @@ class Heatswitch:
     def __init__(self, redis):
         values = redis.read(redis.redis_keys("device-settings:heatswitch:*"))
         self.max_velocity = values['device-settings:heatswitch:max-velocity']
-        self.running_current = values['device-settings:heatswitch:running_current']
+        self.running_current = values['device-settings:heatswitch:running-current']
         self.acceleration = values['device-settings:heatswitch:acceleration']
 
 
