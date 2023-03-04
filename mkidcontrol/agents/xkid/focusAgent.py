@@ -49,8 +49,8 @@ SETTING_KEYS = tuple(COMMANDSFOCUS.keys())
 COMMAND_KEYS = tuple([f"command:{key}" for key in list(SETTING_KEYS) + [MOVE_BY_MM_KEY, MOVE_BY_ENC_KEY, JOG_KEY,
                                                                         HOME_KEY, MOVE_TO_MM_KEY, MOVE_TO_ENC_KEY]])
 
-def callback(pos_mm, pos_enc):
-    vals = [pos_mm, pos_enc]
+def callback(pos):
+    vals = [pos['mm'], pos['encoder']]
     keys = [FOCUS_POSITION_MM_KEY, FOCUS_POSITION_ENCODER_KEY]
     d = {k: x for k, x in zip(keys, vals)}
     try:
@@ -78,17 +78,18 @@ if __name__ == "__main__":
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
 
-    f.monitor(QUERY_INTERVAL, (f.position_mm, f.position_encoder), value_callback=callback)
+    # f.monitor(QUERY_INTERVAL, (f.position, ), value_callback=callback)
 
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
+                key = key.removeprefix('command:')
                 log.debug(f"focusAgent received {key} -> {val}!")
                 try:
-                    cmd = LakeShoreCommand(key.removeprefix('command:'), val)
+                    cmd = LakeShoreCommand(key, val)
                 except ValueError as e:
                     log.warning(f"Ignoring invalid command ('{key}={val}'): {e}")
-                    continue
+                    pass
                 try:
                     if 'params' in key:
                         f.update_param(key, val)

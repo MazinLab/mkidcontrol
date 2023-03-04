@@ -539,7 +539,8 @@ COMMANDSFOCUS = {'device-settings:focus:home-params:velocity': {'command': '', '
                  'device-settings:focus:move-params:backlash-distance': {'command': '', 'vals': [0, 1000]},
                  'device-settings:focus:velocity-params:acceleration': {'command': '', 'vals': [0, 1000]},
                  'device-settings:focus:velocity-params:max-velocity': {'command': '', 'vals': [0, 164931]},
-                 'device-settings:focus:desired-position:encoder': {'command': '', 'vals': [0, 1727750]}}
+                 'device-settings:focus:desired-position:encoder': {'command': '', 'vals': [0, 1727750]},
+                 'device-settings:focus:desired-position:mm': {'command': '', 'vals': [0, 50]}}
 
 # ---- PICTURE-C Magnet Commands ----
 CALIBRATION_CURVE = 1
