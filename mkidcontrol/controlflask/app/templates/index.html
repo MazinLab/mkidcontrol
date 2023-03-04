@@ -409,9 +409,8 @@
         obsstopsource.addEventListener("error", function (e) {console.log("Receive Obs_dict Connection errored out: ", e);}, false);
 
         function update_obs_buttons(data) {
-            var data = JSON.parse(data);
             var to_disable = ["flat", "dark", "dither_start"]
-
+            console.log(data)
             if (data['state'] == 'started') {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
