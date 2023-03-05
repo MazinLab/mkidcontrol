@@ -28,6 +28,17 @@
                         <div class="flex-column flex-wrap flex-md-nowrap py-2 mb-3">
                             <div id="dash"></div>
                         </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(obs.int_time, onkeypress="update_array_view_params(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(obs.min_cts, onkeypress="update_array_view_params(event, this.id)" ) }}
+                            </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">
+                                {{ render_field(obs.max_cts, onkeypress="update_array_view_params(event, this.id)" ) }}
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex-column col-4 border-left">

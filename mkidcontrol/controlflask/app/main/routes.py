@@ -144,10 +144,11 @@ def conex_normalization():
     """
     conex = ConexForm()
     norm = ConexNormalizationForm()
+    obs = ObsControlForm()
 
     array_fig = initialize_array_figure(current_app.array_view_params)
 
-    return render_template('conex_normalization.html', conex=conex, array_fig=array_fig, norm=norm)
+    return render_template('conex_normalization.html', conex=conex, array_fig=array_fig, norm=norm, obs=obs)
 
 
 @bp.route('/other_plots', methods=['GET'])
