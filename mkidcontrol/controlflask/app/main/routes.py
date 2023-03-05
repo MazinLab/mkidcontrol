@@ -432,7 +432,7 @@ def system():
 def data_paths():
     # TODO: Turn new night & configuration into one page once further stabilized & tested
     # TODO: Add "you must restart the gui if you change the beammap" message
-    newnight = DataPathForm()
+    pathform = DataPathForm()
     ymls_to_copy = ['dashboard.yml', 'hightemplar.yml', 'roaches.yml']
 
     if request.method == "POST":
@@ -457,7 +457,7 @@ def data_paths():
 
 
         print(datetime.datetime.now().strftime("%Y%m%d"))
-    return render_template('data_paths.html', title=_('Configuration Paths'), newnight=newnight)
+    return render_template('data_paths.html', title=_('Configuration Paths'), pathform=pathform)
 
 
 @bp.route('/test_page', methods=['GET', 'POST'])
