@@ -123,32 +123,32 @@
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
-                                <div class="px-1 w-50">Airmass: </div><div class="px-1 mw-50" id="airmass"></div>
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
-                                <div class="px-1 w-50">Rotator: </div><div class="px-1 mw-50" id="rotator"></div>
-                            </div>
-                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
                                 <div class="px-1 w-50">RA: </div><div class="px-1 mw-50" id="ra"></div>
                             </div>
-                        </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
                                 <div class="px-1 w-50">Dec: </div><div class="px-1 mw-50" id="dec"></div>
                             </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
+                                <div class="px-1 w-50">Airmass: </div><div class="px-1 mw-50" id="airmass"></div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
                                 <div class="px-1 w-50">El: </div><div class="px-1 mw-50" id="el"></div>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
                                 <div class="px-1 w-50">Az: </div><div class="px-1 mw-50" id="az"></div>
                             </div>
+                            <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-1 border-left border-right">
+                                <div class="px-1 w-50">Rotator: </div><div class="px-1 mw-50" id="rotator"></div>
+                            </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap">
+                            <div class="px-1 w-10"><span class="dot" id="conex_status_dot"></span></div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 w-25">
                                 <h4>Dither</h4>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border px-2 w-75">
-                                <div class="px-1 w-10"><span class="dot" id="conex_status_dot"></span></div>
                                 <div class="px-1 w-10">Status: </div><div class="px-1 mw-40" id="conex_control_status"></div><div class="px-1 w-10">@ pos: </div><div>(</div><div class="px-1" id="conex_xpos"></div><div>,</div><div class="px-1" id="conex_ypos"></div><div>)</div>
                             </div>
                         </div>
@@ -178,11 +178,11 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1">
+                            <div class="px-1 w-10"><span class="dot" id="magnet_status_dot"></span></div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 w-35">
                                 <h4>Fridge Control</h4>
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap border px-2 w-65">
-                                <div class="px-1 w-10"><span class="dot" id="magnet_status_dot"></span></div>
                                 <div class="px-1 w-10">Status: </div><div class="px-1 mw-80" id="magnet_control_status"></div>
                             </div>
                         </div>
@@ -366,7 +366,7 @@
 
             if (document.getElementById("obsStartStop").value.includes("Start")) {
                 if (to_disable.includes(buttonid)) {
-                    if (document.getElementById("obsName").value === "---") {
+                    if (document.getElementById("obsName").value === "") {
                         name = obs_button.value
                     } else {
                         name = document.getElementById("obsName").value
@@ -662,9 +662,9 @@
 
         // Helper function to change color of a command status div back to grey
         function fade_color (div_id, timeout=3000) {
-            setInterval(function() {
-                div_id.style.backgroundColor = '#bbb'
-            }, timeout)
+            // setInterval(function() {
+            //     div_id.style.backgroundColor = '#bbb'
+            // }, timeout)
         }
     </script>
 
