@@ -783,7 +783,7 @@ class HeatswitchMotor:
     MOTOR_POS_KEY = "status:device:heatswitch:motor-position"  # Integer between 0 and 4194303
     FULL_CLOSE_POSITION = 4194303  # Halfway point for motor position, physical hard stop with clamps closed on heat sinks
     FULL_OPEN_POSITION = 0  # Hard limit of the motor opening
-    DEFAULT_MAX_VELOCITY = 1e3  # Maximum velocity empirically found with ARCONS
+    DEFAULT_MAX_VELOCITY = 1000  # Maximum velocity empirically found with ARCONS
     DEFAULT_RUNNING_CURRENT = 13  # Current can be set between 10 (highest) and 127 (lowest). Lower current (higher number)
     # will avoid damaging the heat switch if limit is reached by mistake
     DEFAULT_ACCELERATION = 2  # Default acceleration from ARCONS

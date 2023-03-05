@@ -81,13 +81,13 @@ class ObsControlForm(FlaskForm):
 class HeatSwitchForm(FlaskForm):
     # Heatswitch form
     from mkidcontrol.devices import HeatswitchMotor
-    max_velocity = IntegerField("Max Velocity", default=HeatswitchMotor.DEFAULT_MAX_VELOCITY, validators=[NumberRange(0, 1e4)])
-    running_current = IntegerField("Running Current", default=HeatswitchMotor.DEFAULT_RUNNING_CURRENT, validators=[NumberRange(10, 127)])
-    acceleration = IntegerField("Acceleration", default=HeatswitchMotor.DEFAULT_ACCELERATION, validators=[NumberRange(0, 100)])
+    max_velocity = FloatField("Max Velocity", default=HeatswitchMotor.DEFAULT_MAX_VELOCITY, validators=[NumberRange(0, 1e4)])
+    running_current = FloatField("Running Current", default=HeatswitchMotor.DEFAULT_RUNNING_CURRENT, validators=[NumberRange(10, 127)])
+    acceleration = FloatField("Acceleration", default=HeatswitchMotor.DEFAULT_ACCELERATION, validators=[NumberRange(0, 100)])
+    hs_update = SubmitField("Update")
     hs_open = SubmitField("Open")
     hs_close = SubmitField("Close")
     hs_stop = SubmitField("Stop")
-    hs_update = SubmitField("Update")
 
 
 class Input372FilterForm(FlaskForm):

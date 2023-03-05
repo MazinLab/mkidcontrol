@@ -550,7 +550,7 @@ def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
     if init:
         fig.update_layout(title=f"Pixel Not Selected")
     else:
-        fig.update_layout(title=f"Pixel ({pix_x}, {pix_y})")  # , xaxis=dict(tickangle=0, nticks=3))
+        fig.update_layout(dict(title=f"Pixel ({pix_x}, {pix_y})", xaxis=dict(tickangle=45, nticks=5)))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
@@ -567,7 +567,7 @@ def create_fig(name):
         vals = [None]
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=times, y=vals, mode='lines', name=f"{name}"))
-    fig.update_layout(dict(title=f"{name}", xaxis=dict(tickangle=0, nticks=2)))
+    fig.update_layout(dict(title=f"{name}", xaxis=dict(tickangle=45, nticks=3)))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
