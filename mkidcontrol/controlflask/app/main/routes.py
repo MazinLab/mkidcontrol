@@ -140,8 +140,12 @@ def index():
 def conex_normalization():
     """
     """
+
+    refs = current_app.redis.read([CONEX_REF_X_KEY, CONEX_REF_Y_KEY, PIXEL_REF_X_KEY, PIXEL_REF_Y_KEY])
+    refs = {k.lstrip("instrument:").replace("-", "_"): v for k,v in refs.items()}
+
     conex = ConexForm()
-    norm = ConexNormalizationForm()
+    norm = ConexNormalizationForm(**refs)
     obs = ObsControlForm()
 
     array_fig = initialize_array_figure(current_app.array_view_params)
