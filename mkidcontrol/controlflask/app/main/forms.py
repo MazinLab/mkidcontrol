@@ -59,7 +59,7 @@ class LaserBoxForm(FlaskForm):
 
 
 class FocusForm(FlaskForm):
-    focus_position = FloatField("Position (0-50 mm)", default=0)  # Allowed values run from 0-50 mm
+    focus_position = FloatField("Focus Position (0-50 mm)", default=0)  # Allowed values run from 0-50 mm
     home_focus = SubmitField("Calibrate")
     jogforward = SubmitField("Jog Forward")
     jogbackward = SubmitField("Jog Backward")
