@@ -162,24 +162,23 @@ class MagAOX_INDI2(threading.Thread):
                 try:
                     for a in self.client[indikey]:
                         if self.client[indikey][a].value.lower() == 'on':
-                            update[MAGAOX_INDI2REDIS[indikey]] = a
+                            update[MAGAOX_INDI2REDIS[f'{indikey}.XXX']] = a
                 except KeyError as e:
                     self.log.error(f'Unable to fetch {MAGAOX_INDI2REDIS[indikey]} from MagAO-X due to {e}')
             else:
                 indikey += f'.{element_name}'
-                if indikey not in MAGAOX_INDI2REDIS.values():
+                if indikey not in MAGAOX_INDI2REDIS:
                     continue
                 # if metric_value in (None, float('inf'), float('-inf')):
                 #     continue
                 # ts = datetime.now().timestamp() if message.timestamp is None else message.timestamp.timestamp()
-                update[MAGAOX_INDI2REDIS[indikey]] = elem.value
+                update[MAGAOX_INDI2REDIS[indikey]] = str(elem.value)
         if not update:
             return
         self.log.debug(update)
         self.redis.store(update)
 
     def run(self):
-
         while True:
             try:
                 self.client = client.IndiClient()
@@ -344,7 +343,8 @@ if __name__ == "__main__":
                 if abort:
                     log.debug(f'Request to stop while nothing in progress.')
                     pm.stopWriting()
-                    os.remove(send_photons_file)
+                    if os.path.exists(send_photons_file):
+                        os.remove(send_photons_file)
                     continue
 
                 fits_exp_time = FITS_FILE_TIME if limitless else request['duration']
@@ -370,7 +370,8 @@ if __name__ == "__main__":
             else:
                 if abort:
                     pm.stopWriting()  # Stop writing photons, no need to touch the imagecube
-                    os.remove(send_photons_file)
+                    if os.path.exists(send_photons_file):
+                        os.remove(send_photons_file)
                     limitless = False
                     request['state'] = 'stopped'
                     redis.store({OBSERVING_EVENT_KEY: request}, encode_json=True)
