@@ -34,10 +34,10 @@ class ConexForm(FlaskForm):
 
 
 class ConexNormalizationForm(FlaskForm):
-    conex_ref_x = FloatField("Conex X Reference")
-    conex_ref_y = FloatField("Conex Y Reference")
-    pixel_ref_x = FloatField("Pixel X Reference")
-    pixel_ref_y = FloatField("Pixel Y Reference")
+    conex_ref_x = FloatField("Conex X Reference", default=0.000)
+    conex_ref_y = FloatField("Conex Y Reference", default=0.000)
+    pixel_ref_x = FloatField("Pixel X Reference", default=0)
+    pixel_ref_y = FloatField("Pixel Y Reference", default=0)
     update_conex_refs = SubmitField("Update Conex References")
 
 
