@@ -82,18 +82,11 @@ def create_app(config_class=Config, cliargs=None):
     app.redis = redis
 
     dashcfg = loadcfg(redis.read('gen2:dashboard-yaml'))
-    beammap = dashcfg.beammap
     app.base_dir = app.config.get ('XKID_BASE_DIR')
-    app.array_view_params = {'int_time': 1,
-                             'min_cts': 0,
-                             'max_cts': 2500,
-                             'changed': False}
+    app.array_view_params = {'int_time': 1, 'min_cts': 0,
+                             'max_cts': 2500, 'changed': False}
 
-    im = ImageCube(name='live', nRows=beammap.nrows, nCols=beammap.ncols,
-                   useWvl=dashcfg.dashboard.use_wave, nWvlBins=1,
-                   wvlStart=dashcfg.dashboard.wave_start, wvlStop=dashcfg.dashboard.wave_stop)
-    app.liveimage = im
-
+    threading.Thread(target=live_image_fetcher, args=(app, redis, dashcfg))
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)

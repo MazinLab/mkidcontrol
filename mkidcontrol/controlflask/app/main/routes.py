@@ -2,7 +2,10 @@ import sys
 import os
 import shutil
 import subprocess
+import threading
 from datetime import datetime
+
+import numpy as np
 import plotly.graph_objects as go
 import astropy.units as u
 from astropy.io import fits
@@ -119,12 +122,13 @@ def index():
     conex = ConexForm()
 
     last_observing_event = current_app.redis.read(OBSERVING_EVENT_KEY, decode_json=True)
-    cooldown_scheduled = True if (current_app.redis.read('device-settings:magnet:cooldown-scheduled').lower() == "yes") else False
+    cooldown_scheduled = True if (
+                current_app.redis.read('device-settings:magnet:cooldown-scheduled').lower() == "yes") else False
     if cooldown_scheduled:
         cooldown_time = float(current_app.redis.read('device-settings:magnet:cooldown-scheduled:timestamp'))
         cooldown_time = datetime.datetime.fromtimestamp(cooldown_time).strptime('%Y-%m-%dT%H:%M')
     else:
-        cooldown_time = (datetime.date.today()+timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
+        cooldown_time = (datetime.date.today() + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
 
     form = FlaskForm()
 
@@ -132,7 +136,8 @@ def index():
     array_fig = initialize_array_figure(current_app.array_view_params)
     pix_lightcurve = pixel_lightcurve()
 
-    return render_template('index.html', last_observing_event=last_observing_event, magnetform=magnetform, hsform=hsform, fw=fw,
+    return render_template('index.html', last_observing_event=last_observing_event, magnetform=magnetform,
+                           hsform=hsform, fw=fw,
                            focus=focus, form=form, laserbox=laserbox, obs=obs, conex=conex, sensor_fig=sensor_fig,
                            array_fig=array_fig, cooldown_scheduled=cooldown_scheduled, cooldown_time=cooldown_time,
                            pix_lightcurve=pix_lightcurve, sensorkeys=list(FLASK_CHART_KEYS.values()))
@@ -144,14 +149,13 @@ def conex_normalization():
     """
 
     refs = current_app.redis.read([CONEX_REF_X_KEY, CONEX_REF_Y_KEY, PIXEL_REF_X_KEY, PIXEL_REF_Y_KEY])
-    refs = {k.lstrip("instrument:").replace("-", "_"): v for k,v in refs.items()}
+    refs = {k.lstrip("instrument:").replace("-", "_"): v for k, v in refs.items()}
 
     conex = ConexForm()
     norm = ConexNormalizationForm(**refs)
     obs = ObsControlForm()
 
     array_fig = initialize_array_figure(current_app.array_view_params)
-
 
     return render_template('conex_normalization.html', conex=conex, array_fig=array_fig, norm=norm, obs=obs)
 
@@ -190,7 +194,6 @@ def log_viewer():
 
 @bp.route('/heater/<device>/<channel>', methods=['GET', 'POST'])
 def heater(device, channel):
-
     if request.method == 'POST':
         for key in request.form.keys():
             try:
@@ -355,7 +358,7 @@ def heatswitch():
 
 @bp.route('/services')
 def services():
-    #TODO: Fix Job.fetch(id, ...), id='email-logs' does not work
+    # TODO: Fix Job.fetch(id, ...), id='email-logs' does not work
     services = mkidcontrol_services()
     try:
         job = Job.fetch('email-logs', connection=current_app.redis.redis)
@@ -461,7 +464,6 @@ def data_paths():
         except RedisError as e:
             log.warning(f"Error communicating with redis! Error: {e}")
 
-
         print(datetime.datetime.now().strftime("%Y%m%d"))
     return render_template('data_paths.html', title=_('Configuration Paths'), pathform=pathform)
 
@@ -544,6 +546,7 @@ def journalctl_streamer(service):
     """
     args = ['journalctl', '--lines', '0', '--follow', f'_SYSTEMD_UNIT={service}.service']
     print(service)
+
     def st(arg):
         f = subprocess.Popen(arg, stdout=subprocess.PIPE)
         p = select.poll()
@@ -622,7 +625,8 @@ def multi_sensor_fig(titles):
         else:
             fig.add_trace(go.Scatter(x=data[0], y=data[1], mode='lines', name=data[2], visible=False))
     fig.update_layout(
-        dict(xaxis=dict(tickangle=45, nticks=5), updatemenus=list([dict(buttons=update_menus, x=0.01, xanchor='left', y=1.1, yanchor='top')])))
+        dict(xaxis=dict(tickangle=45, nticks=5),
+             updatemenus=list([dict(buttons=update_menus, x=0.01, xanchor='left', y=1.1, yanchor='top')])))
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
@@ -642,87 +646,97 @@ def initialize_array_figure(view_params):
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
+from mkidcontrol.packetmaster3.sharedmem import ImageCube
+def live_image_fetcher(app, redis, dashcfg):
+        d = {CURRENT_DARK_FILE_KEY: '', CURRENT_FLAT_FILE_KEY: ''}
+        mask = dashcfg.beammap.failmask
+        dark_cps = np.zeros_like(mask, dtype=float)
+        flat_cps = np.ones_like(mask, dtype=float)
+
+        live = ImageCube(name='live', nRows=dashcfg.beammap.nrows, nCols=dashcfg.beammap.ncols,
+                       useWvl=dashcfg.dashboard.use_wave, nWvlBins=1,
+                       wvlStart=dashcfg.dashboard.wave_start, wvlStop=dashcfg.dashboard.wave_stop)
+        while True:
+            events = app.image_events
+            if not events:
+                time.sleep(.3)
+                continue
+            d_new = redis.read((CURRENT_DARK_FILE_KEY, CURRENT_FLAT_FILE_KEY))
+            int_time = app.array_view_params['int_time']
+            image_watcher_events = app.image_events
+
+            if d_new[CURRENT_DARK_FILE_KEY] != d[CURRENT_DARK_FILE_KEY]:
+                d[CURRENT_DARK_FILE_KEY] = d_new[CURRENT_DARK_FILE_KEY]
+                if not d[CURRENT_DARK_FILE_KEY]:
+                    dark_cps[:] = 0
+                else:
+                    try:
+                        dark = fits.open(d[CURRENT_DARK_FILE_KEY])[0]
+                        dark_cps[:] = dark.data / dark.header['EXPTIME']
+                        del dark
+                    except:
+                        dark_cps[:] = 0
+
+            if d_new[CURRENT_FLAT_FILE_KEY] != d[CURRENT_FLAT_FILE_KEY]:
+                d[CURRENT_FLAT_FILE_KEY] = d_new[CURRENT_FLAT_FILE_KEY]
+                if not d[CURRENT_FLAT_FILE_KEY]:
+                    flat_cps[:] = 1
+                else:
+                    try:
+                        flat = fits.open(d[CURRENT_FLAT_FILE_KEY])[0]
+                        flat_cps[:] = flat.data / flat.header['EXPTIME']
+                        del flat
+                    except:
+                        flat_cps[:] = 1
+
+            live.startIntegration(startTime=0, integrationTime=int_time)
+            im = live.receiveImage(block=True)
+
+            data = (im / int_time - dark_cps) / flat_cps
+            data[mask] = np.nan
+
+            app.latest_image[:] = data
+            for e in image_watcher_events:
+                e.set()
+
 
 @bp.route('/dashplot', methods=["GET"])
 def dashplot():
-    """
-    TODO: Ingest dark/flats and apply
-        #From darshboard
-        # # Set up worker object and thread for the display.
-        # #  All of this code could be axed if the live image was broken out into a separate program
-        # cf = CalFactory('avg', images=self.imageList[-1:],
-        #                 dark=self.darkField if self.checkbox_darkImage.isChecked() else None,
-        #                 flat=self.flatField if self.checkbox_flatImage.isChecked() else None,
-        #                 mask=self.beammapFailed)
-        vals = cf.generate(name='LiveImage', bias=0, maskvalue=np.nan).data
-        also
-        # cf = CalFactory('sum', images=self.imageList[-numImages2Sum:], dark=self.darkField if applyDark else None)
-        # im = cf.generate(name='pixelcount')
-        # pixelList = np.asarray(pixelList)
-        # im.data[(pixelList[:, 1], pixelList[:, 0])].sum()
-
-    TODO: Why is restyle still so slow on the GUI side even when doing a partial remake?
-    """
-
     @stream_with_context
     def _stream():
-        active_dark_file = current_app.redis.read(CURRENT_DARK_FILE_KEY)
-        active_flat_file = current_app.redis.read(CURRENT_FLAT_FILE_KEY)
-        sciFac = CalFactory('avg',
-                            dark=fits.open(active_dark_file) if os.path.exists(active_dark_file) else None,
-                            flat=fits.open(active_flat_file) if os.path.exists(active_flat_file) else None)
-        while True:
-            int_time = current_app.array_view_params['int_time']
-            current_dark_file = current_app.redis.read(CURRENT_DARK_FILE_KEY)
-            current_flat_file = current_app.redis.read(CURRENT_FLAT_FILE_KEY)
-
-            current_app.liveimage.startIntegration(startTime=0, integrationTime=int_time)
-            # t = time.time()
-            im = current_app.liveimage.receiveImage()
-            # im = im.tolist()
-
-            tic = time.time()
-            # if active_dark_file != current_dark_file:
-            #     active_dark_file = current_dark_file
-            #     del sciFac.dark
-            #     sciFac.dark = fits.open(active_dark_file) if os.path.exists(active_dark_file) else None
-            #
-            # if active_flat_file != current_flat_file:
-            #     active_flat_file = current_flat_file
-            #     del sciFac.flat
-            #     sciFac.flat = fits.open(active_flat_file) if os.path.exists(active_flat_file) else None
-            # sciFac.reset()
-            # sciFac.add_image(im)
-            # calim = sciFac.generate(threaded=False, save=False)
-
-            #make figure
-            if current_app.array_view_params['changed']:
-                fig = go.Figure()
-                fig.add_heatmap(z=im, showscale=False,
-                                colorscale=[[0, "black"], [0.5, "white"], [0.5, "red"], [1, "red"]],
-                                zmin=current_app.array_view_params['min_cts'],
-                                zmax=current_app.array_view_params['max_cts'] * 2)
-                fig.update_layout(dict(height=550, autosize=True,
-                                       xaxis=dict(range=[0, 80], visible=False, ticks='', scaleanchor='y'),
-                                       yaxis=dict(range=[0, 125], visible=False, ticks='')))
-                fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
-                data = json.dumps({'id': 'dash',
-                        'kind': 'full',
-                        'data': json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder),
-                        'time': datetime.datetime.fromtimestamp(time.time()).strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]})
+        event = threading.Event()
+        current_app.image_events.append(event)
+        try:
+            while True:
+                event.wait()
+                im = current_app.latest_image
+                params = current_app.array_view_params.copy()
                 current_app.array_view_params['changed'] = False
-            else:
-                data = json.dumps({'id': 'dash',
-                                   'kind': 'partial',
-                                   'data': json.dumps({'z': im}, cls=plotly.utils.PlotlyJSONEncoder),
-                                   'time': datetime.datetime.fromtimestamp(time.time()).strftime(
-                                       "%m/%d/%Y %H:%M:%S.%f")[:-4]})
+                # make figure
+                if params['changed']:
+                    fig = go.Figure()
+                    fig.add_heatmap(z=im, showscale=False,
+                                    colorscale=[[0, "black"], [0.5, "white"], [0.5, "red"], [1, "red"]],
+                                    zmin=params['min_cts'], zmax=params['max_cts'] * 2)
+                    fig.update_layout(dict(height=550, autosize=True,
+                                           xaxis=dict(range=[0, 80], visible=False, ticks='', scaleanchor='y'),
+                                           yaxis=dict(range=[0, 125], visible=False, ticks='')))
+                    fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
+                    data = json.dumps({'id': 'dash',
+                                       'kind': 'full',
+                                       'data': json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder),
+                                       'time': datetime.datetime.fromtimestamp(time.time()).strftime(
+                                           "%m/%d/%Y %H:%M:%S.%f")[:-4]})
+                else:
+                    data = json.dumps({'id': 'dash',
+                                       'kind': 'partial',
+                                       'data': json.dumps({'z': im}, cls=plotly.utils.PlotlyJSONEncoder),
+                                       'time': datetime.datetime.fromtimestamp(time.time()).strftime(
+                                           "%m/%d/%Y %H:%M:%S.%f")[:-4]})
 
-            toc = time.time()
-            # print(toc-tic)
-
-            yield f"event:dashplot\nretry:5\ndata:{data}\n\n"
-
+                yield f"event:dashplot\nretry:5\ndata:{data}\n\n"
+        finally:
+            current_app.image_events.pop(current_app.image_events.index(event))
 
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
@@ -761,12 +775,14 @@ def send_obs_dict(startstop):
             current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
     return '', 204
 
+
 @bp.route('/report_obs_status', methods=["GET"])
 def report_obs_status():
     """
     Receives an obs_dict and passes it back to flask to handle appropriately
     N.B: if there's any issue with starting, one may just click 'stop', otherwise
     """
+
     @stream_with_context
     def _stream():
         while True:
@@ -841,7 +857,7 @@ def move_focus():
     msg_success = 0
     if request.method == "POST":
         position = request.values.get("position")
-        
+
     if position == "home":
         log.debug("Sending command to home focus stage")
         msg_success += current_app.redis.publish('command:device-settings:focus:home', 'home', store=False)
@@ -860,7 +876,6 @@ def move_focus():
 
 @bp.route('/change_filter', methods=['POST'])
 def change_filter():
-
     if request.method == "POST":
         filter = request.values.get("filter")
 
@@ -884,7 +899,6 @@ def change_filter():
 
 @bp.route('/update_array_viewer_params', methods=['POST'])
 def update_array_viewer_params():
-
     if request.method == "POST":
         param = request.values.get("param")
         value = request.values.get("value")
@@ -966,7 +980,6 @@ def command_heatswitch():
 
 @bp.route('/command_magnet', methods=['POST'])
 def command_magnet():
-
     if request.method == "POST":
         cmd = request.values.get("cmd")
         at = request.values.get("at")
