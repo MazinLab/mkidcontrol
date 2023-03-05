@@ -68,15 +68,14 @@ if __name__ == "__main__":
                         log.info(f"Processing command {cmd}")
                         if key == FILTERWHEEL_POSITION_KEY:
                             fw.set_filter_pos(int(cmd.command_value))
-                            redis.store({cmd.setting: cmd.command_value})
-                            redis.store({FILTERWHEEL_FILTER_KEY: FILTERS[cmd.command_value]})
+
                             current_pos = fw.get_filter_pos()
-                            redis.store({FILTERWHEEL_CURRENT_POSITION_KEY: current_pos})
-                            redis.store({FILTERWHEEL_CURRENT_FILTER_KEY: FILTERS[current_pos]})
-                            if current_pos != cmd.command_value:
-                                redis.store({cmd.setting: current_pos})
-                                redis.store({FILTERWHEEL_FILTER_KEY: FILTERS[current_pos]})
-                            redis.store({STATUS_KEY: "OK"})
+
+                            redis.store({FILTERWHEEL_CURRENT_POSITION_KEY: current_pos,
+                                         FILTERWHEEL_CURRENT_FILTER_KEY: FILTERS[current_pos],
+                                         cmd.setting: current_pos,
+                                         FILTERWHEEL_FILTER_KEY: FILTERS[current_pos],
+                                         STATUS_KEY: "OK"})
                     except IOError as e:
                         redis.store({STATUS_KEY: f"Error {e}"})
                         log.error(f"Comm error: {e}")
