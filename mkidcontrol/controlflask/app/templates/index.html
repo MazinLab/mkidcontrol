@@ -13,13 +13,13 @@
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-1">(Unix:</div><div class="d-flex justify-content-center flex-wrap flex-md-nowrap" id="unix-timestamp"></div><div class="d-flex justify-content-center flex-wrap flex-md-nowrap">)</div>
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-2">
-                                {{ render_field(obs.obsStartStop, class="btn btn-danger", onclick="send_obs_info(this.id)", value="Stop Observing") }}
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
                                 {{ render_field(obs.obsName ) }}
                             </div>
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-3">
                                 {{ render_field(obs.obs_duration ) }}
                             </div>
+                                {{ render_field(obs.obsStartStop, class="btn btn-danger", onclick="send_obs_info(this.id)", value="Stop Observing") }}
                         </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 mb-2 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1 border-top">
