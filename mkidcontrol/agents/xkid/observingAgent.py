@@ -287,7 +287,7 @@ def fetch_request(request_q, block=True, timeout=None):
     dur = 'infinite' if limitless else f'{req["duration"]} s'
     log.info(f'Received request for {dur} {req["type"]} observation named '
              f'{req["name"]}, {int(req["seq_i"]) + 1}/{req["seq_n"]}')
-    head = {'object': req['name'], 'e_githsh': GIT_HASH, 'data-typ': req['type']}
+    head = {'OBJECT': req['name'], 'E_GITHSH': GIT_HASH, 'DATA-TYP': req['type']}
     return req, head, inf, False
 
 
