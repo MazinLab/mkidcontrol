@@ -195,11 +195,11 @@ class MagAOX_INDI2(threading.Thread):
 
 
 def update_paths():
-    d = redis.read([DATA_DIR_KEY, 'fits-folder-name', 'logs-folder-name', 'bin-folder-name'])
-    data_dir = d['data-dir']
-    fits_dir = os.path.join(data_dir, d['fits-folder-name'])
-    logs_dir = os.path.join(data_dir, d['logs-folder-name'])
-    bin_dir = os.path.join(data_dir, d['bin-folder-name'])
+    d = redis.read([DATA_DIR_KEY, 'paths:fits-folder-name', 'paths:logs-folder-name', 'paths:bin-folder-name'])
+    data_dir = d['paths:data-dir']
+    fits_dir = os.path.join(data_dir, d['paths:fits-folder-name'])
+    logs_dir = os.path.join(data_dir, d['paths:logs-folder-name'])
+    bin_dir = os.path.join(data_dir, d['paths:bin-folder-name'])
     os.makedirs(fits_dir, exist_ok=True)
     os.makedirs(logs_dir, exist_ok=True)
     os.makedirs(bin_dir, exist_ok=True)
