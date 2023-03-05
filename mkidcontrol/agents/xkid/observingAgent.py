@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import queue
+import shutil
 import threading
 import time
 import os
@@ -302,8 +303,10 @@ if __name__ == "__main__":
 
     indi_thread = MagAOX_INDI2(redis, start=True)
 
-    g2_cfg = gen2dashboard_yaml_to_redis(redis.read(DASHBOARD_YAML_KEY), redis)
+    dashboard_config_file = redis.read(DASHBOARD_YAML_KEY)
+    g2_cfg = gen2dashboard_yaml_to_redis(dashboard_config_file, redis)
     beammap = g2_cfg.beammap
+    send_photons_file = g2_cfg.paths.send_photons_file
 
     livecfg = redis.read(GUI_LIVE_IMAGE_DEFAULTS_KEY, decode_json=True)
     fitscfg = redis.read(FITS_IMAGE_DEFAULTS_KEY, decode_json=True)
@@ -341,6 +344,7 @@ if __name__ == "__main__":
                 if abort:
                     log.debug(f'Request to stop while nothing in progress.')
                     pm.stopWriting()
+                    os.remove(send_photons_file)
                     continue
 
                 fits_exp_time = FITS_FILE_TIME if limitless else request['duration']
@@ -348,6 +352,9 @@ if __name__ == "__main__":
                 bin_dir, fits_dir, logs_dir = update_paths()
                 rotate_log(obs_log, logs_dir)
 
+                with open(send_photons_file+'.tmp', 'w') as f:
+                    f.write(dashboard_config_file)
+                shutil.move(send_photons_file+'.tmp', send_photons_file)
                 pm.startWriting(bin_dir)
                 start_time = calendar.timegm(datetime.utcnow().timetuple()) + 1
                 fits_imagecube.startIntegration(startTime=start_time, integrationTime=fits_exp_time)
@@ -363,6 +370,7 @@ if __name__ == "__main__":
             else:
                 if abort:
                     pm.stopWriting()  # Stop writing photons, no need to touch the imagecube
+                    os.remove(send_photons_file)
                     limitless = False
                     request['state'] = 'stopped'
                     redis.store({OBSERVING_EVENT_KEY: request}, encode_json=True)
