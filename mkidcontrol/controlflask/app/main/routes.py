@@ -97,7 +97,6 @@ def index():
     Processes requests from the magnet cycle form (start/abort/cancel/schedule cooldown) and magnet form (ramp rates/
     soak settings) and publishes them to be interpreted by the necessary agents.
     Initializes sensor plot data to send for plotting.
-    TODO: Handle 'post' requests - via AJAX requests rather than submitting
     TODO: Support message flashing
     """
     try:
@@ -107,10 +106,9 @@ def index():
     except KeyError:
         flash(f"Redis keys are missing!")
 
-    # TODO: Parse in current values at startup when endpoint gets hit
     from mkidcontrol.commands import Laserbox, Filterwheel, Focus
 
-    magnetform = MagnetCycleForm()  # TODO: Should start ramp pull up a modal with settings?
+    magnetform = MagnetCycleForm()
     hsform = HeatSwitchForm()
     laserbox = LaserBoxForm(**vars(Laserbox(redis)))
     fw = FilterWheelForm(**vars(Filterwheel(redis)))
@@ -147,6 +145,7 @@ def conex_normalization():
     obs = ObsControlForm()
 
     array_fig = initialize_array_figure(current_app.array_view_params)
+
 
     return render_template('conex_normalization.html', conex=conex, array_fig=array_fig, norm=norm, obs=obs)
 
@@ -914,7 +913,7 @@ def command_conex():
             pixel_ref_y = request.values.get("pixel_ref_y")
             update_dict = {CONEX_REF_X_KEY: conex_ref_x, CONEX_REF_Y_KEY: conex_ref_y,
                            PIXEL_REF_X_KEY: pixel_ref_x, PIXEL_REF_Y_KEY: pixel_ref_y}
-            current_app.redis.store({update_dict})
+            current_app.redis.store(update_dict)
             msg_success += 1
 
     msg_success += current_app.redis.publish(f"command:{conex_cmd}", json.dumps(send_dict), store=False)

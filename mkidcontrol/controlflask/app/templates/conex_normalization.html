@@ -85,9 +85,6 @@
                 var t = Math.floor((new Date()).getTime() / 1000)
                 $("#utc-timestamp").text(t)
             }
-            if (pixel[0] != -1 && pixel[1] != -1) {
-                Plotly.extendTraces('pixel_lightcurve', {x:[[update['time']]], y:[[data['z'][pixel[1]][pixel[0]]]]}, [0])
-            }
         }, false);
         psource.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
         psource.addEventListener("error", function (e) {console.log("Connection errored out: ", e);}, false);
@@ -136,8 +133,11 @@
                 var val = document.getElementById(buttonid).value;
                 $.ajax({
                     type:'POST',
-                    url: "{{ url_for('main.update_array_viewer_params', param='', value='' ) }}" + '/' + buttonid + '/' + val,
-                    data: {},
+                    url: "{{ url_for('main.update_array_viewer_params') }}",
+                    data: {
+                        param: buttonid,
+                        value: val
+                    },
                     success: function (d){
                         var new_val = JSON.parse(d)['value'];
                         document.getElementById(buttonid).value = new_val
