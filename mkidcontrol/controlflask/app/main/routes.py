@@ -4,7 +4,9 @@ import shutil
 import subprocess
 from datetime import datetime
 import plotly.graph_objects as go
+import astropy.units as u
 from astropy.io import fits
+from astropy.coordinates import Angle
 
 from flask import render_template, flash, redirect, url_for, g, request, \
     jsonify, current_app, Response, stream_with_context
@@ -512,11 +514,25 @@ def listener():
                     s.update({k: 'Disabled'})
 
             x.update(s)
+            x["tcs:ra"] = degrees_to_sexigesimal(x['tcs:ra'])
+            x["tcs:dec"] = degrees_to_sexigesimal(x['tcs:dec'])
+
             x = json.dumps(x)
             msg = f"retry:5\ndata: {x}\n\n"
             yield msg
 
     return current_app.response_class(_stream(), mimetype='text/event-stream', content_type='text/event-stream')
+
+
+def degrees_to_sexigesimal(angle):
+    # Convert angle in degrees to sexigesimal
+    ang = f"{angle} degrees"
+    ang = Angle(ang).to_string(unit=u.degree, sep=":")
+    if ang[0] in ['-', '+']:
+        ang = ang[:12]
+    else:
+        ang = ang[:11]
+    return ang
 
 
 @bp.route('/journalctl_streamer/<service>')
