@@ -10,11 +10,8 @@ class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
-class NewNightForm(FlaskForm):
+class DataPathForm(FlaskForm):
     new_night = SubmitField("Create New Night")
-
-
-class ConfigPathForm(FlaskForm):
     dashboard_yaml = StringField("Dashboard Yaml")
     dark_file = StringField("Active Dark File", default="-")
     flat_file = StringField("Active Flat File", default="-")

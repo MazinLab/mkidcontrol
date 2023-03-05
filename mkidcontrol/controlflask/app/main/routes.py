@@ -428,11 +428,11 @@ def system():
         return bad_request('Invalid shutdown command')
 
 
-@bp.route('/new_night', methods=['GET', 'POST'])
-def new_night():
+@bp.route('/data_paths', methods=['GET', 'POST'])
+def data_paths():
     # TODO: Turn new night & configuration into one page once further stabilized & tested
     # TODO: Add "you must restart the gui if you change the beammap" message
-    newnight = NewNightForm()
+    newnight = DataPathForm()
     ymls_to_copy = ['dashboard.yml', 'hightemplar.yml', 'roaches.yml']
 
     if request.method == "POST":
@@ -457,13 +457,7 @@ def new_night():
 
 
         print(datetime.datetime.now().strftime("%Y%m%d"))
-    return render_template('new_night.html', title=_('Configuration Paths'), newnight=newnight)
-
-
-@bp.route('/configuration_paths', methods=['GET', 'POST'])
-def configuration_paths():
-    cfgform = ConfigPathForm()
-    return render_template('configuration_paths.html', title=_('Configuration Paths'), cfgform=cfgform)
+    return render_template('data_paths.html', title=_('Configuration Paths'), newnight=newnight)
 
 
 @bp.route('/test_page', methods=['GET', 'POST'])
