@@ -73,7 +73,7 @@ def get_obslog_record(start=0.0, stop=0.0, duration=0.0, keys=None):
     """
     kv_pairs = {}
     try:
-        redis_keys = [x.redis_key for x in metadata.XKID_KEY_INFO.values()]
+        redis_keys = [x.redis_key for x in metadata.XKID_KEY_INFO.values() if x.redis_key!='.']
         kv_pairs = redis.read(redis_keys, ts_value_only=True, error_missing=False)
     except RedisError:
         log.error('Failed to query redis for metadata. Most values will be defaults.')
