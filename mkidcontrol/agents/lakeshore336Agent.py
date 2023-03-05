@@ -33,8 +33,8 @@ SETTING_KEYS = tuple(COMMANDS336.keys())
 
 DEVICE = '/dev/ls336'
 
-TEMP_KEYS = ['status:temps:3k-stage:temp', 'status:temps:50k-stage:temp']
-SENSOR_VALUE_KEYS = ['status:temps:3k-stage:voltage', 'status:temps:50k-stage:voltage']
+TEMP_KEYS = ('status:temps:3k-stage:temp', 'status:temps:50k-stage:temp')
+SENSOR_VALUE_KEYS = ('status:temps:3k-stage:voltage', 'status:temps:50k-stage:voltage')
 
 TS_KEYS = TEMP_KEYS + SENSOR_VALUE_KEYS
 
@@ -44,6 +44,7 @@ MODEL_KEY = 'status:device:ls336:model'
 SN_KEY = 'status:device:ls336:sn'
 
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS]
+
 
 def firmware_pull(device):
     # Grab and store device info
@@ -102,18 +103,17 @@ if __name__ == "__main__":
     util.setup_logging('lakeshore336Agent')
     redis.setup_redis(ts_keys=TS_KEYS)
 
-
     try:
         log.debug(f"Connecting to LakeShore 336")
         try:
-            lakeshore = LakeShore336('LakeShore336', port=DEVICE, enabled_channels=ENABLED_336_CHANNELS)#,
-                                     # initializer=initializer)
+            lakeshore = LakeShore336('LakeShore336', port=DEVICE, enabled_channels=ENABLED_336_CHANNELS)  # ,
+            # initializer=initializer)
             log.info(f"LakeShore 336 connection successful!")
             redis.store({STATUS_KEY: "OK"})
         except InstrumentException:
             log.info(f"Instrument exception occurred, trying to connect from PID/VID")
-            lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS)#,
-                                     # initializer=initializer)
+            lakeshore = LakeShore336('LakeShore336', enabled_channels=ENABLED_336_CHANNELS)  # ,
+            # initializer=initializer)
             log.info(f"Lake Shore 336 connection successful!")
             redis.store({STATUS_KEY: "OK"})
     except IOError as e:

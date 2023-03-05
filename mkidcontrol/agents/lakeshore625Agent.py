@@ -57,7 +57,7 @@ OUTPUT_VOLTAGE_KEY = 'status:device:ls625:output-voltage'
 STOP_RAMP_KEY = 'device-settings:ls625:stop-current-ramp'
 KILL_CURRENT_KEY = 'device-settings:ls625:stop-current-ramp'
 
-TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY]
+TS_KEYS = (MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY, OUTPUT_VOLTAGE_KEY)
 
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS + (STOP_RAMP_KEY, KILL_CURRENT_KEY)]
 

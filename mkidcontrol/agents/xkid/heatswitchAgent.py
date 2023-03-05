@@ -46,7 +46,7 @@ ACCELERATION_KEY = "device-settings:heatswitch:acceleration"
 STOP_KEY = "heatswitch:stop"
 
 COMMAND_KEYS = [f"command:{k}" for k in SETTING_KEYS + tuple(STOP_KEY)]
-TS_KEYS = [MOTOR_POS]
+TS_KEYS = (MOTOR_POS,)
 
 
 def close():

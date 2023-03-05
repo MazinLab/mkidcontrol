@@ -51,16 +51,16 @@ ABORT_CMD = 'abort-cooldown'
 CANCEL_COOLDOWN_CMD = 'cancel-scheduled-cooldown'
 QUENCH_KEY = 'event:quenching'
 
-MAGNET_COMMAND_KEYS = tuple([COLD_AT_CMD, COLD_NOW_CMD, ABORT_CMD, CANCEL_COOLDOWN_CMD, STOP_RAMP_KEY])
+MAGNET_COMMAND_KEYS = (COLD_AT_CMD, COLD_NOW_CMD, ABORT_CMD, CANCEL_COOLDOWN_CMD, STOP_RAMP_KEY)
 
 MAGNET_STATE_KEY = 'status:magnet:state'  # Names from statemachine
 MAGNET_CURRENT_KEY = 'status:magnet:current'
 MAGNET_FIELD_KEY = 'status:magnet:field'
 CONTROLLER_STATUS_KEY = 'status:magnet:status'
 
-TS_KEYS = [MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY]
+TS_KEYS = (MAGNET_CURRENT_KEY, MAGNET_FIELD_KEY)
 
-COMMAND_KEYS = [f"command:{k}" for k in list(MAGNET_COMMAND_KEYS) + list(SETTING_KEYS)]
+COMMAND_KEYS = [f"command:{k}" for k in MAGNET_COMMAND_KEYS + SETTING_KEYS]
 
 DEVICE_TEMP_KEY = 'status:temps:device-stage:temp'
 REGULATION_TEMP_KEY = "device-settings:magnet:regulating-temp"

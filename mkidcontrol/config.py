@@ -17,7 +17,7 @@ REDIS_DB = 0
 
 REDIS_TS_RETENTION = 60 * 60 * 1000  # 60 min
 
-# TODO: Concatenate all ts keys
+
 TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'status:temps:3k-stage:temp',
            'status:temps:3k-stage:voltage', 'status:temps:1k-stage:temp', 'status:temps:1k-stage:resistance',
            'status:temps:device-stage:temp', 'status:temps:device-stage:resistance', 'status:magnet:current',
@@ -25,7 +25,7 @@ TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'sta
            'status:device:focus:position:mm', 'status:device:focus:position:encoder')
 
 REDIS_TS_KEYS = tuple(set(TS_KEYS_hs + TS_KEYS_ls336 + TS_KEYS_ls372 +
-                          TS_KEYS_ls625 + TS_KEYS_magnet + TS_KEYS_focus + list(TS_KEYS)))
+                          TS_KEYS_ls625 + TS_KEYS_magnet + TS_KEYS_focus + TS_KEYS))
 
 REDIS_STATUS_KEYS = ('status:device:heatswitch:position',
                      'status:device:ls336:status',

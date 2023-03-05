@@ -28,15 +28,15 @@ import mkidcontrol.mkidredis as redis
 
 log = logging.getLogger("lakeshore372Agent")
 
-TEMPERATURE_KEYS = ['status:temps:device-stage:temp', 'status:temps:1k-stage:temp']
-RESISTANCE_KEYS = ['status:temps:device-stage:resistance', 'status:temps:1k-stage:resistance']
-EXCITATION_POWER_KEYS = ['status:temps:device-stage:excitation-power', 'status:temps:1k-stage:excitation-power']
+TEMPERATURE_KEYS = ('status:temps:device-stage:temp', 'status:temps:1k-stage:temp')
+RESISTANCE_KEYS = ('status:temps:device-stage:resistance', 'status:temps:1k-stage:resistance')
+EXCITATION_POWER_KEYS = ('status:temps:device-stage:excitation-power', 'status:temps:1k-stage:excitation-power')
 
 OUTPUT_VOLTAGE_KEY = 'status:device:ls372:output-voltage'
 
 REGULATION_TEMP_KEY = "device-settings:magnet:regulating-temp"
 
-TS_KEYS = TEMPERATURE_KEYS + RESISTANCE_KEYS + EXCITATION_POWER_KEYS + [OUTPUT_VOLTAGE_KEY]
+TS_KEYS = TEMPERATURE_KEYS + RESISTANCE_KEYS + EXCITATION_POWER_KEYS + (OUTPUT_VOLTAGE_KEY,)
 
 STATUS_KEY = 'status:device:ls372:status'
 FIRMWARE_KEY = "status:device:ls372:firmware"
