@@ -65,6 +65,7 @@ class MessageAnnouncer:
             except queue.Full:
                 del self.listeners[i]
 
+from mkidcontrol.controlflask.live_image import live_image_fetcher
 
 def create_app(config_class=Config, cliargs=None):
     # TODO: Login db stuff and mail stuff can reasonably go
@@ -86,7 +87,11 @@ def create_app(config_class=Config, cliargs=None):
     app.array_view_params = {'int_time': 1, 'min_cts': 0,
                              'max_cts': 2500, 'changed': False}
 
-    threading.Thread(target=live_image_fetcher, args=(app, redis, dashcfg))
+    app.latest_image = np.zeros_like(dashcfg.beammap.failmask, dtype=float)
+    app.image_events = set()
+    app.thread = threading.Thread(target=live_image_fetcher, args=(app, redis, dashcfg))
+    app.thread.daemon = True
+    app.thread.start()
 
     from .errors import bp as errors_bp
     app.register_blueprint(errors_bp)

@@ -63,9 +63,6 @@ from mkidcontrol.agents.xkid.conexAgent import CONEX_REF_X_KEY, CONEX_REF_Y_KEY,
 # TODO: Work with auto-discovery where possible (for keys/programs/etc)
 
 
-CURRENT_DARK_FILE_KEY = "datasaver:dark"
-CURRENT_FLAT_FILE_KEY = "datasaver:flat"
-
 redis.setup_redis(ts_keys=REDIS_TS_KEYS)
 
 log = setup_logging('controlDirector')
@@ -646,72 +643,20 @@ def initialize_array_figure(view_params):
     fig = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return fig
 
-from mkidcontrol.packetmaster3.sharedmem import ImageCube
-def live_image_fetcher(app, redis, dashcfg):
-        d = {CURRENT_DARK_FILE_KEY: '', CURRENT_FLAT_FILE_KEY: ''}
-        mask = dashcfg.beammap.failmask
-        dark_cps = np.zeros_like(mask, dtype=float)
-        flat_cps = np.ones_like(mask, dtype=float)
-
-        live = ImageCube(name='live', nRows=dashcfg.beammap.nrows, nCols=dashcfg.beammap.ncols,
-                       useWvl=dashcfg.dashboard.use_wave, nWvlBins=1,
-                       wvlStart=dashcfg.dashboard.wave_start, wvlStop=dashcfg.dashboard.wave_stop)
-        while True:
-            events = app.image_events
-            if not events:
-                time.sleep(.3)
-                continue
-            d_new = redis.read((CURRENT_DARK_FILE_KEY, CURRENT_FLAT_FILE_KEY))
-            int_time = app.array_view_params['int_time']
-            image_watcher_events = app.image_events
-
-            if d_new[CURRENT_DARK_FILE_KEY] != d[CURRENT_DARK_FILE_KEY]:
-                d[CURRENT_DARK_FILE_KEY] = d_new[CURRENT_DARK_FILE_KEY]
-                if not d[CURRENT_DARK_FILE_KEY]:
-                    dark_cps[:] = 0
-                else:
-                    try:
-                        dark = fits.open(d[CURRENT_DARK_FILE_KEY])[0]
-                        dark_cps[:] = dark.data / dark.header['EXPTIME']
-                        del dark
-                    except:
-                        dark_cps[:] = 0
-
-            if d_new[CURRENT_FLAT_FILE_KEY] != d[CURRENT_FLAT_FILE_KEY]:
-                d[CURRENT_FLAT_FILE_KEY] = d_new[CURRENT_FLAT_FILE_KEY]
-                if not d[CURRENT_FLAT_FILE_KEY]:
-                    flat_cps[:] = 1
-                else:
-                    try:
-                        flat = fits.open(d[CURRENT_FLAT_FILE_KEY])[0]
-                        flat_cps[:] = flat.data / flat.header['EXPTIME']
-                        del flat
-                    except:
-                        flat_cps[:] = 1
-
-            live.startIntegration(startTime=0, integrationTime=int_time)
-            im = live.receiveImage(block=True)
-
-            data = (im / int_time - dark_cps) / flat_cps
-            data[mask] = np.nan
-
-            app.latest_image[:] = data
-            for e in image_watcher_events:
-                e.set()
-
 
 @bp.route('/dashplot', methods=["GET"])
 def dashplot():
     @stream_with_context
     def _stream():
         event = threading.Event()
-        current_app.image_events.append(event)
+        current_app.image_events.add(event)
         try:
             while True:
                 event.wait()
                 im = current_app.latest_image
                 params = current_app.array_view_params.copy()
                 current_app.array_view_params['changed'] = False
+                update = {'id': 'dash', 'time': datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
                 # make figure
                 if params['changed']:
                     fig = go.Figure()
@@ -722,21 +667,16 @@ def dashplot():
                                            xaxis=dict(range=[0, 80], visible=False, ticks='', scaleanchor='y'),
                                            yaxis=dict(range=[0, 125], visible=False, ticks='')))
                     fig.update_layout(margin=dict(l=0, r=0, b=0, t=0, pad=3))
-                    data = json.dumps({'id': 'dash',
-                                       'kind': 'full',
-                                       'data': json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder),
-                                       'time': datetime.datetime.fromtimestamp(time.time()).strftime(
-                                           "%m/%d/%Y %H:%M:%S.%f")[:-4]})
+                    update['kind'] = 'full'
+                    update['data'] = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
                 else:
-                    data = json.dumps({'id': 'dash',
-                                       'kind': 'partial',
-                                       'data': json.dumps({'z': im}, cls=plotly.utils.PlotlyJSONEncoder),
-                                       'time': datetime.datetime.fromtimestamp(time.time()).strftime(
-                                           "%m/%d/%Y %H:%M:%S.%f")[:-4]})
+                    update['kind'] = 'partial'
+                    update['data'] = json.dumps({'z': im}, cls=plotly.utils.PlotlyJSONEncoder)
 
+                data = json.dumps(update)
                 yield f"event:dashplot\nretry:5\ndata:{data}\n\n"
         finally:
-            current_app.image_events.pop(current_app.image_events.index(event))
+            current_app.image_events.discard(event)
 
     return current_app.response_class(_stream(), mimetype="text/event-stream", content_type='text/event-stream')
 
