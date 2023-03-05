@@ -718,8 +718,8 @@ def send_obs_dict(startstop):
     # TODO: Modify this to be a 'sender' that either sends a start or stop obs dict.
     if request.method == "POST":
         name = request.values.get("name")
-        if name == "---":
-            name = ''
+        if name == "":
+            log.error(f"Cannot start an observation without a name!!")
         obs_type = request.values.get("type").lower()
         duration = float(request.values.get("duration"))
         start = datetime.datetime.utcnow().timestamp()
@@ -732,16 +732,19 @@ def send_obs_dict(startstop):
         else:
             obs_dict = {'type': obs_type}
 
-    log.debug(f"{startstop} sending photons")
-    log.info(f"Observing command: {obs_dict}")
-
-    if startstop == "start":
-        log.info(f"Start observing: {name}")
-        current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
-        # current_app.redis.store({"observing:target": name})
+    if name == "":
+        log.error(f"Cannot start an observation without a name!!")
     else:
-        log.info(f"Stop observing: {name}")
-        current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
+        log.debug(f"{startstop} sending photons")
+        log.info(f"Observing command: {obs_dict}")
+
+        if startstop == "start":
+            log.info(f"Start observing: {name}")
+            current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
+            # current_app.redis.store({"observing:target": name})
+        else:
+            log.info(f"Stop observing: {name}")
+            current_app.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
     return '', 204
 
 @bp.route('/report_obs_status', methods=["GET"])

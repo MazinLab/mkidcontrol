@@ -67,7 +67,7 @@ class FocusForm(FlaskForm):
 
 class ObsControlForm(FlaskForm):
     obsStartStop = SubmitField("")
-    obsName = StringField("Name", default='---')  # TODO: Pick a better default
+    obsName = StringField("Name", default='')
     wavecal = SubmitField("Wavecal")
     obs_duration = FloatField("Duration (s):", default=60)
     flat = SubmitField("Flat")

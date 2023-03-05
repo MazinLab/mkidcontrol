@@ -365,12 +365,8 @@
             var name;
 
             if (document.getElementById("obsStartStop").value.includes("Start")) {
+                name = document.getElementById("obsName").value;
                 if (to_disable.includes(buttonid)) {
-                    if (document.getElementById("obsName").value === "") {
-                        name = obs_button.value
-                    } else {
-                        name = document.getElementById("obsName").value
-                    }
                     var obs_type = obs_button.value
                 } else {
                     name = document.getElementById("obsName").value
