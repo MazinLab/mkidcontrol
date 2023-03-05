@@ -6,7 +6,7 @@ WantedBy=mkidcontrol.service
 
 [Service]
 Type=simple
-ExecStart=/home/kids/anaconda3/envs/readout/bin/send_photons_applet.py -c /data/XKID/SEND_PHOTONS
+ExecStart=/home/kids/miniconda3/envs/readout/bin/send_photons_applet.py -c /data/XKID/SEND_PHOTONS
 #WorkingDirectory=/home/kids/mkidcontrol/agents/xkid
 User=kids
 RestartSec=100ms
