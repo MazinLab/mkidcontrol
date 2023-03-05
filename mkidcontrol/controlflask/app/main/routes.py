@@ -147,7 +147,7 @@ def conex_normalization():
 
     array_fig = initialize_array_figure(current_app.array_view_params)
 
-    return render_template('conex_normalization.html', conex=conex, array_fig=array_fig)
+    return render_template('conex_normalization.html', conex=conex, array_fig=array_fig, norm=norm)
 
 
 @bp.route('/other_plots', methods=['GET'])
