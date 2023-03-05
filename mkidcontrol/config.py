@@ -9,6 +9,7 @@ from mkidcontrol.agents.xkid.heatswitchAgent import TS_KEYS as TS_KEYS_hs
 from mkidcontrol.agents.lakeshore336Agent import TS_KEYS as TS_KEYS_ls336
 from mkidcontrol.agents.lakeshore372Agent import TS_KEYS as TS_KEYS_ls372
 from mkidcontrol.agents.lakeshore625Agent import TS_KEYS as TS_KEYS_ls625
+from mkidcontrol.agents.xkid.focusAgent import TS_KEYS as TS_KEYS_focus
 from mkidcontrol.agents.xkid.magnetAgent import TS_KEYS as TS_KEYS_magnet
 
 # TODO: Make sure all schema keys are accounted for
@@ -24,7 +25,7 @@ TS_KEYS = ('status:temps:50k-stage:temp', 'status:temps:50k-stage:voltage', 'sta
            'status:device:focus:position:mm', 'status:device:focus:position:encoder')
 
 REDIS_TS_KEYS = tuple(set(TS_KEYS_hs + TS_KEYS_ls336 + TS_KEYS_ls372 +
-                          TS_KEYS_ls625 + TS_KEYS_magnet + list(TS_KEYS)))
+                          TS_KEYS_ls625 + TS_KEYS_magnet + TS_KEYS_focus + list(TS_KEYS)))
 
 REDIS_STATUS_KEYS = ('status:device:heatswitch:position',
                      'status:device:ls336:status',
