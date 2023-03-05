@@ -78,7 +78,7 @@ def get_obslog_record(start=0.0, stop=0.0, duration=0.0, keys=None):
     except RedisError:
         log.error('Failed to query redis for metadata. Most values will be defaults.')
 
-    fits_kv_pairs = {metadata.XKID_KEY_INFO[k]: v for k, v in kv_pairs.items()}
+    fits_kv_pairs = {metadata.XKID_REDIS_TO_FITS[k]: v for k, v in kv_pairs.items()}
 
     if keys:
         for k, v in keys.items():
