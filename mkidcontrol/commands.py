@@ -588,3 +588,23 @@ COMMAND_DICT.update(COMMANDSLASERFLIPPER)
 COMMAND_DICT.update(COMMANDSFILTERWHEEL)
 COMMAND_DICT.update(COMMANDSFOCUS)
 COMMAND_DICT.update(COMMANDSCONEX)
+
+
+class Paths:
+    def __init__(self, redis):
+        dsvalues = redis.read(redis.redis_keys("datasaver:*"))
+        pathvalues = redis.read(redis.redis_keys("paths:*"))
+
+        self.beammap_file = dsvalues['datasaver:beammap']
+        self.dark_file = dsvalues['datasaver:dark']
+        self.dark_template_file = dsvalues['datasaver:dark-template']
+        self.flat_file = dsvalues['datasaver:flat']
+        self.flat_template_file = dsvalues['datasaver:flat-template']
+        self.sci_file = dsvalues['datasaver:sci']
+        self.sci_template_file = dsvalues['datasaver:sci-template']
+        self.data_dir = pathvalues['paths:data-dir']
+        self.fits_folder_name = pathvalues['paths:fits-folder-name']
+        self.logs_folder_name = pathvalues['paths:logs-folder-name']
+        self.template_folder_name = pathvalues['paths:template-folder-name']
+        self.sweep_folder_name = pathvalues['paths:sweep-folder-name']
+        self.config_dir = pathvalues['paths:config-folder-name']

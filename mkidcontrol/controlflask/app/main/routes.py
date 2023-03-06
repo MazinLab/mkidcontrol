@@ -438,7 +438,12 @@ def system():
 def data_paths():
     # TODO: Turn new night & configuration into one page once further stabilized & tested
     # TODO: Add "you must restart the gui if you change the beammap" message
-    pathform = DataPathForm()
+
+    from mkidcontrol.commands import Paths
+
+    paths = Paths(current_app.redis)
+
+    pathform = DataPathForm(**vars(paths))
     ymls_to_copy = ['dashboard.yml', 'hightemplar.yml', 'roaches.yml']
 
     if request.method == "POST":
