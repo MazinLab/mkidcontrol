@@ -136,6 +136,7 @@ if __name__ == "__main__":
     try:
         while True:
             for key, val in redis.listen(COMMAND_KEYS):
+
                 log.debug(f"HeatswitchAgent received {key}, {val}.")
                 key = key.removeprefix('command:')
                 if key in SETTING_KEYS:

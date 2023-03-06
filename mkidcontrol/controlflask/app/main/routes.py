@@ -904,7 +904,6 @@ def command_conex():
 
 @bp.route('/command_heatswtich', methods=['POST'])
 def command_heatswitch():
-    # TODO: Enable/disable heatswitch commands?
     if request.method == "POST":
         to_position = request.values.get("to_position")
     to_position = to_position.lstrip('hs_')
@@ -919,7 +918,7 @@ def command_heatswitch():
     else:
         log.warning(f"Trying to command the heatswitch to an unknown state!")
 
-    msg_success += redis.publish(hs_key, to_position, store=False)
+    msg_success += redis.publish(hs_key, to_position.capitalize(), store=False)
 
     return json.dumps({'success': msg_success})
 
