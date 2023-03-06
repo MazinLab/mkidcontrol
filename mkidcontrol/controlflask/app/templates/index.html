@@ -304,12 +304,6 @@
                         Plotly.restyle(update['id'], {z: [data['z']]});
                         break;
                 }
-                var t = (new Date()).getTime();
-                var date = new Date(t);
-                var utc = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() + ", "+ date.toDateString();
-
-                $("#utc-timestamp").text(utc)
-                $("#unix-timestamp").text(Math.floor(t / 1000))
             }
             if (pixel[0] != -1 && pixel[1] != -1) {
                 Plotly.extendTraces('pixel_lightcurve', {x:[[update['time']]], y:[[data['z'][pixel[1]][pixel[0]]]]}, [0])
@@ -394,6 +388,7 @@
         window.onload = function (){
             console.log('initializing page')
             update_obs_buttons(init_data, true)
+            update_time()
         }
 
         var obsstopsource = new EventSource("/report_obs_status");
@@ -668,6 +663,17 @@
             // setInterval(function() {
             //     div_id.style.backgroundColor = '#bbb'
             // }, timeout)
+        }
+
+        function update_time () {
+            setInterval(function() {
+                var t = (new Date()).getTime();
+                var date = new Date(t);
+                var utc = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() + ", "+ date.toDateString();
+
+                $("#utc-timestamp").text(utc)
+                $("#unix-timestamp").text(Math.floor(t / 1000))
+            }, 1000)
         }
     </script>
 
