@@ -334,6 +334,10 @@ if __name__ == "__main__":
 
     redis.store({OBSERVING_EVENT_KEY: {'name': '', 'state': 'stopped', 'seq_i': 0,
                                        'seq_n': 0, 'start': 0, 'type': 'stare'}}, encode_json=True)
+
+    with open(send_photons_file + '.tmp', 'w') as f:
+        f.write(dashboard_config_file)
+    shutil.move(send_photons_file + '.tmp', send_photons_file)
     try:
         while True:
 
@@ -343,8 +347,8 @@ if __name__ == "__main__":
                 if abort:
                     log.debug(f'Request to stop while nothing in progress.')
                     pm.stopWriting()
-                    if os.path.exists(send_photons_file):
-                        os.remove(send_photons_file)
+                    # if os.path.exists(send_photons_file):
+                    #     os.remove(send_photons_file)
                     continue
 
                 fits_exp_time = FITS_FILE_TIME if limitless else request['duration']
@@ -370,8 +374,8 @@ if __name__ == "__main__":
             else:
                 if abort:
                     pm.stopWriting()  # Stop writing photons, no need to touch the imagecube
-                    if os.path.exists(send_photons_file):
-                        os.remove(send_photons_file)
+                    # if os.path.exists(send_photons_file):
+                    #     os.remove(send_photons_file)
                     limitless = False
                     request['state'] = 'stopped'
                     redis.store({OBSERVING_EVENT_KEY: request}, encode_json=True)
@@ -401,6 +405,7 @@ if __name__ == "__main__":
                 redis.store({OBSERVING_EVENT_KEY: request}, encode_json=True)
                 log.info(f'Observation of {request["type"]} "{request["name"]}", '
                          f'{int(request["seq_i"]) + 1}/{request["seq_n"]} complete')
+                pm.stopWriting()
 
             header_dict = dict(image.header)
 
