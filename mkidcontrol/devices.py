@@ -2802,7 +2802,7 @@ class Conex(SerialDevice):
         """
         Move mirror to new position
 
-        :param pos: [U,V] tuple/list/array position in degrees (Conex truncates these floats at 3 decimal places)
+        :param pos: [x,y] tuple/list/array position in degrees (Conex truncates these floats at 3 decimal places)
         :param blocking: If True, don't return until the move is complete
         :param timeout: error out if it takes too long for move to complete. Ignored if not blocking. Requires
          significant time even though the moves themselves are fast
@@ -2810,9 +2810,9 @@ class Conex(SerialDevice):
         with self._rlock:
             if not self.in_bounds(position=pos):
                 raise ValueError('Target position outside of limits. Aborted move')
-            self.send(f"PAU{pos[0]}")
+            self.send(f"PAU{pos[1]}")
             self.ser.flush()  # wait until the write command finishes sending
-            self.send(f"PAV{pos[1]}")  # Conex can move both axes at once
+            self.send(f"PAV{pos[0]}")  # Conex can move both axes at once
             if blocking:
                 self.ser.flush()
         if blocking:
@@ -2832,7 +2832,7 @@ class Conex(SerialDevice):
     def position(self):
         u_pos = self.query("TPU?")
         v_pos = self.query("TPV?")
-        return (float(u_pos), float(v_pos))
+        return (float(v_pos), float(u_pos))
 
     def in_bounds(self, position:(tuple, list, np.array)=None, u:float=None, v:float=None):
         """
@@ -2846,8 +2846,8 @@ class Conex(SerialDevice):
             if (u is None) or (v is None):
                 raise ValueError(f"Cannot determine position is in bounds without coordinates (either [u,v] or u and v)")
         else:
-            u = position[0]
-            v = position[1]
+            u = position[1]
+            v = position[0]
 
         inbounds = ((self.u_lower_limit <= u <= self.u_upper_limit) and
                     (self.v_lower_limit <= v <= self.v_upper_limit))

@@ -5,7 +5,7 @@ Author: Noah Swimmer
 Agent for controlling the CONEX-AG-M100D Piezo Motor Mirror Mount (https://www.newport.com/p/CONEX-AG-M100D) that serves
 as a tip/tilt mirror for XKID aiding in both alignment and dithering.
 
-Axis syntax is: U -> rotation around the y-axis, V -> rotation around the y-axis
+Axis syntax is: U -> rotation around the y-axis, V -> rotation around the x-axis
 
 Commands sent to conex for dithering/moving are dicts converted to strings via the json.dumps() to conveniently send
 complicated dicts over redis pubsub connections
