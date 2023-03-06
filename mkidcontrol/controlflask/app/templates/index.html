@@ -508,9 +508,11 @@
         }
 
         function command_conex(event, buttonid){
+            var send_request = false;
             if (event.key == "Enter") {
                 var position = document.getElementById('conex_position').value;
                 var send_data = {'cmd': 'move', 'position': position};
+                var send_request = true;
             } else if (buttonid == "dither_start") {
                 var name = document.getElementById('obsName').value
                 var start = document.getElementById('start_pos').value;
@@ -518,25 +520,29 @@
                 var t = document.getElementById('dwell_time').value;
                 var n = document.getElementById('n_steps').value;
                 var send_data = {'cmd': 'dither', 'dither_info': JSON.stringify({'name': name, 'n': n, 't': t, 'start': start, 'stop': stop})};
+                var send_request = true;
             } else if (buttonid == "conex_stop") {
                 var send_data = {'cmd': 'stop'};
+                var send_request = true;
             }
-            $.ajax({
-                    type:'POST',
-                    url: "{{ url_for('main.command_conex') }}",
-                    data: send_data,
-                    success: function(d){
-                        var response = JSON.parse(d);
+            if (send_request === true) {
+                $.ajax({
+                        type:'POST',
+                        url: "{{ url_for('main.command_conex') }}",
+                        data: send_data,
+                        success: function(d){
+                            var response = JSON.parse(d);
 
-                        var status_dot = document.getElementById("conex_status_dot");
-                        if (response['success'] == 1) {
-                            status_dot.style.backgroundColor = "green"
-                        } else {
-                            status_dot.style.backgroundColor = "red"
+                            var status_dot = document.getElementById("conex_status_dot");
+                            if (response['success'] == 1) {
+                                status_dot.style.backgroundColor = "green"
+                            } else {
+                                status_dot.style.backgroundColor = "red"
+                            }
+                            fade_color(status_dot, 5000)
                         }
-                        fade_color(status_dot, 5000)
-                    }
-            })
+                })
+            }
         }
 
         function command_hs(buttonid) {
