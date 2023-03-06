@@ -410,9 +410,9 @@ if __name__ == "__main__":
             header_dict = dict(image.header)
 
             t = 'sum' if request['type'] in ('dwell', 'stare') else request['type']
-            fac = CalFactory(t, images=image, mask=beammap.failmask,
-                             flat=redis.read(ACTIVE_FLAT_FILE_KEY),
-                             dark=redis.read(ACTIVE_DARK_FILE_KEY))
+            fac = CalFactory(t, images=image, mask=beammap.failmask)
+                             # flat=redis.read(ACTIVE_FLAT_FILE_KEY),
+                             # dark=redis.read(ACTIVE_DARK_FILE_KEY))
 
             if request['type'] == 'dark':
                 fn = os.path.join(fits_dir, redis.read(DARK_FILE_TEMPLATE_KEY).format(**header_dict))
