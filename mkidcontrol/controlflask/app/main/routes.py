@@ -650,15 +650,19 @@ def dashplot():
     def _stream():
         event = threading.Event()
         current_app.image_events.add(event)
+        new=True
         try:
             while True:
                 event.wait()
+                event.clear()
                 im = current_app.latest_image
                 params = current_app.array_view_params.copy()
                 current_app.array_view_params['changed'] = False
                 update = {'id': 'dash', 'time': datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
                 # make figure
-                if params['changed']:
+                if params['changed'] or new:
+                    new=False
+                    log.info('Params changed, regenerating full plot')
                     fig = go.Figure()
                     fig.add_heatmap(z=im, showscale=False,
                                     colorscale=[[0, "black"], [0.5, "white"], [0.5, "red"], [1, "red"]],
