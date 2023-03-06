@@ -398,14 +398,13 @@
 
         var obsstopsource = new EventSource("/report_obs_status");
         obsstopsource.addEventListener("message", function(e){
-            update_obs_buttons(e.data)
+            update_obs_buttons(JSON.parse(e.data))
         })
         obsstopsource.addEventListener("open", function (e) {console.log('Receive Obs_dict Connection was opened: ', e);}, false);
         obsstopsource.addEventListener("error", function (e) {console.log("Receive Obs_dict Connection errored out: ", e);}, false);
 
         function update_obs_buttons(data) {
             var to_disable = ["flat", "dark", "dither_start"]
-            console.log(data);
             if (data['state'] == 'started') {
                 var newClass = "btn btn-danger";
                 var newText = "Stop Observing";
@@ -413,7 +412,7 @@
             } else {
                 var newClass = "btn btn-primary";
                 var newText = "Start Observing";
-                var name = "";
+                var name = data['name'];
             }
             for (let i=0; i< to_disable.length; i++) {
                 if (data['state'] == "started"){
