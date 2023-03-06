@@ -864,6 +864,7 @@ def update_array_viewer_params():
 @bp.route('/command_conex', methods=['POST'])
 def command_conex():
     msg_success = 0
+    conex_cmd = ""
 
     if request.method == "POST":
         cmd = request.values.get("cmd")
@@ -894,8 +895,9 @@ def command_conex():
             current_app.redis.store(update_dict)
             msg_success += 1
 
-    msg_success += current_app.redis.publish(f"command:{conex_cmd}", json.dumps(send_dict), store=False)
-    log.debug(f"Commanding conex to {cmd}. Params: {send_dict}")
+    if conex_cmd:
+        msg_success += current_app.redis.publish(f"command:{conex_cmd}", json.dumps(send_dict), store=False)
+        log.debug(f"Commanding conex to {cmd}. Params: {send_dict}")
 
     return json.dumps({'success': msg_success})
 

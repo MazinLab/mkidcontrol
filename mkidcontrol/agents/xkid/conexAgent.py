@@ -233,7 +233,7 @@ class ConexController:
                 except IndexError:
                     pass
         if dith is None:  # check if a dither was popped
-            estTime = datetime.datetime.utcnow().timestamp() + 1  # estimated unix time of when dither will complete
+            estTime = datetime.utcnow().timestamp() + 1  # estimated unix time of when dither will complete
         return {'status': self.cur_status, 'estTime': estTime, 'dither': dith, 'completed': completed}
 
     def stop(self, wait=False):
@@ -445,13 +445,13 @@ class ConexController:
         if self._halt_dither: return None, None  # Stopped or error during move
         self._updateState(f"Dither dwell for {t} seconds")
         # dwell at position
-        startTime = datetime.datetime.utcnow().timestamp()
+        startTime = datetime.utcnow().timestamp()
         obs_dict = {'name': name, 'type': 'dwell',
                        'seq_i': move_num, 'seq_n': seq_len,
                        'duration': t, 'start': startTime}
         self.redis.publish("command:observation-request", json.dumps(obs_dict), store=False)
         dwell_until = startTime + t
-        endTime = datetime.datetime.utcnow().timestamp()
+        endTime = datetime.utcnow().timestamp()
 
         with self._rlock:
             self._update_cur_status(self.status())
@@ -459,7 +459,7 @@ class ConexController:
             # TODO CHECK FOR "OBSERVATION STOPPED"
             sleep = min(polltime, dwell_until - endTime)
             time.sleep(max(sleep, 0))
-            endTime = datetime.datetime.utcnow().timestamp()
+            endTime = datetime.utcnow().timestamp()
         time.sleep(1) # NB Give the observing agent extra time so that you don't start moving before the dwell step ends
         return startTime, endTime
 
@@ -639,8 +639,7 @@ if __name__ == "__main__":
                         cc.do_dither(val)
                         redis.store({STATUS_KEY: "OK"})
                         log.info(f"Started dither with params: {val}")
-                    elif key == STOP_COMMAND_KEY or (key == OBSERVING_EVENT_KEY and val['state'] == "stopped") or \
-                        key == OBSERVING_REQUEST_CHANNEL and val['type'] == "abort":
+                    elif key == STOP_COMMAND_KEY or key == OBSERVING_REQUEST_CHANNEL and val['type'] == "abort":
                         log.debug("Stopping conex")
                         cc.do_halt()
                         redis.store({STATUS_KEY: "OK"})
