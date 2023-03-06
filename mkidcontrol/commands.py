@@ -502,9 +502,9 @@ COMMANDSLASERFLIPPER = {'device-settings:laserflipperduino:laserbox:808:power': 
                         }
 
 FILTERS = {0: 'Closed',
-           1: 'Y',
-           2: 'Zs',
-           3: 'J',
+           1: 'Y (1020 nm)',
+           2: 'Zs (900 nm)',
+           3: 'J (1220 nm)',
            4: '220+125',
            5: '125',
            6: 'Open'}
