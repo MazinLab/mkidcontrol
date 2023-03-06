@@ -494,13 +494,13 @@
                     },
                     success: function(d){
                         var response = JSON.parse(d);
+                        document.getElementById(buttonid).value = response['position']
                         var status_dot = document.getElementById("focus_status_dot");
                         if (response['success'] == 1) {
                             status_dot.style.backgroundColor = "green"
                         } else {
                             status_dot.style.backgroundColor = "red"
                         }
-                        document.getElementById(button_id).value = response['position']
                         fade_color(status_dot, 5000)
                     }
                 })
