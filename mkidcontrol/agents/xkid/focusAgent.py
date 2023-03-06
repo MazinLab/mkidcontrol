@@ -116,7 +116,7 @@ if __name__ == "__main__":
         redis.store({STATUS_KEY: f"Error: {e}"})
         sys.exit(1)
 
-    # f.monitor(QUERY_INTERVAL, (f.position, ), value_callback=callback)
+    f.monitor(QUERY_INTERVAL, (f.position, ), value_callback=callback)
 
     try:
         while True:

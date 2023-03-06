@@ -500,7 +500,7 @@
                         } else {
                             status_dot.style.backgroundColor = "red"
                         }
-                        document.getElementById("focus_position").value = response['position']
+                        document.getElementById(button_id).value = response['position']
                         fade_color(status_dot, 5000)
                     }
                 })
@@ -624,13 +624,13 @@
                     },
                     success: function(d){
                         var response = JSON.parse(d);
+                        flipperpos_id.value = response['position']
                         var status_dot = document.getElementById("flipper_status_dot");
                         if (response['success'] == 1) {
                             status_dot.style.backgroundColor = "green"
                         } else {
                             status_dot.style.backgroundColor = "red"
                         }
-                        flipperpos_id[0].value = response['position']
                         fade_color(status_dot, 5000)
                     }
                 })
@@ -651,12 +651,12 @@
                     success: function(d){
                         var response = JSON.parse(d);
                         var status_dot = document.getElementById("filter_status_dot");
+                        filterpos_id.value = response['filter']
                         if (response['success'] == 1) {
                             status_dot.style.backgroundColor = "green"
                         } else {
                             status_dot.style.backgroundColor = "red"
                         }
-                        filterpos_id[0].value = response['filter']
                         fade_color(status_dot, 5000)
                     }
                 })
