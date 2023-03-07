@@ -419,19 +419,22 @@ class ConexController:
                 log.debug(f'moved to ({x}, {y})')
             except (IOError, SerialException) as e:  # on timeout it raise IOError
                 self._moveRetries += 1
+                # self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
                 log.error('Error on move, retrying', exc_info=True)
-                self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
-
             except:  # I dont think this should happen??
                 self._moveRetries += 1
                 log.error('Unexpected error on move', exc_info=True)
-                self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
-                self._halt_dither = True
-        self._halt_dither = True
+                # self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
             if self._startedMove > 0:
                 with self._rlock:
                     self._update_cur_status(self.status())
                     self._completedMoves += 1
+
+        if self._moveRetries > int(self.redis.read('device-settings:conex:move-retries')):
+            self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
+            self._halt_dither = True
+        else:
+            self._updateState('Idle')
 
     def logdither(self, d):
         state = json.loads(d['status'])['state'][1]
