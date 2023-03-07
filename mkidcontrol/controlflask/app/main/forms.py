@@ -12,15 +12,14 @@ class EmptyForm(FlaskForm):
 
 class DataPathForm(FlaskForm):
     new_night = SubmitField("Create New Night")
-    data_dir = StringField("Base Data Directory")
+    data_dir = StringField("Current Data Directory")
     dark_file = StringField("Active Dark File")
     flat_file = StringField("Active Flat File")
     dark_template_file = StringField("Template Dark File")
     flat_template_file = StringField("Template Flat File")
     sci_template_file = StringField("Template Sci File")
     beammap_file = StringField("Beammap File", render_kw={'disabled': True})
-    config_dir = StringField("Config Folder")
-    update = SubmitField("Update Paths")
+    update_paths = SubmitField("Update Paths")
 
 
 class ConexForm(FlaskForm):

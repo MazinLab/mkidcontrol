@@ -443,30 +443,63 @@ def data_paths():
 
     paths = Paths(current_app.redis)
 
-    pathform = DataPathForm(**vars(paths))
-    ymls_to_copy = ['dashboard.yml', 'hightemplar.yml', 'roaches.yml']
+    ymls_to_copy = ['dashboard.yml', 'hightemplar.yml', 'roach.yml']
+    subdirs = [paths.bin_folder_name, paths.config_folder_name, paths.config_folder_name+'/logs',
+               'data', 'data/phasesnaps', paths.fits_folder_name, paths.logs_folder_name]
+    roaches = ['112', '114', '115', '116', '117', '118', '119', '120', '121', '122']  # TODO : make discoverable via yaml
 
     if request.method == "POST":
-        current_dir = redis.read('paths:data-dir')
-        base_dir = current_app.base_dir
+        if "new_night" in request.form.keys():
+            current_dir = redis.read('paths:data-dir')
+            base_dir = current_app.base_dir
 
-        newdate = datetime.datetime.utcnow().strftime("%Y%m%d")
-        new_night_dir = os.path.join(base_dir, f"ut{newdate}")
-        try:
-            os.mkdir(new_night_dir)
-        except FileExistsError:
-            log.info(f"The directory for the new night ({new_night_dir} already exists!")
+            newdate = (datetime.datetime.utcnow()+datetime.timedelta(hours=12)).strftime("%Y%m%d")
+            new_night_dir = os.path.join(base_dir, f"ut{newdate}")
+            try:
+                os.mkdir(new_night_dir)
+            except FileExistsError:
+                log.info(f"The directory for the new night ({new_night_dir} already exists!")
 
-        for yml in ymls_to_copy:
-            shutil.copy(os.path.join(current_dir, yml), new_night_dir)
+            for subdir in subdirs:
+                try:
+                    os.mkdir(os.path.join(new_night_dir, subdir))
+                except FileExistsError:
+                    log.debug(f"The subdirectory {subdir} already exists in {new_night_dir}!")
 
-        try:
-            redis.store({'paths:data-dir': new_night_dir})
-            redis.store({'gen2-dashboard-yaml': os.path.join(new_night_dir, 'dashboard.yml')})
-        except RedisError as e:
-            log.warning(f"Error communicating with redis! Error: {e}")
+            for roach in roaches:
+                try:
+                    os.mkdir(os.path.join(new_night_dir, 'data/phasesnaps', roach))
+                except FileExistsError:
+                    log.info(f"The phasesnap directory for roach {roach} already exists in {new_night_dir}!")
 
-        print(datetime.datetime.now().strftime("%Y%m%d"))
+                try:
+                    shutil.copy(os.path.join(new_night_dir, 'data/phasesnaps', roach, 'filter_solution_coefficients.npz'), os.path.join(new_night_dir, 'data/phasesnaps', roach))
+                    shutil.copy(os.path.join(new_night_dir, 'data/phasesnaps', roach, 'filter_solution.p'), os.path.join(new_night_dir, 'data/phasesnaps', roach))
+                except:
+                    log.error(f"Unable to copy {os.path.join(new_night_dir, 'data/phasesnaps', roach)} to {os.path.join(new_night_dir, 'data/phasesnaps', roach)}")
+
+            for yml in ymls_to_copy:
+                try:
+                    shutil.copy(os.path.join(current_dir, paths.config_folder_name, yml), os.path.join(new_night_dir, paths.config_folder_name))
+                except:
+                    log.error(f"Unable to copy {os.path.join(current_dir, paths.config_folder_name, yml)} to {os.path.join(new_night_dir, paths.config_folder_name)}")
+
+            try:
+                redis.store({'paths:data-dir': new_night_dir})
+                redis.store({'gen2-dashboard-yaml': os.path.join(new_night_dir, paths.config_folder_name, 'dashboard.yml')})
+            except RedisError as e:
+                log.warning(f"Error communicating with redis! Error: {e}")
+        elif "update" in request.form.keys():
+            # TODO
+            pass
+        else:
+            # Should not be able to get here
+            log.info("Unknown submit action taken for data paths! Taking no action")
+            pass
+
+    paths = Paths(current_app.redis)
+    pathform = DataPathForm(**vars(paths))
+
     return render_template('data_paths.html', title=_('Configuration Paths'), pathform=pathform)
 
 

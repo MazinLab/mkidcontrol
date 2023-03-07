@@ -668,11 +668,9 @@
         function update_time () {
             setInterval(function() {
                 var t = (new Date()).getTime();
-                var date = new Date(t);
-                var utc = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() + ", "+ date.toDateString();
 
-                $("#utc-timestamp").text(utc)
-                $("#unix-timestamp").text(Math.floor(t / 1000))
+                $("#utc-timestamp").text((new Date(t)).toUTCString())
+                $("#unix-timestamp").text(Math.floor(Date.now() / 1000))
             }, 1000)
         }
     </script>

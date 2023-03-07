@@ -83,7 +83,7 @@ def create_app(config_class=Config, cliargs=None):
     app.redis = redis
 
     dashcfg = loadcfg(redis.read('gen2:dashboard-yaml'))
-    app.base_dir = app.config.get ('XKID_BASE_DIR')
+    app.base_dir = app.config.get('XKID_BASE_DIR')
     app.array_view_params = {'int_time': 1, 'min_cts': 0,
                              'max_cts': 2500, 'changed': False}
 

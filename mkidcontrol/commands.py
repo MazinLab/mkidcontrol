@@ -608,4 +608,5 @@ class Paths:
         self.logs_folder_name = pathvalues['paths:logs-folder-name']
         self.template_folder_name = pathvalues['paths:template-folder-name']
         self.sweep_folder_name = pathvalues['paths:sweep-folder-name']
-        self.config_dir = pathvalues['paths:config-folder-name']
+        self.config_folder_name = pathvalues['paths:config-folder-name']
+        self.bin_folder_name = pathvalues['paths:bin-folder-name']
