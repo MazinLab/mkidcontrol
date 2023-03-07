@@ -73,7 +73,6 @@ status:
 device-settings:
   conex:
     enabled: 'Enabled'
-    move-retries: 5
   filterwheel:
     position: 0
     filter: "Closed"

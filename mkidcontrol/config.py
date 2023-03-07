@@ -846,7 +846,6 @@ REDIS_SCHEMA = {'timeseries': {k: REDIS_TS_RETENTION for k in REDIS_TS_KEYS},
                          'device-settings:magnet:soak-time': 3600,  # Always in seconds
                          'device-settings:magnet:soak-current': 9.25,
                          'device-settings:mkidarray:regulating-temp': 0.090,
-                         'device-settings:conex:move-retries': 5
                          }
                 }
 
