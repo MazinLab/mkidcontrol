@@ -798,6 +798,7 @@ def update_laser_powers():
         log.warning(f"Can't communicate with Redis Server! {e}")
         sys.exit(1)
 
+    time.sleep(.5)
     powers = {k: int(float(current_app.redis.read(f"device-settings:laserflipperduino:laserbox:{k}:power"))) for k in
               new_powers.keys()}
 
