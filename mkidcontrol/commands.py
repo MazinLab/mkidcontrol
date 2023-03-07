@@ -572,7 +572,8 @@ COMMANDSMAGNET = {'device-settings:magnet:ramp-rate': {'command': '', 'vals': [0
                   'device-settings:magnet:regulating-temp': {'command': '', 'vals': [0, 4]}}
 
 # COMMANDSCONEX
-COMMANDSCONEX = {'device-settings:conex:enabled': {'command': '', 'vals': {'Enabled': 'Enabled', 'Disabled': 'Disabled'}}}
+COMMANDSCONEX = {'device-settings:conex:enabled': {'command': '', 'vals': {'Enabled': 'Enabled', 'Disabled': 'Disabled'}},
+                 'device-settings:conex:move-retries': {'command': '', 'vals': [0, 10000]}}
 
 
 # ---- Full command dict ----

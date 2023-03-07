@@ -93,6 +93,7 @@ class ConexController:
         self._rlock = threading.RLock()
         self._startedMove = 0  # number of times start_move was called (not dither). Reset in queryMove and start_dither
         self._completedMoves = 0  # number of moves completed (not dither)
+        self._moveRetries = 0
         self.thread_pool = np.asarray([])
         self.redis = redis
 
@@ -352,85 +353,6 @@ class ConexController:
         with self._rlock:
             self._completed_dithers.append(dith)
 
-    # def dither(self, dither_dict):
-    #     """
-    #     INPUTS:
-    #         dither_dict - dictionary with keys:
-    #                     startx: (float) start x loc in conex degrees
-    #                     endx: (float) end x loc
-    #                     starty: (float) start y loc
-    #                     endy: (float) end y loc
-    #                     n: (int) number of steps in square grid
-    #                     t: (float) dwell time in seconds
-    #                     subStep: (float) degrees to offset for subgrid pattern
-    #                     subT: (float) dwell time for subgrid
-    #
-    #                     subStep and subT are optional
-    #
-    #     appends a dictionary to the self._completed_dithers attribute
-    #         keys - same as dither_dict but additionally
-    #                it has keys (xlocs, ylocs, startTimes, endTimes)
-    #
-    #     """
-    #     # Ennabling single direction sweeps
-    #     if dither_dict['startx'] == dither_dict['endx']:
-    #         x_list = np.linspace(dither_dict['startx'], dither_dict['endx'], 1)
-    #     else:
-    #         x_list = np.linspace(dither_dict['startx'], dither_dict['endx'], dither_dict['n'])
-    #     if dither_dict['starty'] == dither_dict['endy']:
-    #         y_list = np.linspace(dither_dict['starty'], dither_dict['endy'], 1)
-    #     else:
-    #         y_list = np.linspace(dither_dict['starty'], dither_dict['endy'], dither_dict['n'])
-    #
-    #     subDither = 'subStep' in dither_dict.keys() and dither_dict['subStep'] > 0 and \
-    #                 'subT' in dither_dict.keys() and dither_dict['subT'] > 0
-    #
-    #     x_locs = []
-    #     y_locs = []
-    #     startTimes = []
-    #     endTimes = []
-    #     for x in x_list:
-    #         for y in y_list:
-    #             startTime, endTime = self._dither_move(x, y, dither_dict['t'])
-    #             if startTime is not None:
-    #                 x_locs.append(json.loads(self.cur_status)['pos'][0])
-    #                 y_locs.append(json.loads(self.cur_status)['pos'][1])
-    #                 startTimes.append(startTime)
-    #                 endTimes.append(endTime)
-    #             if self._halt_dither: break
-    #
-    #             # do sub dither if neccessary
-    #             if subDither:
-    #                 x_sub = [-dither_dict['subStep'], 0, dither_dict['subStep'], 0]
-    #                 y_sub = [0, dither_dict['subStep'], 0, -dither_dict['subStep']]
-    #                 for i in range(len(x_sub)):
-    #                     if self.conex.in_bounds((x + x_sub[i], y + y_sub[i])):
-    #                         startTime, endTime = self._dither_move(x + x_sub[i], y + y_sub[i], dither_dict['subT'])
-    #                         if startTime is not None:
-    #                             x_locs.append(json.loads(self.cur_status)['pos'][0])
-    #                             y_locs.append(json.loads(self.cur_status)['pos'][1])
-    #                             startTimes.append(startTime)
-    #                             endTimes.append(endTime)
-    #                     if self._halt_dither: break
-    #             if self._halt_dither: break
-    #         if self._halt_dither: break
-    #
-    #     # Dither has completed (or was stopped prematurely)
-    #     if not self._halt_dither:  # no errors and not stopped
-    #         self.move(*self._preDitherPos)
-    #         with self._rlock:
-    #             if not self._halt_dither:  # still no errors nor stopped
-    #                 self._updateState("Idle")
-    #             self._update_cur_status(self.status())
-    #
-    #     dith = dither_dict.copy()
-    #     dith['xlocs'] = x_locs  # could be empty if errored out or stopped too soon
-    #     dith['ylocs'] = y_locs
-    #     dith['startTimes'] = startTimes
-    #     dith['endTimes'] = endTimes
-    #     with self._rlock:
-    #         self._completed_dithers.append(dith)
-
     def _dither_move(self, x, y, t, name, move_num, seq_len):
         """
             Helper function for dither()
@@ -485,27 +407,33 @@ class ConexController:
         """
         x = float(x)
         y = float(y)
+
+        self._moveRetries = 0
         self._updateState(f'Moving to {x}, {y}')
-        try:
-            self.conex.move((x, y), blocking=True)  # block until conex is done moving (or stopped)
+
+        while self._moveRetries <= int(self.redis.read('device-settings:conex:move-retries')):
+            try:
+                self.conex.move((x, y), blocking=True)  # block until conex is done moving (or stopped)
+                if self._startedMove > 0:
+                    self._updateState('Idle')
+                log.debug(f'moved to ({x}, {y})')
+            except (IOError, SerialException) as e:  # on timeout it raise IOError
+                self._moveRetries += 1
+                log.error('Error on move, retrying', exc_info=True)
+                self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
+
+            except:  # I dont think this should happen??
+                self._moveRetries += 1
+                log.error('Unexpected error on move', exc_info=True)
+                self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
+                self._halt_dither = True
+        self._halt_dither = True
             if self._startedMove > 0:
-                self._updateState('Idle')
-            log.debug(f'moved to ({x}, {y})')
-        except (IOError, SerialException) as e:  # on timeout it raise IOError
-            self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
-            self._halt_dither = True
-            log.error('Error on move', exc_info=True)
-        except:  # I dont think this should happen??
-            self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
-            self._halt_dither = True
-            log.error('Unexpected error on move', exc_info=True)
-        if self._startedMove > 0:
-            with self._rlock:
-                self._update_cur_status(self.status())
-                self._completedMoves += 1
+                with self._rlock:
+                    self._update_cur_status(self.status())
+                    self._completedMoves += 1
 
     def logdither(self, d):
-        print("LOGGING DITHER!!")
         state = json.loads(d['status'])['state'][1]
         if state == 'Stopped':
             log.error("Dither aborted early by user STOP. Conex Status=" + str(json.loads(d['status'])['conexstatus']))
