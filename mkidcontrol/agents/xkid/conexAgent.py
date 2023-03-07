@@ -429,6 +429,8 @@ class ConexController:
                 with self._rlock:
                     self._update_cur_status(self.status())
                     self._completedMoves += 1
+                    break
+
 
         if self._moveRetries > int(self.redis.read('device-settings:conex:move-retries')):
             self._updateState(f'Error: move to {x:.2f}, {y:.2f} failed')
