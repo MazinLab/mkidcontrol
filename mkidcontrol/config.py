@@ -44,7 +44,8 @@ REDIS_STATUS_KEYS = ('status:device:heatswitch:position',
                      "tcs:ra",
                      "tcs:dec",
                      "tcs:el",
-                     "tcs:az")
+                     "tcs:az",
+                     "command:event:observing")
 
 FLASK_CHART_KEYS = {'Device T': 'status:temps:device-stage:temp',
                     'Device R': 'status:temps:device-stage:resistance',

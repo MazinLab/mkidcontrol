@@ -42,6 +42,8 @@
                 update_div("dec", "tcs:dec", newdata)
                 update_div("el", "tcs:el", newdata)
                 update_div("az", "tcs:az", newdata)
+                update_div("seq_i", "command:event:observing", newdata)
+                update_div("seq_n", "command:event:observing", newdata)
                 update_service_div("LS336Service", "lakeshore336.service", newdata);
                 update_service_div("LS372Service", "lakeshore372.service", newdata);
                 update_service_div("LS625Service", "lakeshore625.service", newdata);
@@ -62,10 +64,10 @@
 
         function update_div(div, key, sentdata, ts=false) {
             var data = sentdata[key];
-            // console.log(key, data)
+            // console.log(key, div)
             if (ts) {
                 var time = data[2];
-                if (key == 'status:device:heatswitch:motor:position'){
+                if (key == 'status:device:heatswitch:motor:position') {
                     var value = Number(data[1]).toFixed(0);
                 } else {
                     var value = Number(data[1]).toFixed(3);
@@ -74,6 +76,14 @@
                 if (key == "status:device:conex:controller-state") {
                     var data = JSON.parse(data);
                     var value = data[1];
+                } else if (key == "command:event:observing") {
+                    var data = JSON.parse(data);
+                    console.log(data);
+                    if (div == "seq_i") {
+                        var value = data[div] + 1
+                    } else if (div == "seq_n") {
+                        var value = data[div]
+                    }
                 } else {
                     var value = data;
                 }
