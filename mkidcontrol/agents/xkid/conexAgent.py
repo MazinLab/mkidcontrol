@@ -307,14 +307,19 @@ class ConexController:
                     'subT' in dither_dict.keys() and dither_dict['subT'] > 0
 
         x_locs = []
+        x_locs_reported = []
         y_locs = []
+        y_locs_reported = []
         startTimes = []
         endTimes = []
         for i, p in enumerate(points):
+            # TODO: DEBUG WHY Reported values are not the same as target values
             startTime, endTime = self._dither_move(p[0], p[1], dither_dict['t'], dither_dict['name'], i, len_dith)
             if startTime is not None:
-                x_locs.append(json.loads(self.cur_status)['pos'][0])
-                y_locs.append(json.loads(self.cur_status)['pos'][1])
+                x_locs_reported.append(json.loads(self.cur_status)['pos'][0])
+                y_locs_reported.append(json.loads(self.cur_status)['pos'][1])
+                x_locs.append(p[0])
+                y_locs.append(p[1])
                 startTimes.append(startTime)
                 endTimes.append(endTime)
             if self._halt_dither: break
@@ -344,7 +349,9 @@ class ConexController:
 
         dith = dither_dict.copy()
         dith['xlocs'] = x_locs  # could be empty if errored out or stopped too soon
+        dith['xlocs_reported'] = x_locs_reported  # could be empty if errored out or stopped too soon
         dith['ylocs'] = y_locs
+        dith['ylocs_reported'] = y_locs_reported
         dith['startTimes'] = startTimes
         dith['endTimes'] = endTimes
 
@@ -439,7 +446,9 @@ class ConexController:
         if 'subStep' in dither_dict.keys() and dither_dict['subStep'] > 0 and \
             'subT' in dither_dict.keys() and dither_dict['subT'] > 0:
             msg = msg + " +/-{} for {} seconds".format(dither_dict['subStep'], dither_dict['subT'])
-        msg = msg + f"\n\tstarts={dither_dict['startTimes']}\n\tends={dither_dict['endTimes']}\n\tpath={list(zip(dither_dict['xlocs'], dither_dict['ylocs']))}\n"
+        msg = msg + f"\n\tstarts={dither_dict['startTimes']}\n\tends={dither_dict['endTimes']}\n\t" \
+                    f"path={list(zip(dither_dict['xlocs'], dither_dict['ylocs']))}\n\t" \
+                    f"reported_path={list(zip(dither_dict['xlocs_reported'], dither_dict['ylocs_reported']))}"
         getLogger('dither').info(msg)
 
 
