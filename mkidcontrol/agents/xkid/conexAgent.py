@@ -439,9 +439,7 @@ class ConexController:
         if 'subStep' in dither_dict.keys() and dither_dict['subStep'] > 0 and \
             'subT' in dither_dict.keys() and dither_dict['subT'] > 0:
             msg = msg + " +/-{} for {} seconds".format(dither_dict['subStep'], dither_dict['subT'])
-        msg = msg + "\n\tstarts={}\n\tends={}\n\tpath={}\n".format(dither_dict['startTimes'],
-                                                                   dither_dict['endTimes'],
-                                                                   zip(dither_dict['xlocs'], dither_dict['ylocs']))
+        msg = msg + f"\n\tstarts={dither_dict['startTimes']}\n\tends={dither_dict['endTimes']}\n\tpath={list(zip(dither_dict['xlocs'], dither_dict['ylocs']))}\n"
         getLogger('dither').info(msg)
 
 
