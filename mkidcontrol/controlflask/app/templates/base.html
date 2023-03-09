@@ -103,9 +103,9 @@
             $("#"+div).text(data)
         }
 
-        function update_plot(div, key, sentdata, trace=0) {
+        function update_plot(div, key, timestamp, sentdata, trace=0) {
             var data = sentdata[key];
-            var time = data[2];
+            var time = timestamp;
             var value = data[1];
             // TODO: Plotly.react
             Plotly.extendTraces(div, {x:[[time]], y:[[value]]}, [trace])

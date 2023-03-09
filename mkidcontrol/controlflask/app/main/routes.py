@@ -703,7 +703,7 @@ def dashplot():
                 im = current_app.latest_image
                 params = current_app.array_view_params.copy()
                 current_app.array_view_params['changed'] = False
-                update = {'id': 'dash', 'time': datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
+                update = {'id': 'dash', 'time': datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S")[:-4]}
                 # make figure
                 if params['changed'] or new:
                     new=False

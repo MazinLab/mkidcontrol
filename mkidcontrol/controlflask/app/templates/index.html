@@ -348,9 +348,10 @@
         var source = new EventSource("/listener");
         source.addEventListener("message", function (e) {
             var newdata = JSON.parse(e.data);
+            var timestamp = newdata['utc-timestamp'];
 
             for (let j=0; j<rediskeys.length; j++) {
-                update_plot("indexplot", rediskeys[j], newdata, j);
+                update_plot("indexplot", rediskeys[j], timestamp, newdata, j);
             }
         }, false);
         source.addEventListener("open", function (e) {console.log('Connection was opened: ', e);}, false);
