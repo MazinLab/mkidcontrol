@@ -35,6 +35,12 @@
                                 {{ render_field(conex.dither_start, class = "btn btn-dark", onclick="command_conex(event, this.id)" ) }}
                             </div>
                         </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 py-2">
+                            <div class="px-1 w-10">Observing Sequence Number: </div><div class="px-1" id="seq_i"></div><div>/</div><div class="px-1" id="seq_n"></div> <div>(</div><div class="px-1" id="obs_state"></div><div>)</div>
+                        </div>
+                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 py-2 border-bottom">
+                            <div class="px-1 w-10">Last .bin file written: </div><div class="px-1" id="latest_bin"></div>
+                        </div>
                         <div class="d-flex justify-content-center flex-wrap flex-md-nowrap py-1 border-bottom">
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
                                 <span class="dot" id="filter_status_dot"></span>
@@ -90,9 +96,6 @@
                             <div class="d-flex justify-content-center flex-wrap flex-md-nowrap px-2 py-1 mb-1">
                                 {{ render_field(laserbox.all_lasers_off, onclick="update_lasers(event, this.id)", class='btn btn-danger') }}
                             </div>
-                        </div>
-                        <div class="d-flex justify-content-center flex-wrap flex-md-nowrap mb-3 py-2 border-bottom">
-                            <div class="px-1 w-10">Observing Sequence Number: </div><div class="px-1" id="seq_i"></div><div>/</div><div class="px-1" id="seq_n"></div> <div>(</div><div class="px-1" id="obs_state"></div><div>)</div>
                         </div>
                     </div>
 

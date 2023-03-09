@@ -27,6 +27,7 @@ import plotly
 from datetime import timedelta
 import datetime
 import json
+import glob
 from rq.job import Job, NoSuchJobError
 import select
 
@@ -43,7 +44,7 @@ from mkidcontrol.config import FLASK_KEYS, REDIS_TS_KEYS, FLASK_CHART_KEYS
 
 from mkidcontrol.controlflask.app.main.forms import *
 
-from mkidcontrol.agents.xkid.observingAgent import OBSERVING_EVENT_KEY
+from mkidcontrol.agents.xkid.observingAgent import OBSERVING_EVENT_KEY, DATA_DIR_KEY
 from mkidcontrol.agents.xkid.conexAgent import CONEX_REF_X_KEY, CONEX_REF_Y_KEY, PIXEL_REF_X_KEY, PIXEL_REF_Y_KEY
 
 # TODO: ObsLog, ditherlog, dashboardlog
@@ -549,6 +550,11 @@ def listener():
                         s.update({k: 'Failed'})
                 else:
                     s.update({k: 'Disabled'})
+
+            last_bin_file = max(glob.glob(os.path.join(current_app.redis.read(DATA_DIR_KEY), current_app.redis.read("paths:bin-folder-name"), '*.bin')), key=os.path.getctime)
+            last_bin_file = last_bin_file.split("/")[-1] + f" ({int(os.stat(last_bin_file).st_size/(1024*1024))} MB)"
+
+            x.update({'latest-bin-file': last_bin_file})
 
             x.update(s)
             x["tcs:ra"] = degrees_to_sexigesimal(x['tcs:ra'])
