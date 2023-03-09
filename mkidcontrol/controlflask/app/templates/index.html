@@ -394,7 +394,7 @@
         window.onload = function (){
             console.log('initializing page')
             update_obs_buttons(init_data, true)
-            update_time()
+            // update_time()
         }
 
         var obsstopsource = new EventSource("/report_obs_status");
@@ -671,14 +671,14 @@
             // }, timeout)
         }
 
-        function update_time () {
-            setInterval(function() {
-                var t = (new Date()).getTime();
-
-                $("#utc-timestamp").text((new Date(t)).toUTCString())
-                $("#unix-timestamp").text(Math.floor(Date.now() / 1000))
-            }, 1000)
-        }
+        // function update_time () {
+        //     setInterval(function() {
+        //         var t = (new Date()).getTime();
+        //
+        //         $("#utc-timestamp").text((new Date(t)).toUTCString())
+        //         $("#unix-timestamp").text(Math.floor(Date.now() / 1000))
+        //     }, 1000)
+        // }
     </script>
 
 {% endblock %}

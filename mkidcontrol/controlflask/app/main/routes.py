@@ -25,7 +25,6 @@ from ..api.errors import bad_request
 import time
 import plotly
 from datetime import timedelta
-import datetime
 import json
 import glob
 from rq.job import Job, NoSuchJobError
@@ -76,7 +75,7 @@ def guess_language(x):
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
-        current_user.last_seen = datetime.datetime.utcnow()
+        current_user.last_seen = datetime.utcnow()
         db.session.commit()
     g.locale = str(get_locale())
     g.redis = current_app.redis
@@ -124,9 +123,9 @@ def index():
                 current_app.redis.read('device-settings:magnet:cooldown-scheduled').lower() == "yes") else False
     if cooldown_scheduled:
         cooldown_time = float(current_app.redis.read('device-settings:magnet:cooldown-scheduled:timestamp'))
-        cooldown_time = datetime.datetime.fromtimestamp(cooldown_time).strptime('%Y-%m-%dT%H:%M')
+        cooldown_time = datetime.fromtimestamp(cooldown_time).strptime('%Y-%m-%dT%H:%M')
     else:
-        cooldown_time = (datetime.date.today() + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
+        cooldown_time = (datetime.today().date() + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
 
     form = FlaskForm()
 
@@ -454,7 +453,7 @@ def data_paths():
             current_dir = redis.read('paths:data-dir')
             base_dir = current_app.base_dir
 
-            newdate = (datetime.datetime.utcnow()+datetime.timedelta(hours=12)).strftime("%Y%m%d")
+            newdate = (datetime.utcnow()+datetime.timedelta(hours=12)).strftime("%Y%m%d")
             new_night_dir = os.path.join(base_dir, f"ut{newdate}")
             try:
                 os.mkdir(new_night_dir)
@@ -554,6 +553,8 @@ def listener():
             last_bin_file = max(glob.glob(os.path.join(current_app.redis.read(DATA_DIR_KEY), current_app.redis.read("paths:bin-folder-name"), '*.bin')), key=os.path.getctime)
             last_bin_file = last_bin_file.split("/")[-1] + f" ({int(os.stat(last_bin_file).st_size/(1024*1024))} MB)"
 
+            x.update({'unix-timestamp': int(datetime.utcnow().timestamp())})
+            x.update({'utc-timestamp': datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S")})
             x.update({'latest-bin-file': last_bin_file})
 
             x.update(s)
@@ -621,10 +622,10 @@ def pixel_lightcurve(init=True, time=None, cts=None, pix_x=-1, pix_y=-1):
 
 def create_fig(name):
     since = None
-    first_tval = int((datetime.datetime.now() - timedelta(hours=5)).timestamp() * 1000) if not since else since
+    first_tval = int((datetime.now() - timedelta(hours=5)).timestamp() * 1000) if not since else since
     timestream = np.array(current_app.redis.mkr_range(FLASK_CHART_KEYS[name], f"{first_tval}"))
     if timestream[0][0] is not None:
-        times = [datetime.datetime.fromtimestamp(t / 1000).strftime("%m/%d/%Y %H:%M:%S") for t in timestream[:, 0]]
+        times = [datetime.fromtimestamp(t / 1000).strftime("%m/%d/%Y %H:%M:%S") for t in timestream[:, 0]]
         vals = list(timestream[:, 1])
     else:
         times = [None]
@@ -638,14 +639,14 @@ def create_fig(name):
 
 def multi_sensor_fig(titles):
     since = None
-    first_tval = int((datetime.datetime.now() - timedelta(hours=0.5)).timestamp() * 1000) if not since else since
+    first_tval = int((datetime.now() - timedelta(hours=0.5)).timestamp() * 1000) if not since else since
     keys = [FLASK_CHART_KEYS[title] for title in titles]
 
     timestreams = [np.array(current_app.redis.mkr_range(key, f"{first_tval}")) for key in keys]
     times = []
     for ts in timestreams:
         if ts[0][0] is not None:
-            times.append([datetime.datetime.fromtimestamp(t / 1000).strftime("%m/%d/%Y %H:%M:%S") for t in ts[:, 0]])
+            times.append([datetime.fromtimestamp(t / 1000).strftime("%m/%d/%Y %H:%M:%S") for t in ts[:, 0]])
         else:
             times.append([None])
     vals = [list(ts[:, 1]) for ts in timestreams]
@@ -702,7 +703,7 @@ def dashplot():
                 im = current_app.latest_image
                 params = current_app.array_view_params.copy()
                 current_app.array_view_params['changed'] = False
-                update = {'id': 'dash', 'time': datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
+                update = {'id': 'dash', 'time': datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")[:-4]}
                 # make figure
                 if params['changed'] or new:
                     new=False
@@ -738,7 +739,7 @@ def send_obs_dict(startstop):
             log.error(f"Cannot start an observation without a name!!")
         obs_type = request.values.get("type").lower()
         duration = float(request.values.get("duration"))
-        start = datetime.datetime.utcnow().timestamp()
+        start = datetime.utcnow().timestamp()
         seq_i = int(request.values.get("seq_i"))
         seq_n = int(request.values.get("seq_n"))
         if obs_type != "abort":
@@ -986,7 +987,7 @@ def command_magnet():
         at = "now"
     elif cmd == "schedule_cycle":
         magnet_command = "command:be-cold-at"
-        at = datetime.datetime.strptime(at, '%Y-%m-%dT%H:%M').timestamp()
+        at = datetime.strptime(at, '%Y-%m-%dT%H:%M').timestamp()
     elif cmd == "cancel_scheduled_cycle":
         magnet_command = "command:cancel-scheduled-cycle"
         at = "now"
