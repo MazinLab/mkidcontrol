@@ -453,7 +453,7 @@ def data_paths():
             current_dir = redis.read('paths:data-dir')
             base_dir = current_app.base_dir
 
-            newdate = (datetime.utcnow()+datetime.timedelta(hours=12)).strftime("%Y%m%d")
+            newdate = (datetime.utcnow()+timedelta(hours=12)).strftime("%Y%m%d")
             new_night_dir = os.path.join(base_dir, f"ut{newdate}")
             try:
                 os.mkdir(new_night_dir)
