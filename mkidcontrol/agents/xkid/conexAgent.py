@@ -316,10 +316,10 @@ class ConexController:
             # TODO: DEBUG WHY Reported values are not the same as target values
             startTime, endTime = self._dither_move(p[0], p[1], dither_dict['t'], dither_dict['name'], i, len_dith)
             if startTime is not None:
-                x_locs_reported.append(json.loads(self.cur_status)['pos'][0])
-                y_locs_reported.append(json.loads(self.cur_status)['pos'][1])
                 x_locs.append(p[0])
                 y_locs.append(p[1])
+                x_locs_reported.append(json.loads(self.cur_status)['pos'][0])
+                y_locs_reported.append(json.loads(self.cur_status)['pos'][1])
                 startTimes.append(startTime)
                 endTimes.append(endTime)
             if self._halt_dither: break
