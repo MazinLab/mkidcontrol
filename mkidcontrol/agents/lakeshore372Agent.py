@@ -120,7 +120,7 @@ def initializer(device):
 
 def callback(temps, ress, exs, ov):
     vals = temps + ress + exs + [ov]
-    keys = TEMPERATURE_KEYS + RESISTANCE_KEYS + EXCITATION_POWER_KEYS + [OUTPUT_VOLTAGE_KEY]
+    keys = TEMPERATURE_KEYS + RESISTANCE_KEYS + EXCITATION_POWER_KEYS + (OUTPUT_VOLTAGE_KEY, )
 
     d = {k: x for k, x in zip(keys, vals)}
     try:
