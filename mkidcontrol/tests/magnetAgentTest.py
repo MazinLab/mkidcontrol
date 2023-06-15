@@ -4,6 +4,14 @@ Author: Noah Swimmer
 
 Program for controlling the magnet. The magnet controller itself is a statemachine but requires no instruments to run.
 It will run even with no lakeshore/heatswitch/etc., although it will not allow anything to actually happen.
+
+TODO: Test
+
+TODO: Incorporate State
+
+TODO: Can a thread be started by a function called from a Timer thread?
+
+TODO: Continued cleanup and transfer to magnetAgent.py
 """
 
 import sys
