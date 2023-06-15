@@ -133,15 +133,6 @@ class MagnetController:
         time_to_cool = ((soak_current - current_current) / ramp_rate) + soak_time + (
             (0 - soak_current) / deramp_rate)
 
-        # time_to_cool = 0
-        # if current_state in ('ramping', 'off', 'hs_closing', 'start_ramping'):
-        #     time_to_cool = ((soak_current - current_current) / ramp_rate) + soak_time + (
-        #         (0 - soak_current) / deramp_rate)
-        # if current_state in ('soaking', 'hs_opening'):
-        #     time_to_cool = (time.time() - self.state_entry_time['soaking']) + ((0 - soak_current) / deramp_rate)
-        # if current_state in ('cooling', 'deramping', 'start_cooling', 'start_deramping'):
-        #     time_to_cool = -1 * current_current / deramp_rate
-
         return timedelta(seconds=time_to_cool)
 
     def schedule_cooldown(self, time):
@@ -247,156 +238,11 @@ class MagnetController:
         except RedisError:
             pass
 
-    def current_off(self):
-        try:
-            # return redis.read('device-settings:ls625:control-mode') == "Sum" and \
-            #        float(redis.read('device-settings:ls625:desired-current')) == 0.0 and \
-            #        abs(float(redis.read(MAGNET_CURRENT_KEY)[1])) <= 0.005
-            return float(redis.read('device-settings:ls625:desired-current')) == 0.0 and \
-                abs(float(redis.read(MAGNET_CURRENT_KEY)[1])) <= 0.005
-        except IOError:
-            return False
-
-    def heatswitch_closed(self):
-        """return true iff heatswitch is closed"""
-        try:
-            return heatswitch.is_closed()
-        except RedisError:
-            return False
-
-    def heatswitch_opened(self):
-        """return true iff heatswitch is closed"""
-        try:
-            return heatswitch.is_opened()
-        except RedisError:
-            return False
-
-    def ls372_to_pid(self):
-        try:
-            ls372.to_pid_output()
-        except RedisError:
-            pass
-
-    def ls372_to_no_output(self):
-        try:
-            ls372.to_no_output()
-        except RedisError:
-            pass
-
-    def ls372_in_pid(self):
-        try:
-            return ls372.in_pid_output()
-        except RedisError:
-            return False
-
-    def ls372_in_no_output(self):
-        try:
-            return ls372.in_no_output()
-        except RedisError:
-            return False
-
-    def begin_ramp_up(self):
-        soak_current = None
-        try:
-            soak_current = abs(float(redis.read(SOAK_CURRENT_KEY)))
-        except RedisError:
-            log.warning(f"Unable to pull {SOAK_CURRENT_KEY}, using default value of {self.MAX_CURRENT}")
-
-        try:
-            if soak_current:
-                ls625.start_ramp_up(soak_current)
-            else:
-                ls625.start_ramp_up()
-        except Exception:
-            log.warning(f"Cycle could not be started! {e}")
-
-    def begin_ramp_down(self):
-        try:
-            ls625.start_ramp_down(0)
-        except Exception as e:
-            log.warning(f"Ramp down could not be started! {e}")
-
-    def ramp_ok(self):
-        currents = self.last_5_currents
-        steps = np.diff(currents)
-        if np.sum(steps > 0) >= 3:
-            return True
-        elif currents[-1] >= currents[-2]:
-            return True
-        else:
-            return False
-
-    def deramp_ok(self):
-        currents = self.last_5_currents
-        steps = np.diff(currents)
-        if np.all(steps <= 0):
-            return True
-        elif np.sum(steps) >= 3:
-            return True
-        elif currents[-1] <= currents[-2]:
-            return True
-        else:
-            return False
-
-    def soak_time_expired(self):
-        try:
-            return (time.time() - self.state_entry_time['soaking']) >= (float(redis.read(SOAK_TIME_KEY)) * 60)
-        except RedisError:
-            return False
-
-    def current_ready_to_soak(self):
-        try:
-            current = float(redis.read(MAGNET_CURRENT_KEY)[1])
-            soak_current = float(redis.read(SOAK_CURRENT_KEY))
-            diff = (current - soak_current) / soak_current
-            return abs(diff) <= 0.04 or (current >= soak_current)
-        except RedisError:
-            return False
-
-    def current_at_soak(self):
-        try:
-            current = float(redis.read(MAGNET_CURRENT_KEY)[1])
-            soak_current = float(redis.read(SOAK_CURRENT_KEY))
-            diff = (current - soak_current) / soak_current
-            return abs(diff) <= 0.04 or (current >= soak_current)
-        except RedisError:
-            return False
-
-    def device_ready_for_regulate(self):
-        try:
-            return float(redis.read(DEVICE_TEMP_KEY)[1]) <= float(redis.read(REGULATION_TEMP_KEY))
-        except RedisError:
-            return False
-
-    def device_regulatable(self):
-        """
-        Return True if the device is at a temperature at which the PID loop can regulate it
-
-        NOTE: enforce_upper_limit is controlled by an ENGINEERING KEY that must be changed DIRECTLY IN REDIS. It cannot
-         be commanded and must be manually changed
-        """
-        enforce_upper_limit = redis.read(IMPOSE_UPPER_LIMIT_ON_REGULATION_KEY)
-        if enforce_upper_limit == "on":
-            try:
-                return float(redis.read(DEVICE_TEMP_KEY)[1]) <= MAX_REGULATE_TEMP
-            except RedisError:
-                return False
-        else:
-            return True
-
     def is_off(self):
         current = ls625.lakeshore_current()
         if current <= 0.010:
             return True
         else:
-            return False
-
-    def kill_current(self):
-        """Kill the current if possible, return False if fail"""
-        try:
-            ls625.kill_current()
-            return True
-        except IOError:
             return False
 
     def deramp(self):
