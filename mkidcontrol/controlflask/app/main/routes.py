@@ -55,6 +55,8 @@ from mkidcontrol.agents.xkid.conexAgent import CONEX_REF_X_KEY, CONEX_REF_Y_KEY,
 
 # TODO: Command handling
 
+# TODO: Grey out widgets when serial devices not connected?
+
 # TODO: Form submission only changes changed values (e.g. don't change Curve No. = 8 -> Curve No. = 8)
 
 # TODO: MUST TEST FOR CONCURRENCY ISSUES (Controlling the instrument from multiple tabs, does it work, does it stay in

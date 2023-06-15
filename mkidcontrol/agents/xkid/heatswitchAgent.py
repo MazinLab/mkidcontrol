@@ -16,6 +16,9 @@ Note: Documentation for zaber python library exists at https://www.zaber.com/sof
 Command syntax exists at (lower level comms): https://www.zaber.com/documents/ZaberT-SeriesProductsUsersManual2.xx.pdfa
 
 TODO: Use async movement calls for heatswitch?
+
+TODO: This program can behave strangely if the heatswitch motor was moved while the program was running AND CAN ACT IN
+ SUCH A WAY THAT IT MAY CAUSE PHYSICAL DAMAGE TO THE HEAT SWITCH MECHANISM. More checks should be made on 'actual' vs 'last recorded' position
 """
 
 import sys
