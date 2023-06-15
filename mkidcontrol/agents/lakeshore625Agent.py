@@ -86,6 +86,7 @@ def start_ramp_up(current=None):
         redis.publish(f"command:{RAMP_RATE_KEY}", ramp_rate, store=False)
         if current is None:
             current = float(redis.read(SOAK_CURRENT_KEY))
+        current = min(current, 9.44)
         log.debug(f"Current {current}")
         redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
     except RedisError as e:
@@ -99,6 +100,7 @@ def start_ramp_down(current=None):
         redis.publish(f"command:{RAMP_RATE_KEY}", abs(deramp_rate), store=False)
         if current is None:
             current = 0
+        current = max(current, 0)
         redis.publish(f"command:{DESIRED_CURRENT_KEY}", current, store=False)
     except RedisError as e:
         log.warning(f"Could not communicate with redis to start deramping magnet with LS625: {e}")
