@@ -92,7 +92,8 @@
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                         <a class="dropdown-item" href="{{ url_for('main.conex_normalization') }}">Conex Normalization</a>
                         <a class="dropdown-item" href="{{ url_for('main.log_viewer') }}">Log Viewer</a>
-                        <a class="dropdown-item" href="http://xkid.lco.cl:8081" target="_blank" rel="noopener noreferrer">Redis</a>
+<!--                        For the redis commander webpage, http://localhost:8081 should always work. At LCO, http://xkid.lco.cl:8081 is preferred. I do not know how to make this dynamic at this time -->
+                        <a class="dropdown-item" href="http://localhost:8081" target="_blank" rel="noopener noreferrer">Redis</a>
                         <a class="dropdown-item" href="{{ url_for('main.services') }}">Services</a>
                     </div>
                     </li>
